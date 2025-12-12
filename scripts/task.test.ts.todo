@@ -1,0 +1,100 @@
+/**
+ * Unit tests for task type definitions and helper functions
+ */
+import { describe, it, expect } from '@jest/globals'
+import { createTaskManifest, type TaskStatus } from '../task'
+
+describe('Task Types', () => {
+  describe('TaskStatus', () => {
+    it('should include backlog status', () => {
+      const validStatuses: TaskStatus[] = [
+        'backlog',
+        'queued',
+        'awaiting_agent',
+        'running',
+        'paused',
+        'cancelled',
+        'needs_review',
+        'rejected',
+        'completed',
+        'failed'
+      ]
+
+      // This test verifies that all expected statuses are valid
+      validStatuses.forEach((status) => {
+        expect(status).toBeTruthy()
+      })
+    })
+
+    it('should allow backlog as a valid status in task lifecycle', () => {
+      // Test that backlog status can be assigned
+      const status: TaskStatus = 'backlog'
+      expect(status).toBe('backlog')
+    })
+  })
+
+  describe('createTaskManifest', () => {
+    it('should create a task with default queued status', () => {
+      const task = createTaskManifest('task_1', 'Test prompt', 'project_1')
+      expect(task.status).toBe('queued')
+    })
+
+    it('should allow creating a task with backlog status', () => {
+      const task = createTaskManifest('task_1', 'Test prompt', 'project_1', {
+        status: 'backlog'
+      })
+      expect(task.status).toBe('backlog')
+    })
+
+    it('should create a task with all required fields', () => {
+      const task = createTaskManifest('task_1', 'Test prompt', 'project_1')
+
+      expect(task.id).toBe('task_1')
+      expect(task.prompt).toBe('Test prompt')
+      expect(task.projectId).toBe('project_1')
+      expect(task.status).toBe('queued')
+      expect(task.tagIds).toEqual([])
+      expect(task.currentIteration).toBe(1)
+      expect(task.iterations).toEqual([])
+      expect(task.runtimeMs).toBe(0)
+    })
+
+    it('should allow overriding default values', () => {
+      const task = createTaskManifest('task_1', 'Test prompt', 'project_1', {
+        status: 'backlog',
+        tagIds: ['tag1', 'tag2'],
+        enabledSkills: ['skill1']
+      })
+
+      expect(task.status).toBe('backlog')
+      expect(task.tagIds).toEqual(['tag1', 'tag2'])
+      expect(task.enabledSkills).toEqual(['skill1'])
+    })
+  })
+
+  describe('Backlog Status Transitions', () => {
+    it('should support backlog to queued transition', () => {
+      const task = createTaskManifest('task_1', 'Test prompt', 'project_1', {
+        status: 'backlog'
+      })
+
+      expect(task.status).toBe('backlog')
+
+      // Simulate status change (would be done by updateTask in real app)
+      const updatedTask = { ...task, status: 'queued' as TaskStatus }
+      expect(updatedTask.status).toBe('queued')
+    })
+
+    it('should support queued to backlog transition', () => {
+      const task = createTaskManifest('task_1', 'Test prompt', 'project_1', {
+        status: 'queued'
+      })
+
+      expect(task.status).toBe('queued')
+
+      // Simulate shelving the task
+      const updatedTask = { ...task, status: 'backlog' as TaskStatus }
+      expect(updatedTask.status).toBe('backlog')
+    })
+  })
+})

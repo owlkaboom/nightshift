@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Walkthrough Debug</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+        h1 { color: #569cd6; }
+        pre {
+            background: #252526;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #3e3e42;
+        }
+        .section {
+            margin: 20px 0;
+        }
+        button {
+            background: #0e639c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        button:hover {
+            background: #1177bb;
+        }
+    </style>
+</head>
+<body>
+    <h1>Nightshift Walkthrough State Debugger</h1>
+
+    <div class="section">
+        <h2>Current State</h2>
+        <pre id="current-state"></pre>
+    </div>
+
+    <div class="section">
+        <h2>Actions</h2>
+        <button onclick="clearState()">Clear All State</button>
+        <button onclick="markAllSeen()">Mark All Features Seen</button>
+        <button onclick="markAllUnseen()">Mark All Features Unseen</button>
+        <button onclick="resetWalkthrough()">Reset Walkthrough</button>
+        <button onclick="location.reload()">Refresh</button>
+    </div>
+
+    <div class="section">
+        <h2>Available Features</h2>
+        <pre id="features-list"></pre>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'nightshift:walkthrough-state';
+
+        const features = [
+            { id: 'voice-task-input', version: '0.2.0' },
+            { id: 'planning-sessions', version: '0.2.0' },
+            { id: 'skills-system', version: '0.2.0' },
+            { id: 'task-virtualization', version: '0.3.0' },
+            { id: 'rich-text-editor', version: '0.3.0' },
+            { id: 'integrations-panel', version: '0.3.0' }
+        ];
+
+        function getState() {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored) {
+                return JSON.parse(stored);
+            }
+            return {
+                walkthroughCompleted: false,
+                walkthroughSkipped: false,
+                seenFeatures: [],
+                lastSeenVersion: '0.1.0'
+            };
+        }
+
+        function setState(state) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            displayState();
+        }
+
+        function displayState() {
+            const state = getState();
+            document.getElementById('current-state').textContent = JSON.stringify(state, null, 2);
+
+            let featuresList = 'All Features:\n\n';
+            features.forEach(f => {
+                const seen = state.seenFeatures.includes(f.id);
+                featuresList += `${seen ? '✓' : '✗'} ${f.id} (v${f.version})\n`;
+            });
+            document.getElementById('features-list').textContent = featuresList;
+        }
+
+        function clearState() {
+            if (confirm('Clear all walkthrough state?')) {
+                localStorage.removeItem(STORAGE_KEY);
+                displayState();
+            }
+        }
+
+        function markAllSeen() {
+            const state = getState();
+            state.seenFeatures = features.map(f => f.id);
+            setState(state);
+        }
+
+        function markAllUnseen() {
+            const state = getState();
+            state.seenFeatures = [];
+            setState(state);
+        }
+
+        function resetWalkthrough() {
+            const state = getState();
+            state.walkthroughCompleted = false;
+            state.walkthroughSkipped = false;
+            setState(state);
+        }
+
+        // Initial display
+        displayState();
+    </script>
+</body>
+</html>

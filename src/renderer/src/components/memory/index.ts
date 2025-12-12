@@ -1,0 +1,1 @@
+export { ProjectMemoryCard } from './ProjectMemoryCard'

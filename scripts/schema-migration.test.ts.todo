@@ -1,0 +1,212 @@
+/**
+ * Schema Migration Tests
+ *
+ * Tests that verify database schema migrations work correctly
+ */
+
+import Database from 'better-sqlite3'
+import { mkdtempSync, rmSync } from 'fs'
+import { join } from 'path'
+import { tmpdir } from 'os'
+import { createSchema, ensureSchema, getSchemaVersion, SCHEMA_VERSION } from '../migrations/schema'
+
+describe('Schema Migrations', () => {
+  let testDir: string
+  let db: Database.Database
+
+  beforeEach(() => {
+    // Create a temporary directory for the test database
+    testDir = mkdtempSync(join(tmpdir(), 'nightshift-test-'))
+    const dbPath = join(testDir, 'test.db')
+    db = new Database(dbPath)
+    db.pragma('foreign_keys = ON')
+  })
+
+  afterEach(() => {
+    if (db) {
+      db.close()
+    }
+    if (testDir) {
+      rmSync(testDir, { recursive: true, force: true })
+    }
+  })
+
+  test('createSchema creates all tables with correct version', () => {
+    createSchema(db)
+
+    const version = getSchemaVersion(db)
+    expect(version).toBe(SCHEMA_VERSION)
+
+    // Verify all tables exist
+    const tables = db.prepare(`
+      SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'
+    `).all() as { name: string }[]
+
+    const tableNames = tables.map(t => t.name).sort()
+    expect(tableNames).toContain('projects')
+    expect(tableNames).toContain('tasks')
+    expect(tableNames).toContain('groups')
+    expect(tableNames).toContain('config')
+    expect(tableNames).toContain('local_state')
+    expect(tableNames).toContain('skills')
+    expect(tableNames).toContain('notes')
+    expect(tableNames).toContain('schema_version')
+  })
+
+  test('fresh schema includes integration columns', () => {
+    createSchema(db)
+
+    // Check tasks table has integration columns
+    const taskColumns = db.pragma('table_info(tasks)') as Array<{ name: string }>
+    const taskColumnNames = taskColumns.map(c => c.name)
+
+    expect(taskColumnNames).toContain('external_issue_id')
+    expect(taskColumnNames).toContain('external_issue_url')
+    expect(taskColumnNames).toContain('integration_id')
+
+    // Check projects table has integration_ids column
+    const projectColumns = db.pragma('table_info(projects)') as Array<{ name: string }>
+    const projectColumnNames = projectColumns.map(c => c.name)
+
+    expect(projectColumnNames).toContain('integration_ids')
+  })
+
+  test('migration from v12 to v13 adds integration columns', () => {
+    // Create a v12 schema manually (without integration columns)
+    // First create basic tables
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS projects (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        git_url TEXT,
+        default_branch TEXT,
+        default_skills TEXT NOT NULL DEFAULT '[]',
+        include_claude_md INTEGER NOT NULL DEFAULT 1,
+        tag_ids TEXT NOT NULL DEFAULT '[]',
+        added_at TEXT NOT NULL,
+        icon TEXT,
+        description TEXT
+      )
+    `)
+
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS tasks (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        group_id TEXT,
+        prompt TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'queued',
+        queue_position INTEGER NOT NULL,
+        source TEXT NOT NULL DEFAULT 'manual',
+        source_ref TEXT,
+        context_files TEXT NOT NULL DEFAULT '[]',
+        include_claude_md INTEGER NOT NULL DEFAULT 1,
+        enabled_skills TEXT NOT NULL DEFAULT '[]',
+        agent_id TEXT,
+        model TEXT,
+        thinking_mode INTEGER,
+        created_at TEXT NOT NULL,
+        started_at TEXT,
+        completed_at TEXT,
+        exit_code INTEGER,
+        error_message TEXT,
+        cost_estimate REAL,
+        runtime_ms INTEGER NOT NULL DEFAULT 0,
+        running_session_started_at TEXT,
+        current_iteration INTEGER NOT NULL DEFAULT 1,
+        iterations TEXT NOT NULL DEFAULT '[]',
+        tag_ids TEXT NOT NULL DEFAULT '[]',
+        FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+      )
+    `)
+
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS schema_version (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        version INTEGER NOT NULL,
+        migrated_at TEXT NOT NULL
+      )
+    `)
+
+    // Set version to 12
+    db.prepare('INSERT INTO schema_version (id, version, migrated_at) VALUES (1, 12, ?)').run(
+      new Date().toISOString()
+    )
+
+    // Verify we're at v12
+    expect(getSchemaVersion(db)).toBe(12)
+
+    // Verify integration columns don't exist yet
+    const taskColumnsBeforeMigration = db.pragma('table_info(tasks)') as Array<{ name: string }>
+    const taskColumnNamesBeforeMigration = taskColumnsBeforeMigration.map(c => c.name)
+    expect(taskColumnNamesBeforeMigration).not.toContain('external_issue_id')
+
+    const projectColumnsBeforeMigration = db.pragma('table_info(projects)') as Array<{ name: string }>
+    const projectColumnNamesBeforeMigration = projectColumnsBeforeMigration.map(c => c.name)
+    expect(projectColumnNamesBeforeMigration).not.toContain('integration_ids')
+
+    // Run ensureSchema to trigger migration
+    ensureSchema(db)
+
+    // Verify we're now at current version
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION)
+
+    // Verify integration columns now exist
+    const taskColumnsAfter = db.pragma('table_info(tasks)') as Array<{ name: string }>
+    const taskColumnNamesAfter = taskColumnsAfter.map(c => c.name)
+
+    expect(taskColumnNamesAfter).toContain('external_issue_id')
+    expect(taskColumnNamesAfter).toContain('external_issue_url')
+    expect(taskColumnNamesAfter).toContain('integration_id')
+
+    const projectColumnsAfter = db.pragma('table_info(projects)') as Array<{ name: string }>
+    const projectColumnNamesAfter = projectColumnsAfter.map(c => c.name)
+
+    expect(projectColumnNamesAfter).toContain('integration_ids')
+  })
+
+  test('ensureSchema is idempotent - can run multiple times', () => {
+    ensureSchema(db)
+    const version1 = getSchemaVersion(db)
+
+    ensureSchema(db)
+    const version2 = getSchemaVersion(db)
+
+    ensureSchema(db)
+    const version3 = getSchemaVersion(db)
+
+    expect(version1).toBe(SCHEMA_VERSION)
+    expect(version2).toBe(SCHEMA_VERSION)
+    expect(version3).toBe(SCHEMA_VERSION)
+  })
+
+  test('all migrations run sequentially from v0 to current', () => {
+    // Create an empty database (v0)
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS schema_version (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        version INTEGER NOT NULL,
+        migrated_at TEXT NOT NULL
+      )
+    `)
+    db.prepare('INSERT INTO schema_version (id, version, migrated_at) VALUES (1, 0, ?)').run(
+      new Date().toISOString()
+    )
+
+    expect(getSchemaVersion(db)).toBe(0)
+
+    // Run ensureSchema - should create schema from scratch
+    ensureSchema(db)
+
+    expect(getSchemaVersion(db)).toBe(SCHEMA_VERSION)
+
+    // Verify all expected columns exist
+    const taskColumns = db.pragma('table_info(tasks)') as Array<{ name: string }>
+    const taskColumnNames = taskColumns.map(c => c.name)
+
+    // Should have all columns including latest integration columns
+    expect(taskColumnNames).toContain('external_issue_id')
+    expect(taskColumnNames).toContain('external_issue_url')
+    expect(taskColumnNames).toContain('integration_id')
+  })
+})
