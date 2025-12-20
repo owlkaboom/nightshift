@@ -2,7 +2,7 @@ import { useUIStore } from '@/stores'
 import { useLocation } from '@tanstack/react-router'
 import { Menu } from 'lucide-react'
 import { ReactNode, useEffect, useState } from 'react'
-import { Button } from '../ui/button'
+import { Button } from '@/components/ui/button'
 import { Sidebar } from './Sidebar'
 
 interface MainLayoutProps {

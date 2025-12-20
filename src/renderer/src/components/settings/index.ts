@@ -1,5 +1,6 @@
 export { AboutPanel } from './AboutPanel'
 export { AgentConfigPanel } from './AgentConfigPanel'
+export { DeveloperPanel } from './DeveloperPanel'
 export { VaultSettingsPanel } from './VaultSettingsPanel'
 export { InitSetupDialog } from './InitSetupDialog'
 export { IntegrationsPanel } from './IntegrationsPanel'

@@ -4,6 +4,7 @@
 
 import { ipcMain } from 'electron'
 import type { AppConfig } from '@shared/types'
+import { logger } from '@main/utils/logger'
 import {
   loadConfig,
   updateConfig,
@@ -12,9 +13,9 @@ import {
   setClaudeCodePath,
   getSelectedProjectId,
   setSelectedProjectId
-} from '../storage'
-import { processManager } from '../agents/process-manager'
-import { initializeVault } from '../storage/vault/vault-store'
+} from '@main/storage'
+import { processManager } from '@main/agents/process-manager'
+import { initializeVault } from '@main/storage/vault/vault-store'
 
 /**
  * Sync the processManager settings with the config values
@@ -28,7 +29,7 @@ export async function registerConfigHandlers(): Promise<void> {
   // Initialize processManager with config value on startup
   const initialConfig = await loadConfig()
   syncProcessManagerWithConfig(initialConfig)
-  console.log(
+  logger.debug(
     '[Config] Initialized processManager maxConcurrent:',
     initialConfig.maxConcurrentTasks
   )
@@ -37,12 +38,12 @@ export async function registerConfigHandlers(): Promise<void> {
   if (initialConfig.vaultPath) {
     try {
       await initializeVault(initialConfig.vaultPath)
-      console.log('[Config] Initialized vault at:', initialConfig.vaultPath)
+      logger.debug('[Config] Initialized vault at:', initialConfig.vaultPath)
     } catch (error) {
       console.error('[Config] Failed to initialize vault:', error)
     }
   } else {
-    console.log('[Config] Vault path not configured - notes will require vault setup')
+    logger.debug('[Config] Vault path not configured - notes will require vault setup')
   }
 
   // Get full configuration
@@ -58,7 +59,7 @@ export async function registerConfigHandlers(): Promise<void> {
       // Sync processManager if relevant settings were updated
       if (updates.maxConcurrentTasks !== undefined || updates.maxTaskDurationMinutes !== undefined) {
         syncProcessManagerWithConfig(updated)
-        console.log(
+        logger.debug(
           '[Config] Updated processManager settings:',
           `maxConcurrent=${updated.maxConcurrentTasks}, maxDuration=${updated.maxTaskDurationMinutes}min`
         )
@@ -68,13 +69,13 @@ export async function registerConfigHandlers(): Promise<void> {
         if (updated.vaultPath) {
           try {
             await initializeVault(updated.vaultPath)
-            console.log('[Config] Re-initialized vault at:', updated.vaultPath)
+            logger.debug('[Config] Re-initialized vault at:', updated.vaultPath)
           } catch (error) {
             console.error('[Config] Failed to re-initialize vault:', error)
             throw error
           }
         } else {
-          console.log('[Config] Vault path cleared')
+          logger.debug('[Config] Vault path cleared')
         }
       }
       return updated
@@ -85,7 +86,7 @@ export async function registerConfigHandlers(): Promise<void> {
   ipcMain.handle('config:reset', async (): Promise<AppConfig> => {
     const config = await resetConfig()
     syncProcessManagerWithConfig(config)
-    console.log(
+    logger.debug(
       '[Config] Reset processManager maxConcurrent:',
       config.maxConcurrentTasks
     )

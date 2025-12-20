@@ -8,7 +8,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import type { SpotlightBounds, TooltipPosition } from '@shared/types/walkthrough'
 import { useWalkthrough } from './WalkthroughProvider'
-import { Button } from '../ui/button'
+import { Button } from '@/components/ui/button'
 import { X, ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface WalkthroughTooltipProps {
@@ -156,11 +156,8 @@ export const WalkthroughTooltip: React.FC<WalkthroughTooltipProps> = ({ spotligh
     }
   }, [tooltipRef, calculateTooltipPosition])
 
-  if (!currentStep || !tooltipPosition) {
-    return null
-  }
-
   // Memoize progress indicators to avoid re-creating on every render
+  // Note: Must be before early return to follow React hooks rules
   const progressIndicators = useMemo(
     () =>
       Array.from({ length: totalSteps }, (_, i) => (
@@ -177,6 +174,10 @@ export const WalkthroughTooltip: React.FC<WalkthroughTooltipProps> = ({ spotligh
       )),
     [totalSteps, currentStepIndex]
   )
+
+  if (!currentStep || !tooltipPosition) {
+    return null
+  }
 
   return (
     <div

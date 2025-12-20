@@ -1,13 +1,13 @@
 import type { Project } from '@shared/types'
 import { Check, Download, Loader2, Mic, Square, X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
-import { useSpeechRecognition } from '../../hooks/useSpeechRecognition'
-import { useSessionStore } from '../../stores/session-store'
-import { useSkillStore } from '../../stores/skill-store'
-import { suggestSkills } from '../../lib/skill-suggestions'
-import { markdownToHtml, isMarkdown } from '../../lib/markdown-to-html'
-import { Progress } from '../ui/progress'
-import { Button } from '../ui/button'
+import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
+import { useSessionStore } from '@/stores/session-store'
+import { useSkillStore } from '@/stores/skill-store'
+import { suggestSkills } from '@/lib/skill-suggestions'
+import { markdownToHtml, isMarkdown } from '@/lib/markdown-to-html'
+import { Progress } from '@/components/ui/progress'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -15,16 +15,16 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle
-} from '../ui/dialog'
-import { Label } from '../ui/label'
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue
-} from '../ui/select'
-import { RichTextEditor } from '../ui/rich-text-editor'
+} from '@/components/ui/select'
+import { RichTextEditor } from '@/components/ui/rich-text-editor'
 
 type VoiceStep = 'prompt' | 'project' | 'confirm'
 

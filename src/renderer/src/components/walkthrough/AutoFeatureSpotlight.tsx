@@ -11,10 +11,10 @@ import { useLocation } from '@tanstack/react-router'
 import { createPortal } from 'react-dom'
 import type { FeatureHighlight, SpotlightBounds, TooltipPosition } from '@shared/types/walkthrough'
 import { useWalkthrough } from './WalkthroughProvider'
-import { useWalkthroughStore } from '../../stores/walkthrough-store'
-import { Button } from '../ui/button'
+import { useWalkthroughStore } from '@/stores/walkthrough-store'
+import { Button } from '@/components/ui/button'
 import { X, Sparkles } from 'lucide-react'
-import { MarkdownRenderer } from '../ui/markdown-renderer'
+import { MarkdownRenderer } from '@/components/ui/markdown-renderer'
 
 /**
  * Auto-showing feature spotlight that activates when unseen features are on the current route

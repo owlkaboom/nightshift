@@ -14,6 +14,7 @@ import type {
   ClaudeSkill,
   CreateClaudeSkillData
 } from '@shared/types'
+import { logger } from '@main/utils/logger'
 import {
   analyzeProject,
   getCachedAnalysis,
@@ -22,8 +23,8 @@ import {
   detectProjectPatterns,
   getProjectRecommendations,
   createSkillsFromRecommendations
-} from '../analysis'
-import { claudeConfigManager } from '../agents/claude-config-manager'
+} from '@main/analysis'
+import { claudeConfigManager } from '@main/agents/claude-config-manager'
 
 /**
  * Helper function to create a skill via claudeConfigManager
@@ -47,7 +48,7 @@ export function registerAnalysisHandlers(): void {
   ipcMain.handle(
     'analysis:analyze',
     async (_, projectId: string, projectPath: string): Promise<ProjectAnalysis> => {
-      console.log('[AnalysisHandlers] Analyzing project:', projectId, 'at path:', projectPath)
+      logger.debug('[AnalysisHandlers] Analyzing project:', projectId, 'at path:', projectPath)
       return analyzeProject(projectId, projectPath)
     }
   )
@@ -69,7 +70,7 @@ export function registerAnalysisHandlers(): void {
   ipcMain.handle(
     'analysis:detectTechnologies',
     async (_, projectPath: string): Promise<DetectedTechnology[]> => {
-      console.log('[AnalysisHandlers] Detecting technologies for:', projectPath)
+      logger.debug('[AnalysisHandlers] Detecting technologies for:', projectPath)
       return detectProjectTechnologies(projectPath)
     }
   )
@@ -81,7 +82,7 @@ export function registerAnalysisHandlers(): void {
   ipcMain.handle(
     'analysis:detectPatterns',
     async (_, projectPath: string): Promise<DetectedPattern[]> => {
-      console.log('[AnalysisHandlers] Detecting patterns for:', projectPath)
+      logger.debug('[AnalysisHandlers] Detecting patterns for:', projectPath)
       return detectProjectPatterns(projectPath)
     }
   )
@@ -92,7 +93,7 @@ export function registerAnalysisHandlers(): void {
   ipcMain.handle(
     'analysis:getRecommendations',
     async (_, projectId: string): Promise<SkillRecommendation[]> => {
-      console.log('[AnalysisHandlers] Getting recommendations for:', projectId)
+      logger.debug('[AnalysisHandlers] Getting recommendations for:', projectId)
       return getProjectRecommendations(projectId)
     }
   )
@@ -111,7 +112,7 @@ export function registerAnalysisHandlers(): void {
       projectPath: string,
       recommendationIds: string[]
     ): Promise<ClaudeSkill[]> => {
-      console.log(
+      logger.debug(
         '[AnalysisHandlers] Creating skills from recommendations:',
         recommendationIds.length
       )
@@ -130,7 +131,7 @@ export function registerAnalysisHandlers(): void {
   ipcMain.handle(
     'analysis:clearCache',
     async (_, projectId: string): Promise<void> => {
-      console.log('[AnalysisHandlers] Clearing cache for:', projectId)
+      logger.debug('[AnalysisHandlers] Clearing cache for:', projectId)
       clearAnalysisCache(projectId)
     }
   )

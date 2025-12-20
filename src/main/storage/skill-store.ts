@@ -4,7 +4,7 @@
 
 import type { Skill, SkillsRegistry } from '@shared/types'
 import { createDefaultSkillsRegistry, BUILT_IN_SKILLS, createSkill } from '@shared/types'
-import { getSkillsPath } from '../utils/paths'
+import { getSkillsPath } from '@main/utils/paths'
 import { readJsonWithDefault, writeJson } from './file-store'
 
 /**

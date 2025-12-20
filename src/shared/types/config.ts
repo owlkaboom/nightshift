@@ -125,6 +125,9 @@ export interface AppConfig {
 
   /** Last selected project ID (persisted across app restarts) */
   selectedProjectId: string | null
+
+  /** Enable verbose debug logging */
+  debugLogging: boolean
 }
 
 /**
@@ -194,7 +197,8 @@ export const DEFAULT_CONFIG: AppConfig = {
   },
   archiveRetentionDays: 30,
   vaultPath: null,
-  selectedProjectId: null
+  selectedProjectId: null,
+  debugLogging: false
 }
 
 /**

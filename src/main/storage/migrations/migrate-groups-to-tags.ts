@@ -10,9 +10,10 @@
 
 import { promises as fs } from 'fs'
 import path from 'path'
-import { getSyncDir } from '../../utils/paths'
-import { getTagStore } from '../tag-store'
-import { getDatabase } from '../database'
+import { getSyncDir } from '@main/utils/paths'
+import { getTagStore } from '@main/storage/tag-store'
+import { getDatabase } from '@main/storage/database'
+import { logger } from '@main/utils/logger'
 import type { Group } from '@shared/types/group'
 
 interface GroupsRegistry {
@@ -86,7 +87,7 @@ async function backupGroupsJson(): Promise<void> {
 
   try {
     await fs.copyFile(groupsPath, backupPath)
-    console.log('[Migration] Created backup at:', backupPath)
+    logger.debug('[Migration] Created backup at:', backupPath)
   } catch (error) {
     console.error('[Migration] Failed to create backup:', error)
   }
@@ -106,7 +107,7 @@ export async function migrateGroupsToTags(): Promise<{
   let projectsUpdated = 0
 
   try {
-    console.log('[Migration] Starting groups to tags migration...')
+    logger.debug('[Migration] Starting groups to tags migration...')
 
     // Step 1: Backup groups.json
     await backupGroupsJson()
@@ -115,7 +116,7 @@ export async function migrateGroupsToTags(): Promise<{
     const { groups } = await loadGroupsFromJson()
     const groupProjectMappings = loadGroupProjectMappings()
 
-    console.log(`[Migration] Found ${groups.length} groups to convert`)
+    logger.debug(`[Migration] Found ${groups.length} groups to convert`)
 
     // Step 3: Initialize tag store
     const tagStore = getTagStore()
@@ -131,7 +132,7 @@ export async function migrateGroupsToTags(): Promise<{
         groupIdToTagId.set(group.id, tag.id)
         groupsConverted++
 
-        console.log(`[Migration] Converted group "${group.name}" to tag "${tag.name}"`)
+        logger.debug(`[Migration] Converted group "${group.name}" to tag "${tag.name}"`)
       } catch (error) {
         // If tag already exists, find it and reuse it
         if (error instanceof Error && error.message.includes('already exists')) {
@@ -142,7 +143,7 @@ export async function migrateGroupsToTags(): Promise<{
 
           if (existingTag) {
             groupIdToTagId.set(group.id, existingTag.id)
-            console.log(`[Migration] Reusing existing tag "${existingTag.name}" for group "${group.name}"`)
+            logger.debug(`[Migration] Reusing existing tag "${existingTag.name}" for group "${group.name}"`)
           } else {
             const message = `Failed to convert group ${group.name}: Tag exists but couldn't be found`
             errors.push(message)
@@ -197,11 +198,11 @@ export async function migrateGroupsToTags(): Promise<{
           if (JSON.stringify(mergedTagIds) !== JSON.stringify(existingTagIds)) {
             updateStmt.run(JSON.stringify(mergedTagIds), projectId)
             projectsUpdated++
-            console.log(
+            logger.debug(
               `[Migration] Updated project ${projectId} with ${mergedTagIds.length} tags (${tagIds.length} new)`
             )
           } else {
-            console.log(`[Migration] Project ${projectId} already has these tags, skipping`)
+            logger.debug(`[Migration] Project ${projectId} already has these tags, skipping`)
           }
         } else {
           console.warn(`[Migration] Project ${projectId} not found, skipping`)
@@ -213,9 +214,9 @@ export async function migrateGroupsToTags(): Promise<{
       }
     }
 
-    console.log('[Migration] Groups to tags migration complete')
-    console.log(`[Migration] - Groups converted: ${groupsConverted}`)
-    console.log(`[Migration] - Projects updated: ${projectsUpdated}`)
+    logger.debug('[Migration] Groups to tags migration complete')
+    logger.debug(`[Migration] - Groups converted: ${groupsConverted}`)
+    logger.debug(`[Migration] - Projects updated: ${projectsUpdated}`)
 
     if (errors.length > 0) {
       console.warn(`[Migration] - Errors encountered: ${errors.length}`)
@@ -250,7 +251,7 @@ export async function cleanupGroupsJson(): Promise<void> {
 
   try {
     await fs.unlink(groupsPath)
-    console.log('[Migration] Removed groups.json')
+    logger.debug('[Migration] Removed groups.json')
   } catch (error) {
     console.error('[Migration] Failed to remove groups.json:', error)
   }

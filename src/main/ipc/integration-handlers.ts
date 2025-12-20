@@ -33,7 +33,7 @@ import {
   createSource,
   updateSource,
   deleteSource
-} from '../storage/integration-store'
+} from '@main/storage/integration-store'
 import {
   // Legacy integration functions
   testIntegration,
@@ -52,8 +52,8 @@ import {
   listJiraSprints,
   listJiraFilters,
   listJiraProjects
-} from '../integrations'
-import { setCredential, deleteCredential } from '../storage/secure-store'
+} from '@main/integrations'
+import { setCredential, deleteCredential } from '@main/storage/secure-store'
 
 /**
  * Register all integration IPC handlers (connections + sources + legacy)

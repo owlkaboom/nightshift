@@ -28,6 +28,7 @@ class FileLogger {
   private currentSize = 0
   private logsDir: string
   private initialized = false
+  private debugEnabled = false
   private originalConsoleLog: typeof console.log
   private originalConsoleError: typeof console.error
   private originalConsoleWarn: typeof console.warn
@@ -38,6 +39,41 @@ class FileLogger {
     this.originalConsoleLog = console.log.bind(console)
     this.originalConsoleError = console.error.bind(console)
     this.originalConsoleWarn = console.warn.bind(console)
+    // Check env variable for debug mode
+    this.debugEnabled = process.env.DEBUG === 'true'
+  }
+
+  /**
+   * Enable or disable debug logging
+   */
+  setDebugEnabled(enabled: boolean): void {
+    this.debugEnabled = enabled
+    if (this.initialized) {
+      this.log('info', `Debug logging ${enabled ? 'enabled' : 'disabled'}`)
+    }
+  }
+
+  /**
+   * Check if debug logging is enabled
+   */
+  isDebugEnabled(): boolean {
+    return this.debugEnabled
+  }
+
+  /**
+   * Get the logs directory path
+   */
+  getLogsDir(): string {
+    return this.logsDir
+  }
+
+  /**
+   * Log a debug message (only if debug mode is enabled)
+   */
+  debug(...args: unknown[]): void {
+    if (!this.debugEnabled) return
+    this.originalConsoleLog('[DEBUG]', ...args)
+    this.writeToFile('debug', ...args)
   }
 
   /**

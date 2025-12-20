@@ -304,6 +304,13 @@ const api: RendererApi = {
   copyNotificationSound: (sourcePath: string): Promise<string> =>
     ipcRenderer.invoke('system:copyNotificationSound', sourcePath),
 
+  openLogsFolder: (): Promise<void> => ipcRenderer.invoke('system:openLogsFolder'),
+
+  getDebugLogging: (): Promise<boolean> => ipcRenderer.invoke('system:getDebugLogging'),
+
+  setDebugLogging: (enabled: boolean): Promise<void> =>
+    ipcRenderer.invoke('system:setDebugLogging', enabled),
+
   onStartupProgress: (
     callback: (status: { stage: string; message: string; complete: boolean }) => void
   ): (() => void) => {

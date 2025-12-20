@@ -13,9 +13,11 @@
  * 6. Marks migration as complete
  */
 
-import { getDatabase } from '../database'
-import { compressFile } from '../compression'
-import { getTaskDir, getTaskLogPath } from '../../utils/paths'
+import { logger } from '@main/utils/logger'
+
+import { getDatabase } from '@main/storage/database'
+import { compressFile } from '@main/storage/compression'
+import { getTaskDir, getTaskLogPath } from '@main/utils/paths'
 import { readdir, stat } from 'fs/promises'
 import { join } from 'path'
 
@@ -45,11 +47,11 @@ export async function migrateCompressExistingLogs(): Promise<MigrationResult> {
     .get(MIGRATION_KEY) as { value: string } | undefined
 
   if (migrationRecord) {
-    console.log('[Migration] Log compression already completed, skipping')
+    logger.debug('[Migration] Log compression already completed, skipping')
     return { alreadyRan: true, filesCompressed: 0, bytesReclaimed: 0, errors: [] }
   }
 
-  console.log('[Migration] Starting one-time log compression migration...')
+  logger.debug('[Migration] Starting one-time log compression migration...')
 
   // Get all tasks from database
   const tasks = db
@@ -106,7 +108,7 @@ export async function migrateCompressExistingLogs(): Promise<MigrationResult> {
   )
 
   const reclaimedMB = (bytesReclaimed / 1024 / 1024).toFixed(2)
-  console.log(
+  logger.debug(
     `[Migration] Compressed ${filesCompressed} files, reclaimed ${reclaimedMB} MB`
   )
 

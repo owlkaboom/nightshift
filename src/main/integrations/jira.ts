@@ -3,6 +3,7 @@
  * Handles JIRA API operations for issue import
  */
 
+import { logger } from '@main/utils/logger'
 import type {
   JiraConfig,
   JiraConnectionConfig,
@@ -143,7 +144,7 @@ export class JiraClient {
 
       const maxResults = options?.limit || 100
 
-      console.log('[JiraClient] Executing JQL query:', jql)
+      logger.debug('[JiraClient] Executing JQL query:', jql)
 
       // Use the new /rest/api/3/search/jql POST endpoint
       const data = await this.request<any>(

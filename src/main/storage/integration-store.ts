@@ -6,6 +6,7 @@
 import { app } from 'electron'
 import fs from 'fs/promises'
 import path from 'path'
+import { logger } from '@main/utils/logger'
 import type {
   Integration,
   CreateIntegrationData,
@@ -59,7 +60,7 @@ function isV1Registry(registry: IntegrationsRegistry): registry is IntegrationsR
  * Migrate v1 registry to v2 (flat integrations → connections + sources)
  */
 async function migrateV1ToV2(v1: IntegrationsRegistryV1): Promise<IntegrationsRegistryV2> {
-  console.log('[IntegrationStore] Migrating v1 registry to v2...')
+  logger.debug('[IntegrationStore] Migrating v1 registry to v2...')
 
   const connections: IntegrationConnection[] = []
   const sources: IntegrationSource[] = []
@@ -154,7 +155,7 @@ async function migrateV1ToV2(v1: IntegrationsRegistryV1): Promise<IntegrationsRe
     }
   }
 
-  console.log(`[IntegrationStore] Migration complete: ${connections.length} connections, ${sources.length} sources`)
+  logger.debug(`[IntegrationStore] Migration complete: ${connections.length} connections, ${sources.length} sources`)
 
   return {
     version: 2,

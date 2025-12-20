@@ -7,7 +7,7 @@
 
 import type { LocalState, ProjectEcosystemInfo } from '@shared/types'
 import { createDefaultLocalState, generateMachineId } from '@shared/types'
-import { getDatabase } from '../database'
+import { getDatabase } from '@main/storage/database'
 
 // ============ Type Conversions ============
 

@@ -17,7 +17,7 @@ import type {
 } from '@shared/types'
 import { getDefaultDocPath } from '@shared/types'
 import { getAllTemplates, getTemplate } from './templates'
-import { fileExists } from '../storage/file-store'
+import { fileExists } from '@main/storage/file-store'
 
 /**
  * Documentation Generator class

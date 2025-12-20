@@ -16,7 +16,7 @@ import {
   Calendar,
   Zap
 } from 'lucide-react'
-import { Button } from '../ui/button'
+import { Button } from '@/components/ui/button'
 import appIcon from '@/assets/icon.png'
 import { useState, useEffect } from 'react'
 import { IntegrationsSection } from './IntegrationsSection'

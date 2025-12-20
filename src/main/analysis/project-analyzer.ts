@@ -6,6 +6,7 @@
  */
 
 import { BrowserWindow } from 'electron'
+import { logger } from '@main/utils/logger'
 import type {
   ProjectAnalysis,
   DetectedTechnology,
@@ -127,7 +128,7 @@ export async function analyzeProject(
   if (!forceRefresh) {
     const cached = getCachedAnalysis(projectId)
     if (cached) {
-      console.log('[ProjectAnalyzer] Returning cached analysis for', projectId)
+      logger.debug('[ProjectAnalyzer] Returning cached analysis for', projectId)
       return cached
     }
   }
@@ -137,7 +138,7 @@ export async function analyzeProject(
       `Project path not provided. Please ensure the project has a valid local path.`
     )
   }
-  console.log('[ProjectAnalyzer] Analyzing project:', projectPath)
+  logger.debug('[ProjectAnalyzer] Analyzing project:', projectPath)
 
   // Start analysis
   broadcastProgress(projectId, createProgress('detecting-technologies', 'Detecting technologies...', 10))
@@ -146,7 +147,7 @@ export async function analyzeProject(
   let technologies: DetectedTechnology[]
   try {
     technologies = await detectTechnologies(projectPath)
-    console.log('[ProjectAnalyzer] Detected technologies:', technologies.length)
+    logger.debug('[ProjectAnalyzer] Detected technologies:', technologies.length)
   } catch (error) {
     console.error('[ProjectAnalyzer] Error detecting technologies:', error)
     technologies = []
@@ -158,7 +159,7 @@ export async function analyzeProject(
   let patterns: DetectedPattern[]
   try {
     patterns = await detectPatterns(projectPath)
-    console.log('[ProjectAnalyzer] Detected patterns:', patterns.length)
+    logger.debug('[ProjectAnalyzer] Detected patterns:', patterns.length)
   } catch (error) {
     console.error('[ProjectAnalyzer] Error detecting patterns:', error)
     patterns = []
@@ -173,7 +174,7 @@ export async function analyzeProject(
   let recommendations: SkillRecommendation[]
   try {
     recommendations = generateSkillRecommendations(technologies, patterns)
-    console.log('[ProjectAnalyzer] Generated recommendations:', recommendations.length)
+    logger.debug('[ProjectAnalyzer] Generated recommendations:', recommendations.length)
   } catch (error) {
     console.error('[ProjectAnalyzer] Error generating recommendations:', error)
     recommendations = []
@@ -261,7 +262,7 @@ export async function createSkillsFromRecommendations(
     throw new Error('No valid recommendations found for the given IDs')
   }
 
-  console.log('[ProjectAnalyzer] Creating skills from', selectedRecs.length, 'recommendations')
+  logger.debug('[ProjectAnalyzer] Creating skills from', selectedRecs.length, 'recommendations')
 
   const createdSkills: ClaudeSkill[] = []
 
@@ -278,7 +279,7 @@ export async function createSkillsFromRecommendations(
       const skill = await createSkillFn(skillData)
       createdSkills.push(skill)
 
-      console.log('[ProjectAnalyzer] Created skill:', skill.name)
+      logger.debug('[ProjectAnalyzer] Created skill:', skill.name)
     } catch (error) {
       console.error('[ProjectAnalyzer] Error creating skill:', rec.name, error)
       // Continue with other skills

@@ -5,12 +5,13 @@
  */
 
 import type { Database } from 'better-sqlite3'
+import { logger } from '@main/utils/logger'
 
 /**
  * Current schema version
  * Increment this when making schema changes
  */
-export const SCHEMA_VERSION = 15
+export const SCHEMA_VERSION = 16
 
 /**
  * Create all tables and indexes
@@ -149,7 +150,8 @@ export function createSchema(db: Database): void {
       sync TEXT NOT NULL DEFAULT '{}',
       archive_retention_days INTEGER NOT NULL DEFAULT 30,
       vault_path TEXT,
-      selected_project_id TEXT
+      selected_project_id TEXT,
+      debug_logging INTEGER NOT NULL DEFAULT 0
     )
   `)
 
@@ -316,7 +318,7 @@ export function createSchema(db: Database): void {
   `)
   insertVersion.run(SCHEMA_VERSION, new Date().toISOString())
 
-  console.log(`[Schema] Created database schema version ${SCHEMA_VERSION}`)
+  logger.debug(`[Schema] Created database schema version ${SCHEMA_VERSION}`)
 }
 
 /**
@@ -345,11 +347,11 @@ export function hasSchema(db: Database): boolean {
  * Run migrations from one version to another
  */
 function runMigrations(db: Database, fromVersion: number): void {
-  console.log(`[Schema] Running migrations from version ${fromVersion} to ${SCHEMA_VERSION}`)
+  logger.debug(`[Schema] Running migrations from version ${fromVersion} to ${SCHEMA_VERSION}`)
 
   // Migration from v1 to v2: Add notes table with FTS
   if (fromVersion < 2) {
-    console.log('[Schema] Running migration v1 -> v2: Adding notes table')
+    logger.debug('[Schema] Running migration v1 -> v2: Adding notes table')
 
     // Create notes table
     db.exec(`
@@ -417,22 +419,22 @@ function runMigrations(db: Database, fromVersion: number): void {
       END
     `)
 
-    console.log('[Schema] Migration v1 -> v2 complete')
+    logger.debug('[Schema] Migration v1 -> v2 complete')
   }
 
   // Migration from v2 to v3: Add thinking_mode column to tasks
   if (fromVersion < 3) {
-    console.log('[Schema] Running migration v2 -> v3: Adding thinking_mode column to tasks')
+    logger.debug('[Schema] Running migration v2 -> v3: Adding thinking_mode column to tasks')
 
     // Add thinking_mode column (nullable, null = use global default)
     db.exec(`ALTER TABLE tasks ADD COLUMN thinking_mode INTEGER`)
 
-    console.log('[Schema] Migration v2 -> v3 complete')
+    logger.debug('[Schema] Migration v2 -> v3 complete')
   }
 
   // Migration from v3 to v4: Add nested groups support and project descriptions
   if (fromVersion < 4) {
-    console.log('[Schema] Running migration v3 -> v4: Adding nested groups and project descriptions')
+    logger.debug('[Schema] Running migration v3 -> v4: Adding nested groups and project descriptions')
 
     // Add parent_id column to groups for nesting
     db.exec(`ALTER TABLE groups ADD COLUMN parent_id TEXT REFERENCES groups(id) ON DELETE SET NULL`)
@@ -443,12 +445,12 @@ function runMigrations(db: Database, fromVersion: number): void {
     // Add description column to projects
     db.exec(`ALTER TABLE projects ADD COLUMN description TEXT`)
 
-    console.log('[Schema] Migration v3 -> v4 complete')
+    logger.debug('[Schema] Migration v3 -> v4 complete')
   }
 
   // Migration from v4 to v5: Remove title column from tasks (display prompt instead)
   if (fromVersion < 5) {
-    console.log('[Schema] Running migration v4 -> v5: Removing title column from tasks')
+    logger.debug('[Schema] Running migration v4 -> v5: Removing title column from tasks')
 
     // SQLite doesn't support DROP COLUMN directly before version 3.35.0
     // We need to recreate the table without the title column
@@ -519,44 +521,44 @@ function runMigrations(db: Database, fromVersion: number): void {
     db.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_queue ON tasks(status, queue_position) WHERE status = 'queued'`)
     db.exec(`CREATE INDEX IF NOT EXISTS idx_tasks_project_status ON tasks(project_id, status)`)
 
-    console.log('[Schema] Migration v4 -> v5 complete')
+    logger.debug('[Schema] Migration v4 -> v5 complete')
   }
 
   // Migration from v5 to v6: Add icon column to notes table
   if (fromVersion < 6) {
-    console.log('[Schema] Running migration v5 -> v6: Adding icon column to notes table')
+    logger.debug('[Schema] Running migration v5 -> v6: Adding icon column to notes table')
 
     // Add icon column to notes
     db.exec(`ALTER TABLE notes ADD COLUMN icon TEXT`)
 
-    console.log('[Schema] Migration v5 -> v6 complete')
+    logger.debug('[Schema] Migration v5 -> v6 complete')
   }
 
   // Migration from v6 to v7: Add vault_path column to config table
   if (fromVersion < 7) {
-    console.log('[Schema] Running migration v6 -> v7: Adding vault_path column to config table')
+    logger.debug('[Schema] Running migration v6 -> v7: Adding vault_path column to config table')
 
     // Add vault_path column to config
     db.exec(`ALTER TABLE config ADD COLUMN vault_path TEXT`)
 
-    console.log('[Schema] Migration v6 -> v7 complete')
+    logger.debug('[Schema] Migration v6 -> v7 complete')
   }
 
   // Migration from v7 to v8: Add completed_at index for calendar view
   if (fromVersion < 8) {
-    console.log('[Schema] Running migration v7 -> v8: Adding completed_at index')
+    logger.debug('[Schema] Running migration v7 -> v8: Adding completed_at index')
 
     // Add index for completed_at date queries (calendar view)
     db.exec(`
       CREATE INDEX IF NOT EXISTS idx_tasks_completed_at ON tasks(completed_at) WHERE completed_at IS NOT NULL
     `)
 
-    console.log('[Schema] Migration v7 -> v8 complete')
+    logger.debug('[Schema] Migration v7 -> v8 complete')
   }
 
   // Migration from v8 to v9: Convert 'accepted' status to 'completed'
   if (fromVersion < 9) {
-    console.log('[Schema] Running migration v8 -> v9: Converting accepted status to completed')
+    logger.debug('[Schema] Running migration v8 -> v9: Converting accepted status to completed')
 
     // Update all tasks with status 'accepted' to 'completed'
     const result = db.prepare(`
@@ -565,23 +567,23 @@ function runMigrations(db: Database, fromVersion: number): void {
       WHERE status = 'accepted'
     `).run()
 
-    console.log(`[Schema] Converted ${result.changes} tasks from 'accepted' to 'completed'`)
-    console.log('[Schema] Migration v8 -> v9 complete')
+    logger.debug(`[Schema] Converted ${result.changes} tasks from 'accepted' to 'completed'`)
+    logger.debug('[Schema] Migration v8 -> v9 complete')
   }
 
   // Migration from v9 to v10: Add tag_ids column to projects table
   if (fromVersion < 10) {
-    console.log('[Schema] Running migration v9 -> v10: Adding tag_ids column to projects')
+    logger.debug('[Schema] Running migration v9 -> v10: Adding tag_ids column to projects')
 
     // Add tag_ids column to projects
     db.exec(`ALTER TABLE projects ADD COLUMN tag_ids TEXT NOT NULL DEFAULT '[]'`)
 
-    console.log('[Schema] Migration v9 -> v10 complete')
+    logger.debug('[Schema] Migration v9 -> v10 complete')
   }
 
   // Migration from v10 to v11: Add tag_ids column to tasks and migrate group_id data
   if (fromVersion < 11) {
-    console.log('[Schema] Running migration v10 -> v11: Adding tag_ids to tasks, migrating group_id')
+    logger.debug('[Schema] Running migration v10 -> v11: Adding tag_ids to tasks, migrating group_id')
 
     // Add tag_ids column to tasks
     db.exec(`ALTER TABLE tasks ADD COLUMN tag_ids TEXT NOT NULL DEFAULT '[]'`)
@@ -596,13 +598,13 @@ function runMigrations(db: Database, fromVersion: number): void {
     `)
     const result = updateStmt.run()
 
-    console.log(`[Schema] Migrated ${result.changes} tasks from group_id to tag_ids`)
-    console.log('[Schema] Migration v10 -> v11 complete')
+    logger.debug(`[Schema] Migrated ${result.changes} tasks from group_id to tag_ids`)
+    logger.debug('[Schema] Migration v10 -> v11 complete')
   }
 
   // Migration from v11 to v12: Add tag_refs column to notes table
   if (fromVersion < 12) {
-    console.log('[Schema] Running migration v11 -> v12: Adding tag_refs to notes')
+    logger.debug('[Schema] Running migration v11 -> v12: Adding tag_refs to notes')
 
     // Add tag_refs column to notes
     db.exec(`ALTER TABLE notes ADD COLUMN tag_refs TEXT NOT NULL DEFAULT '[]'`)
@@ -620,13 +622,13 @@ function runMigrations(db: Database, fromVersion: number): void {
     `)
     const result = migrateStmt.run()
 
-    console.log(`[Schema] Migrated ${result.changes} notes from group_refs to tag_refs`)
-    console.log('[Schema] Migration v11 -> v12 complete')
+    logger.debug(`[Schema] Migrated ${result.changes} notes from group_refs to tag_refs`)
+    logger.debug('[Schema] Migration v11 -> v12 complete')
   }
 
   // Migration from v12 to v13: Add integration fields to tasks and projects
   if (fromVersion < 13) {
-    console.log('[Schema] Running migration v12 -> v13: Adding integration support')
+    logger.debug('[Schema] Running migration v12 -> v13: Adding integration support')
 
     try {
       // Check if columns already exist before adding them
@@ -634,24 +636,24 @@ function runMigrations(db: Database, fromVersion: number): void {
       const taskColumnNames = taskColumns.map(c => c.name)
 
       if (!taskColumnNames.includes('external_issue_id')) {
-        console.log('[Schema] Adding external_issue_id column to tasks table')
+        logger.debug('[Schema] Adding external_issue_id column to tasks table')
         db.exec(`ALTER TABLE tasks ADD COLUMN external_issue_id TEXT`)
       } else {
-        console.log('[Schema] external_issue_id column already exists in tasks table')
+        logger.debug('[Schema] external_issue_id column already exists in tasks table')
       }
 
       if (!taskColumnNames.includes('external_issue_url')) {
-        console.log('[Schema] Adding external_issue_url column to tasks table')
+        logger.debug('[Schema] Adding external_issue_url column to tasks table')
         db.exec(`ALTER TABLE tasks ADD COLUMN external_issue_url TEXT`)
       } else {
-        console.log('[Schema] external_issue_url column already exists in tasks table')
+        logger.debug('[Schema] external_issue_url column already exists in tasks table')
       }
 
       if (!taskColumnNames.includes('integration_id')) {
-        console.log('[Schema] Adding integration_id column to tasks table')
+        logger.debug('[Schema] Adding integration_id column to tasks table')
         db.exec(`ALTER TABLE tasks ADD COLUMN integration_id TEXT`)
       } else {
-        console.log('[Schema] integration_id column already exists in tasks table')
+        logger.debug('[Schema] integration_id column already exists in tasks table')
       }
 
       // Check projects table
@@ -659,13 +661,13 @@ function runMigrations(db: Database, fromVersion: number): void {
       const projectColumnNames = projectColumns.map(c => c.name)
 
       if (!projectColumnNames.includes('integration_ids')) {
-        console.log('[Schema] Adding integration_ids column to projects table')
+        logger.debug('[Schema] Adding integration_ids column to projects table')
         db.exec(`ALTER TABLE projects ADD COLUMN integration_ids TEXT NOT NULL DEFAULT '[]'`)
       } else {
-        console.log('[Schema] integration_ids column already exists in projects table')
+        logger.debug('[Schema] integration_ids column already exists in projects table')
       }
 
-      console.log('[Schema] Migration v12 -> v13 complete')
+      logger.debug('[Schema] Migration v12 -> v13 complete')
     } catch (error) {
       console.error('[Schema] Error during migration v12 -> v13:', error)
       throw error
@@ -674,7 +676,7 @@ function runMigrations(db: Database, fromVersion: number): void {
 
   // Migration from v13 to v14: Add selected_project_id to config table
   if (fromVersion < 14) {
-    console.log('[Schema] Running migration v13 -> v14: Adding selected_project_id to config')
+    logger.debug('[Schema] Running migration v13 -> v14: Adding selected_project_id to config')
 
     try {
       // Check if column already exists before adding it
@@ -682,13 +684,13 @@ function runMigrations(db: Database, fromVersion: number): void {
       const configColumnNames = configColumns.map(c => c.name)
 
       if (!configColumnNames.includes('selected_project_id')) {
-        console.log('[Schema] Adding selected_project_id column to config table')
+        logger.debug('[Schema] Adding selected_project_id column to config table')
         db.exec(`ALTER TABLE config ADD COLUMN selected_project_id TEXT`)
       } else {
-        console.log('[Schema] selected_project_id column already exists in config table')
+        logger.debug('[Schema] selected_project_id column already exists in config table')
       }
 
-      console.log('[Schema] Migration v13 -> v14 complete')
+      logger.debug('[Schema] Migration v13 -> v14 complete')
     } catch (error) {
       console.error('[Schema] Error during migration v13 -> v14:', error)
       throw error
@@ -697,7 +699,7 @@ function runMigrations(db: Database, fromVersion: number): void {
 
   // Migration from v14 to v15: Add migrations table for tracking one-time data migrations
   if (fromVersion < 15) {
-    console.log('[Schema] Running migration v14 -> v15: Adding migrations table')
+    logger.debug('[Schema] Running migration v14 -> v15: Adding migrations table')
 
     try {
       // Create migrations table if it doesn't exist
@@ -710,14 +712,37 @@ function runMigrations(db: Database, fromVersion: number): void {
         )
       `)
 
-      console.log('[Schema] Migration v14 -> v15 complete')
+      logger.debug('[Schema] Migration v14 -> v15 complete')
     } catch (error) {
       console.error('[Schema] Error during migration v14 -> v15:', error)
       throw error
     }
   }
 
-  // Add future migrations here (if fromVersion < 16, etc.)
+  // Migration from v15 to v16: Add debug_logging column to config table
+  if (fromVersion < 16) {
+    logger.debug('[Schema] Running migration v15 -> v16: Adding debug_logging to config')
+
+    try {
+      // Check if column already exists before adding it
+      const configColumns = db.pragma('table_info(config)') as Array<{ name: string }>
+      const configColumnNames = configColumns.map(c => c.name)
+
+      if (!configColumnNames.includes('debug_logging')) {
+        logger.debug('[Schema] Adding debug_logging column to config table')
+        db.exec(`ALTER TABLE config ADD COLUMN debug_logging INTEGER NOT NULL DEFAULT 0`)
+      } else {
+        logger.debug('[Schema] debug_logging column already exists in config table')
+      }
+
+      logger.debug('[Schema] Migration v15 -> v16 complete')
+    } catch (error) {
+      console.error('[Schema] Error during migration v15 -> v16:', error)
+      throw error
+    }
+  }
+
+  // Add future migrations here (if fromVersion < 17, etc.)
 }
 
 /**
@@ -762,7 +787,7 @@ export function verifySchema(db: Database): { valid: boolean; errors: string[] }
       return { valid: false, errors }
     }
 
-    console.log('[Schema] Verification passed - all expected columns exist')
+    logger.debug('[Schema] Verification passed - all expected columns exist')
     return { valid: true, errors: [] }
   } catch (error) {
     const errorMsg = `Verification error: ${error}`
@@ -776,14 +801,14 @@ export function verifySchema(db: Database): { valid: boolean; errors: string[] }
  */
 export function ensureSchema(db: Database): void {
   const currentVersion = getSchemaVersion(db)
-  console.log(`[Schema] Current schema version: ${currentVersion}, Target version: ${SCHEMA_VERSION}`)
+  logger.debug(`[Schema] Current schema version: ${currentVersion}, Target version: ${SCHEMA_VERSION}`)
 
   if (currentVersion === 0) {
     // Fresh database - create schema
-    console.log('[Schema] Fresh database detected, creating schema from scratch')
+    logger.debug('[Schema] Fresh database detected, creating schema from scratch')
     createSchema(db)
   } else if (currentVersion < SCHEMA_VERSION) {
-    console.log(
+    logger.debug(
       `[Schema] Migration needed from v${currentVersion} to v${SCHEMA_VERSION}`
     )
 
@@ -795,9 +820,9 @@ export function ensureSchema(db: Database): void {
       UPDATE schema_version SET version = ?, migrated_at = ? WHERE id = 1
     `)
     updateVersion.run(SCHEMA_VERSION, new Date().toISOString())
-    console.log(`[Schema] Migration complete - updated version to ${SCHEMA_VERSION}`)
+    logger.debug(`[Schema] Migration complete - updated version to ${SCHEMA_VERSION}`)
   } else {
-    console.log('[Schema] Database schema is up to date')
+    logger.debug('[Schema] Database schema is up to date')
   }
 
   // Verify schema after ensuring it's up to date

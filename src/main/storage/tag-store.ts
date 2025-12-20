@@ -9,7 +9,7 @@ import { promises as fs } from 'fs'
 import path from 'path'
 import type { Tag, TagsRegistry } from '@shared/types/tag'
 import { generateTagId, isValidTagColor } from '@shared/types/tag'
-import { getSyncDir } from '../utils/paths'
+import { getSyncDir } from '@main/utils/paths'
 
 const TAGS_FILE = 'tags.json'
 

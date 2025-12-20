@@ -8,8 +8,8 @@
 import { spawn } from 'child_process'
 import type { Project } from '@shared/types'
 import { ClaudeCodeAdapter } from './adapters/claude-code'
-import { getProjectsByGroup } from '../storage'
-import { quoteExecutablePath } from '../utils/paths'
+import { getProjectsByGroup } from '@main/storage'
+import { quoteExecutablePath } from '@main/utils/paths'
 import { platform } from 'os'
 
 const adapter = new ClaudeCodeAdapter()

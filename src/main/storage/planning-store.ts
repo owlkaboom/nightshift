@@ -20,7 +20,7 @@ import {
   getPlanningDir,
   getPlanningSessionDir,
   getPlanningSessionPath
-} from '../utils/paths'
+} from '@main/utils/paths'
 import { readJson, writeJson, ensureDir, fileExists } from './file-store'
 
 /**

@@ -9,6 +9,7 @@
  */
 
 import type { GithubSkillData } from '@shared/ipc-types'
+import { logger } from '@main/utils/logger'
 
 /**
  * Parse a GitHub URL to extract owner and repo
@@ -183,15 +184,15 @@ async function findMarkdownFiles(
  * @returns Array of parsed skill data
  */
 export async function fetchSkillsFromGithub(githubUrl: string): Promise<GithubSkillData[]> {
-  console.log('[GitHubImporter] Fetching skills from:', githubUrl)
+  logger.debug('[GitHubImporter] Fetching skills from:', githubUrl)
 
   // Parse the URL
   const { owner, repo, branch } = parseGithubUrl(githubUrl)
-  console.log('[GitHubImporter] Parsed:', { owner, repo, branch })
+  logger.debug('[GitHubImporter] Parsed:', { owner, repo, branch })
 
   // Find all markdown files
   const mdFiles = await findMarkdownFiles(owner, repo, '', branch)
-  console.log('[GitHubImporter] Found', mdFiles.length, 'markdown files')
+  logger.debug('[GitHubImporter] Found', mdFiles.length, 'markdown files')
 
   // Fetch and parse each file
   const skills: GithubSkillData[] = []
@@ -210,7 +211,7 @@ export async function fetchSkillsFromGithub(githubUrl: string): Promise<GithubSk
     }
   }
 
-  console.log('[GitHubImporter] Successfully parsed', skills.length, 'skills')
+  logger.debug('[GitHubImporter] Successfully parsed', skills.length, 'skills')
 
   return skills
 }

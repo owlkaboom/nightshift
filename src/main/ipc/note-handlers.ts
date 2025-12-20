@@ -4,8 +4,8 @@
 
 import { ipcMain } from 'electron'
 import type { Note, NoteStatus, CreateNoteData } from '@shared/types'
-import * as vaultStore from '../storage/vault/vault-store'
-import * as notesCache from '../storage/vault/notes-cache'
+import * as vaultStore from '@main/storage/vault/vault-store'
+import * as notesCache from '@main/storage/vault/notes-cache'
 
 /**
  * Register all note IPC handlers

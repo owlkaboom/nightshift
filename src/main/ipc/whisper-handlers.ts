@@ -3,7 +3,7 @@
  */
 
 import { ipcMain } from 'electron'
-import type { WhisperModelKey } from '../whisper/whisper-service'
+import type { WhisperModelKey } from '@main/whisper/whisper-service'
 import {
   getWhisperStatus,
   getWhisperDepsStatus,
@@ -13,8 +13,8 @@ import {
   unloadWhisperModel,
   transcribeAudio,
   WHISPER_MODELS
-} from '../whisper/whisper-service'
-import { broadcastToAll } from '../utils/broadcast'
+} from '@main/whisper/whisper-service'
+import { broadcastToAll } from '@main/utils/broadcast'
 
 export function registerWhisperHandlers(): void {
   // Get Whisper dependencies status

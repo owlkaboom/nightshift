@@ -8,16 +8,17 @@
 import type { TaskManifest, TaskStatus, TaskIteration } from '@shared/types'
 import { createTaskManifest } from '@shared/types'
 import { generateTaskId } from '@shared/constants'
-import { getDatabase, runTransaction } from '../database'
+import { getDatabase, runTransaction } from '@main/storage/database'
+import { logger } from '@main/utils/logger'
 import {
   getTaskLogPath,
   getTaskRunsDir,
   getIterationLogPath,
   getTaskDir
-} from '../../utils/paths'
-import { appendToFile, ensureDir, fileExists } from '../file-store'
+} from '@main/utils/paths'
+import { appendToFile, ensureDir, fileExists } from '@main/storage/file-store'
 import { rm } from 'fs/promises'
-import { readFileAutoDecompress, compressFile } from '../compression'
+import { readFileAutoDecompress, compressFile } from '@main/storage/compression'
 
 // ============ Type Conversions ============
 
@@ -189,18 +190,18 @@ export async function updateTask(
     return null
   }
 
-  console.log('[task-store] updateTask - before:', {
+  logger.debug('[task-store] updateTask - before:', {
     agentId: task.agentId,
     model: task.model
   })
-  console.log('[task-store] updateTask - updates:', {
+  logger.debug('[task-store] updateTask - updates:', {
     agentId: updates.agentId,
     model: updates.model
   })
 
   const updated = { ...task, ...updates }
 
-  console.log('[task-store] updateTask - after merge:', {
+  logger.debug('[task-store] updateTask - after merge:', {
     agentId: updated.agentId,
     model: updated.model
   })

@@ -11,7 +11,7 @@ import { readdir, stat } from 'fs/promises'
 import { join } from 'path'
 import type { Project } from '@shared/types'
 import { ClaudeCodeAdapter } from './adapters/claude-code'
-import { getProjectPath } from '../storage'
+import { getProjectPath } from '@main/storage'
 
 const adapter = new ClaudeCodeAdapter()
 

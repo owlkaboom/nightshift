@@ -902,6 +902,9 @@ export interface RendererApi {
   testNotification: () => Promise<void>
   previewNotificationSound: (soundName: string, customPath?: string) => Promise<void>
   copyNotificationSound: (sourcePath: string) => Promise<string>
+  openLogsFolder: () => Promise<void>
+  getDebugLogging: () => Promise<boolean>
+  setDebugLogging: (enabled: boolean) => Promise<void>
   onStartupProgress: (
     callback: (status: { stage: string; message: string; complete: boolean }) => void
   ) => () => void

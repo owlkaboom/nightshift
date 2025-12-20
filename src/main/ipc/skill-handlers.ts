@@ -17,8 +17,8 @@ import {
   setSkillsEnabled,
   buildSkillPrompt,
   resetSkills
-} from '../storage/skill-store'
-import { fetchSkillsFromGithub } from '../skills/github-importer'
+} from '@main/storage/skill-store'
+import { fetchSkillsFromGithub } from '@main/skills/github-importer'
 
 export function registerSkillHandlers(): void {
   // List all skills

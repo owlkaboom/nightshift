@@ -3,12 +3,14 @@
  */
 
 import { ipcMain, dialog, shell, app } from 'electron'
-import { getStorageStatus } from '../storage'
-import { broadcastStartupProgress } from '../utils/broadcast'
-import { showTestNotification, previewNotificationSound } from '../notifications/notification-service'
-import { getSoundsDir } from '../utils/paths'
+import { getStorageStatus } from '@main/storage'
+import { broadcastStartupProgress } from '@main/utils/broadcast'
+import { showTestNotification, previewNotificationSound } from '@main/notifications/notification-service'
+import { getSoundsDir } from '@main/utils/paths'
 import { copyFile, mkdir, readFile } from 'fs/promises'
 import { join } from 'path'
+import { logger } from '@main/utils/logger'
+import { updateConfig } from '@main/storage/config-store'
 
 // Startup status state
 export interface StartupStatus {
@@ -175,12 +177,30 @@ export function registerSystemHandlers(): void {
       // Copy the file
       await copyFile(sourcePath, destPath)
 
-      console.log('[SystemHandlers] Copied notification sound:', sourcePath, '->', destPath)
+      logger.debug('[SystemHandlers] Copied notification sound:', sourcePath, '->', destPath)
 
       return destPath
     } catch (error) {
       console.error('[SystemHandlers] Error copying notification sound:', error)
       throw error
     }
+  })
+
+  // Open logs folder in system file manager
+  ipcMain.handle('system:openLogsFolder', async (): Promise<void> => {
+    const logsDir = logger.getLogsDir()
+    await shell.openPath(logsDir)
+  })
+
+  // Get debug logging status
+  ipcMain.handle('system:getDebugLogging', async (): Promise<boolean> => {
+    return logger.isDebugEnabled()
+  })
+
+  // Set debug logging status
+  ipcMain.handle('system:setDebugLogging', async (_, enabled: boolean): Promise<void> => {
+    logger.setDebugEnabled(enabled)
+    // Persist to config
+    await updateConfig({ debugLogging: enabled })
   })
 }

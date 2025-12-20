@@ -13,9 +13,9 @@ import {
   removeProject,
   getProjectPath,
   setProjectPath
-} from '../storage'
-import { generateProjectDescription } from '../agents/description-generator'
-import { scanForRepos } from '../git/repo-scanner'
+} from '@main/storage'
+import { generateProjectDescription } from '@main/agents/description-generator'
+import { scanForRepos } from '@main/git/repo-scanner'
 
 export function registerProjectHandlers(): void {
   // List all projects

@@ -12,7 +12,7 @@ import {
 import { migrateCompressExistingLogs } from './storage/migrations/compress-existing-logs'
 import { cleanupExpiredTasks } from './storage/retention-service'
 import { loadWhisperModel, ensureWhisperDeps } from './whisper/whisper-service'
-import { initializeLogger, closeLogger } from './utils/logger'
+import { initializeLogger, closeLogger, logger } from './utils/logger'
 import { setStartupStatus, completeStartup } from './ipc/system-handlers'
 import { initializeNotificationService } from './notifications/notification-service'
 
@@ -63,7 +63,12 @@ app.whenReady().then(async () => {
   try {
     await initializeStorage()
     const status = await getStorageStatus()
-    console.log('Storage initialized:', status)
+    logger.debug('Storage initialized:', status)
+
+    // Load config and set debug logging mode
+    const { loadConfig } = await import('./storage/config-store')
+    const config = await loadConfig()
+    logger.setDebugEnabled(config.debugLogging)
   } catch (error) {
     console.error('Failed to initialize storage:', error)
   }
@@ -72,11 +77,11 @@ app.whenReady().then(async () => {
   try {
     if (await needsMigration()) {
       setStartupStatus({ stage: 'migration', message: 'Running migrations...' })
-      console.log('Running v2 migration (worktree removal)...')
+      logger.debug('Running v2 migration (worktree removal)...')
       const result = await migrateFromWorktrees()
-      console.log('Migration result:', result.message)
+      logger.debug('Migration result:', result.message)
       if (result.details.length > 0) {
-        result.details.forEach((d) => console.log('  ', d))
+        result.details.forEach((d) => logger.debug('  ', d))
       }
     }
   } catch (error) {
@@ -86,21 +91,21 @@ app.whenReady().then(async () => {
   // Register IPC handlers (needed before groups-to-tags migration)
   setStartupStatus({ stage: 'ipc', message: 'Setting up communication...' })
   await registerIpcHandlers()
-  console.log('IPC handlers registered')
+  logger.debug('IPC handlers registered')
 
   // Initialize notification service
   await initializeNotificationService()
-  console.log('Notification service initialized')
+  logger.debug('Notification service initialized')
 
   // Run groups to tags migration if needed (only if groups.json exists)
   try {
     if (needsGroupToTagMigration()) {
       setStartupStatus({ stage: 'migration', message: 'Converting groups to tags...' })
-      console.log('Running groups to tags migration...')
+      logger.debug('Running groups to tags migration...')
       const result = await migrateGroupsToTags()
-      console.log('Groups to tags migration result:')
-      console.log(`  - Groups converted: ${result.groupsConverted}`)
-      console.log(`  - Projects updated: ${result.projectsUpdated}`)
+      logger.debug('Groups to tags migration result:')
+      logger.debug(`  - Groups converted: ${result.groupsConverted}`)
+      logger.debug(`  - Projects updated: ${result.projectsUpdated}`)
 
       if (result.errors.length > 0) {
         console.warn(`  - Errors: ${result.errors.length}`)
@@ -121,10 +126,10 @@ app.whenReady().then(async () => {
     setStartupStatus({ stage: 'migration', message: 'Compressing task logs...' })
     const compressionResult = await migrateCompressExistingLogs()
     if (!compressionResult.alreadyRan) {
-      console.log('Log compression migration result:')
-      console.log(`  - Files compressed: ${compressionResult.filesCompressed}`)
+      logger.debug('Log compression migration result:')
+      logger.debug(`  - Files compressed: ${compressionResult.filesCompressed}`)
       const mbReclaimed = (compressionResult.bytesReclaimed / 1024 / 1024).toFixed(2)
-      console.log(`  - Space reclaimed: ${mbReclaimed} MB`)
+      logger.debug(`  - Space reclaimed: ${mbReclaimed} MB`)
       if (compressionResult.errors.length > 0) {
         console.warn(`  - Errors: ${compressionResult.errors.length}`)
         compressionResult.errors.forEach((e) => console.warn('    ', e))
@@ -144,16 +149,16 @@ app.whenReady().then(async () => {
   // This installs deps on first run and ensures the model is ready for recording
   setStartupStatus({ stage: 'whisper', message: 'Preparing voice recognition...' })
   ensureWhisperDeps((msg) => {
-    console.log('[Whisper]', msg)
+    logger.debug('[Whisper]', msg)
     setStartupStatus({ stage: 'whisper', message: msg })
   })
     .then(async (available) => {
       if (available) {
         setStartupStatus({ stage: 'whisper', message: 'Loading speech model...' })
         await loadWhisperModel('tiny.en')
-        console.log('Whisper model preloaded')
+        logger.debug('Whisper model preloaded')
       } else {
-        console.log('[Whisper] Dependencies not available, skipping model preload')
+        logger.debug('[Whisper] Dependencies not available, skipping model preload')
       }
       // Mark startup complete after whisper is done (or skipped)
       completeStartup()

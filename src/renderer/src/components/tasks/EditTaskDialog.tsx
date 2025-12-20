@@ -1,11 +1,11 @@
 import type { TaskManifest } from '@shared/types'
 import { Brain, Loader2, Wand2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { suggestSkills } from '../../lib/skill-suggestions'
-import { useSkillStore } from '../../stores/skill-store'
-import { useAgentCacheStore } from '../../stores/agent-cache-store'
-import { SkillSelector } from '../skills/SkillSelector'
-import { Button } from '../ui/button'
+import { suggestSkills } from '@/lib/skill-suggestions'
+import { useSkillStore } from '@/stores/skill-store'
+import { useAgentCacheStore } from '@/stores/agent-cache-store'
+import { SkillSelector } from '@/components/skills/SkillSelector'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -13,16 +13,16 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle
-} from '../ui/dialog'
-import { Label } from '../ui/label'
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue
-} from '../ui/select'
-import { RichTextEditor } from '../ui/rich-text-editor'
+} from '@/components/ui/select'
+import { RichTextEditor } from '@/components/ui/rich-text-editor'
 
 interface EditTaskDialogProps {
   open: boolean

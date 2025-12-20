@@ -6,7 +6,8 @@
  */
 
 import { safeStorage } from 'electron'
-import { getDatabase } from '../database'
+import { getDatabase } from '@main/storage/database'
+import { logger } from '@main/utils/logger'
 
 // ============ Encryption Helpers ============
 
@@ -75,7 +76,7 @@ export async function setCredential(key: string, value: string): Promise<void> {
     VALUES (?, ?)
   `).run(key, encrypted)
 
-  console.log(`[SecureStore] Stored credential: ${key}`)
+  logger.debug(`[SecureStore] Stored credential: ${key}`)
 }
 
 /**
@@ -108,7 +109,7 @@ export async function deleteCredential(key: string): Promise<boolean> {
   const result = db.prepare('DELETE FROM credentials WHERE key = ?').run(key)
 
   if (result.changes > 0) {
-    console.log(`[SecureStore] Deleted credential: ${key}`)
+    logger.debug(`[SecureStore] Deleted credential: ${key}`)
     return true
   }
   return false
@@ -144,7 +145,7 @@ export async function listCredentialKeys(): Promise<string[]> {
 export async function clearAllCredentials(): Promise<void> {
   const db = getDatabase()
   db.prepare('DELETE FROM credentials').run()
-  console.log('[SecureStore] Cleared all credentials')
+  logger.debug('[SecureStore] Cleared all credentials')
 }
 
 // ============ Agent-Specific Credential Helpers ============

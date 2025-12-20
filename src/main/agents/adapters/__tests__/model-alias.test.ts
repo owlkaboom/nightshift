@@ -7,7 +7,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest'
 import type { AgentModelInfo } from '@shared/types'
-import { BaseAgentAdapter } from '../base-adapter'
+import { BaseAgentAdapter } from '@main/agents/adapters/base-adapter'
 
 // Mock adapter for testing
 class TestAdapter extends BaseAgentAdapter {

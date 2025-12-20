@@ -13,6 +13,7 @@ import { existsSync, readFileSync } from 'fs'
 import { homedir, platform } from 'os'
 import { join } from 'path'
 import { promisify } from 'util'
+import { logger } from '@main/utils/logger'
 
 const execAsync = promisify(exec)
 
@@ -24,9 +25,9 @@ import type {
   AgentProcess
 } from '@shared/types'
 import { AGENT_IDS, GEMINI_MODELS as GEMINI_DEFAULT_MODELS } from '@shared/types'
-import { getAgentApiKey } from '../../storage/secure-store'
+import { getAgentApiKey } from '@main/storage/secure-store'
 import { BaseAgentAdapter } from './base-adapter'
-import { quoteExecutablePath } from '../../utils/paths'
+import { quoteExecutablePath } from '@main/utils/paths'
 
 /**
  * Gemini API rate limits by tier
@@ -147,14 +148,14 @@ function wrapChildProcess(child: ChildProcess): AgentProcess {
         child.on('exit', (code) => {
           if (!resolved) {
             resolved = true
-            console.log(`[Gemini] wait() resolved via 'exit' event, code=${code}, pid=${child.pid}`)
+            logger.debug(`[Gemini] wait() resolved via 'exit' event, code=${code}, pid=${child.pid}`)
             resolve({ exitCode: code ?? 1 })
           }
         })
         child.on('error', (err) => {
           if (!resolved) {
             resolved = true
-            console.log(
+            logger.debug(
               `[Gemini] wait() resolved via 'error' event, error=${err.message}, pid=${child.pid}`
             )
             resolve({ exitCode: 1 })
@@ -198,7 +199,7 @@ export class GeminiAdapter extends BaseAgentAdapter {
     if (!path) {
       this.cachedPath = null
     }
-    console.log('[Gemini] Custom path set to:', path || '(auto-detect)')
+    logger.debug('[Gemini] Custom path set to:', path || '(auto-detect)')
   }
 
   /**
@@ -229,7 +230,7 @@ export class GeminiAdapter extends BaseAgentAdapter {
         // Extract version from output
         const versionMatch = output.match(/(\d+\.\d+\.\d+(?:-[a-z0-9.]+)?)/i)
         const version = versionMatch ? versionMatch[1] : output
-        console.log('[Gemini] CLI test successful, version:', version)
+        logger.debug('[Gemini] CLI test successful, version:', version)
         return { success: true, version }
       }
 
@@ -275,7 +276,7 @@ export class GeminiAdapter extends BaseAgentAdapter {
   async getExecutablePath(): Promise<string | null> {
     // If custom path is set, use it directly
     if (this.customPath) {
-      console.log('[Gemini] Using custom path:', this.customPath)
+      logger.debug('[Gemini] Using custom path:', this.customPath)
       return this.customPath
     }
 
@@ -293,7 +294,7 @@ export class GeminiAdapter extends BaseAgentAdapter {
       const stdout = String(result.stdout)
       const path = stdout.trim().split('\n')[0].trim()
       if (path && existsSync(path)) {
-        console.log('[Gemini] Found gemini via PATH:', path)
+        logger.debug('[Gemini] Found gemini via PATH:', path)
         this.cachedPath = path
         return path
       }
@@ -311,7 +312,7 @@ export class GeminiAdapter extends BaseAgentAdapter {
       const stdout2 = String(result2.stdout)
       const path = stdout2.trim().split('\n')[0].trim()
       if (path && existsSync(path)) {
-        console.log('[Gemini] Found gemini-cli via PATH:', path)
+        logger.debug('[Gemini] Found gemini-cli via PATH:', path)
         this.cachedPath = path
         return path
       }
@@ -330,7 +331,7 @@ export class GeminiAdapter extends BaseAgentAdapter {
           const { glob } = await import('glob')
           const matches = await glob(path.replace(/\\/g, '/'))
           if (matches.length > 0 && existsSync(matches[0])) {
-            console.log('[Gemini] Found gemini via glob pattern:', matches[0])
+            logger.debug('[Gemini] Found gemini via glob pattern:', matches[0])
             this.cachedPath = matches[0]
             return matches[0]
           }
@@ -338,13 +339,13 @@ export class GeminiAdapter extends BaseAgentAdapter {
           // glob not available or no matches
         }
       } else if (existsSync(path)) {
-        console.log('[Gemini] Found gemini at known path:', path)
+        logger.debug('[Gemini] Found gemini at known path:', path)
         this.cachedPath = path
         return path
       }
     }
 
-    console.log('[Gemini] Could not find gemini executable')
+    logger.debug('[Gemini] Could not find gemini executable')
     return null
   }
 
@@ -404,11 +405,11 @@ export class GeminiAdapter extends BaseAgentAdapter {
       args.push(options.prompt)
     }
 
-    console.log('[Gemini] Invoking with args:', args.join(' '))
-    console.log('[Gemini] Working directory:', options.workingDirectory)
-    console.log('[Gemini] Executable path:', execPath)
+    logger.debug('[Gemini] Invoking with args:', args.join(' '))
+    logger.debug('[Gemini] Working directory:', options.workingDirectory)
+    logger.debug('[Gemini] Executable path:', execPath)
     if (isWindows) {
-      console.log('[Gemini] Prompt will be passed via stdin (Windows mode)')
+      logger.debug('[Gemini] Prompt will be passed via stdin (Windows mode)')
     }
 
     // Build environment with API key if available
@@ -435,7 +436,7 @@ export class GeminiAdapter extends BaseAgentAdapter {
       env
     })
 
-    console.log('[Gemini] Process spawned with PID:', child.pid)
+    logger.debug('[Gemini] Process spawned with PID:', child.pid)
 
     // On Windows, write the prompt to stdin then close it
     // On non-Windows, just close stdin immediately
@@ -443,16 +444,16 @@ export class GeminiAdapter extends BaseAgentAdapter {
       if (isWindows) {
         child.stdin.write(options.prompt)
         child.stdin.end()
-        console.log('[Gemini] Prompt written to stdin and closed (Windows mode)')
+        logger.debug('[Gemini] Prompt written to stdin and closed (Windows mode)')
       } else {
         child.stdin.end()
-        console.log('[Gemini] stdin closed')
+        logger.debug('[Gemini] stdin closed')
       }
     }
 
     // Log process events for debugging
     child.on('spawn', () => {
-      console.log('[Gemini] Process spawn event fired, PID:', child.pid)
+      logger.debug('[Gemini] Process spawn event fired, PID:', child.pid)
     })
 
     child.on('error', (err) => {
@@ -460,20 +461,20 @@ export class GeminiAdapter extends BaseAgentAdapter {
     })
 
     child.on('exit', (code, signal) => {
-      console.log('[Gemini] Process exited with code:', code, 'signal:', signal)
+      logger.debug('[Gemini] Process exited with code:', code, 'signal:', signal)
     })
 
     child.on('close', (code, signal) => {
-      console.log('[Gemini] Process closed with code:', code, 'signal:', signal)
+      logger.debug('[Gemini] Process closed with code:', code, 'signal:', signal)
     })
 
     // Log stdout/stderr data for debugging
     child.stdout?.on('data', (chunk) => {
-      console.log('[Gemini] stdout chunk received, size:', chunk.length)
+      logger.debug('[Gemini] stdout chunk received, size:', chunk.length)
     })
 
     child.stderr?.on('data', (chunk) => {
-      console.log('[Gemini] stderr chunk received, size:', chunk.length)
+      logger.debug('[Gemini] stderr chunk received, size:', chunk.length)
     })
 
     // Track request for rate limiting
@@ -736,7 +737,7 @@ export class GeminiAdapter extends BaseAgentAdapter {
    */
   setTier(tier: GeminiTier): void {
     this.currentTier = tier
-    console.log(`[Gemini] Tier set to: ${tier}`)
+    logger.debug(`[Gemini] Tier set to: ${tier}`)
   }
 
   /**
@@ -1231,7 +1232,7 @@ export class GeminiAdapter extends BaseAgentAdapter {
       this.cachedModels = sorted.length > 0 ? sorted : GEMINI_DEFAULT_MODELS
       this.modelsCacheTime = now
 
-      console.log(`[Gemini] Fetched ${sorted.length} models from API`)
+      logger.debug(`[Gemini] Fetched ${sorted.length} models from API`)
       return this.cachedModels
     } catch (error) {
       console.error('[Gemini] Failed to fetch models:', error)

@@ -13,6 +13,7 @@ import {
   extractTitleFromContent,
   countWords
 } from '@shared/types/note'
+import { logger } from '@main/utils/logger'
 import type { VaultIndex, VaultStats } from '@shared/types/vault'
 import { parseFrontmatter, serializeFrontmatter, createFilename } from './frontmatter'
 import * as notesCache from './notes-cache'
@@ -53,7 +54,7 @@ export async function initializeVault(vaultPath: string): Promise<void> {
   // Initialize notes cache with file watching
   // This loads all notes into memory and sets up file watchers
   await notesCache.initializeNotesCache({ loadNotes })
-  console.log('[VaultStore] Notes cache initialized')
+  logger.debug('[VaultStore] Notes cache initialized')
 }
 
 /**

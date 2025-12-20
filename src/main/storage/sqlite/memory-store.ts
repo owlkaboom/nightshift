@@ -20,7 +20,7 @@ import {
   MIN_CONFIDENCE_THRESHOLD
 } from '@shared/types'
 import type { TaskSummary } from '@shared/types/project-memory'
-import { getDatabase } from '../database'
+import { getDatabase } from '@main/storage/database'
 
 // ============ Type Conversions ============
 

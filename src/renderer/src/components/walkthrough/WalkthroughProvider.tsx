@@ -8,7 +8,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { useNavigate, useLocation } from '@tanstack/react-router'
 import type { WalkthroughContextValue, FeatureHighlight } from '@shared/types/walkthrough'
-import { useWalkthroughStore } from '../../stores/walkthrough-store'
+import { useWalkthroughStore } from '@/stores/walkthrough-store'
 import { walkthroughSteps } from './steps'
 import { getUnseenFeaturesForRoute } from './features'
 

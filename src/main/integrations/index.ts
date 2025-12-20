@@ -23,12 +23,12 @@ import type {
   JiraProject,
   TaskManifest
 } from '@shared/types'
-import { getIntegration, getConnection, getSource } from '../storage/integration-store'
-import { getCredential } from '../storage/secure-store'
+import { getIntegration, getConnection, getSource } from '@main/storage/integration-store'
+import { getCredential } from '@main/storage/secure-store'
 import { GitHubClient, parseGitHubIssueId } from './github'
 import { JiraClient } from './jira'
-import { createTask } from '../storage/sqlite/task-store'
-import { getProject } from '../storage/sqlite/project-store'
+import { createTask } from '@main/storage/sqlite/task-store'
+import { getProject } from '@main/storage/sqlite/project-store'
 
 // ============================================================================
 // TOKEN MANAGEMENT

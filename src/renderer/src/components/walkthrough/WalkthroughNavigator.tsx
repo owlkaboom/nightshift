@@ -7,7 +7,7 @@
 
 import React, { useState } from 'react'
 import { useWalkthrough } from './WalkthroughProvider'
-import { Button } from '../ui/button'
+import { Button } from '@/components/ui/button'
 import { X, ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from 'lucide-react'
 
 /**

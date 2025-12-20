@@ -19,11 +19,11 @@ import type {
   LoadContextContentData
 } from '@shared/ipc-types'
 import { AGENT_IDS } from '@shared/types'
-import * as planningStore from '../storage/planning-store'
-import { planningManager } from '../agents/planning-manager'
-import { getProjectPath } from '../storage'
-import { createTask } from '../storage/task-store'
-import { loadContextAttachmentContent } from '../utils/context-loader'
+import * as planningStore from '@main/storage/planning-store'
+import { planningManager } from '@main/agents/planning-manager'
+import { getProjectPath } from '@main/storage'
+import { createTask } from '@main/storage/task-store'
+import { loadContextAttachmentContent } from '@main/utils/context-loader'
 
 /**
  * Register all planning IPC handlers

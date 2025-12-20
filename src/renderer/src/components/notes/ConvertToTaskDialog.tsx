@@ -23,8 +23,8 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import { FolderGit2, ListTodo } from 'lucide-react'
-import { useSkillStore } from '../../stores/skill-store'
-import { suggestSkills } from '../../lib/skill-suggestions'
+import { useSkillStore } from '@/stores/skill-store'
+import { suggestSkills } from '@/lib/skill-suggestions'
 
 interface ConvertToTaskDialogProps {
   open: boolean

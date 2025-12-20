@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { getSoundsDir } from '../../utils/paths'
+import { getSoundsDir } from '@main/utils/paths'
 
 // Mock the paths module
 vi.mock('../../utils/paths', () => ({

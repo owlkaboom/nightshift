@@ -23,9 +23,9 @@ import {
   startNewIteration,
   reorderTasks,
   addTaskSummary
-} from '../storage'
-import { generateRetryContext } from '../utils/retry-context'
-import { formatVoicePrompt } from '../agents/prompt-formatter'
+} from '@main/storage'
+import { generateRetryContext } from '@main/utils/retry-context'
+import { formatVoicePrompt } from '@main/agents/prompt-formatter'
 
 export function registerTaskHandlers(): void {
   // List tasks for a project

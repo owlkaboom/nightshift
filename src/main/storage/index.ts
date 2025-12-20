@@ -3,7 +3,7 @@
  * Provides access to all SQLite-based storage operations
  */
 
-import { getRequiredDirs } from '../utils/paths'
+import { getRequiredDirs } from '@main/utils/paths'
 import { ensureDir } from './file-store'
 import {
   initializeDatabase,
@@ -16,6 +16,7 @@ import {
 } from './database'
 import { ensureSchema, hasSchema } from './migrations/schema'
 import { needsMigration, migrateFromJson } from './migrations/migrate-from-json'
+import { logger } from '@main/utils/logger'
 
 // Re-export SQLite-based stores
 export * from './sqlite/config-store'
@@ -60,7 +61,7 @@ export async function initializeStorage(): Promise<void> {
 
   if (!dbHasData && jsonExists) {
     // Migrate from JSON files to SQLite
-    console.log('[Storage] Migrating from JSON to SQLite...')
+    logger.debug('[Storage] Migrating from JSON to SQLite...')
     ensureSchema(db) // Create schema first
     const result = await migrateFromJson(db)
     if (!result.success) {
@@ -69,11 +70,11 @@ export async function initializeStorage(): Promise<void> {
   } else if (!dbHasData) {
     // Fresh install - just create schema
     ensureSchema(db)
-    console.log('[Storage] Created fresh database')
+    logger.debug('[Storage] Created fresh database')
   } else {
     // Database already exists with data
     ensureSchema(db) // Ensure schema is up to date
-    console.log('[Storage] Using existing database')
+    logger.debug('[Storage] Using existing database')
   }
 }
 
@@ -142,5 +143,5 @@ export async function getStorageStatus(): Promise<StorageStatus> {
  */
 export function shutdownStorage(): void {
   closeDatabase()
-  console.log('[Storage] Shutdown complete')
+  logger.debug('[Storage] Shutdown complete')
 }

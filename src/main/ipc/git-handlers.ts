@@ -3,9 +3,9 @@
  */
 
 import { ipcMain } from 'electron'
-import type { GitRepoInfo } from '../git'
-import { getRepoInfo, extractRepoName, normalizeGitUrl, getCurrentBranch } from '../git'
-import { getProjectPath } from '../storage'
+import type { GitRepoInfo } from '@main/git'
+import { getRepoInfo, extractRepoName, normalizeGitUrl, getCurrentBranch } from '@main/git'
+import { getProjectPath } from '@main/storage'
 
 export function registerGitHandlers(): void {
   // Get repository info for a path

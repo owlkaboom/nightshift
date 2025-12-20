@@ -6,7 +6,7 @@
  */
 
 import type { TaskManifest } from '@shared/types'
-import { readIterationLog } from '../storage'
+import { readIterationLog } from '@main/storage'
 
 interface ParsedLogEntry {
   type: 'assistant' | 'tool' | 'result' | 'system' | 'unknown'

@@ -9,6 +9,7 @@
 import { getDatabase } from './database'
 import { deleteTask } from './sqlite/task-store'
 import { loadConfig } from './config-store'
+import { logger } from '@main/utils/logger'
 
 /**
  * Result of cleanup operation
@@ -39,7 +40,7 @@ export async function cleanupExpiredTasks(): Promise<CleanupResult> {
   const retentionDays = config.archiveRetentionDays ?? 30
 
   if (retentionDays <= 0) {
-    console.log('[Retention] Cleanup disabled (retention days <= 0)')
+    logger.debug('[Retention] Cleanup disabled (retention days <= 0)')
     return { deletedCount: 0, errors: [] }
   }
 
@@ -63,7 +64,7 @@ export async function cleanupExpiredTasks(): Promise<CleanupResult> {
     )
     .all(cutoffISO) as { id: string; project_id: string }[]
 
-  console.log(
+  logger.debug(
     `[Retention] Found ${expiredTasks.length} tasks older than ${retentionDays} days`
   )
 
@@ -81,6 +82,6 @@ export async function cleanupExpiredTasks(): Promise<CleanupResult> {
     }
   }
 
-  console.log(`[Retention] Cleaned up ${deletedCount} expired tasks`)
+  logger.debug(`[Retention] Cleaned up ${deletedCount} expired tasks`)
   return { deletedCount, errors }
 }

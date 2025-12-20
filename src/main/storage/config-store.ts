@@ -4,7 +4,7 @@
 
 import type { AppConfig } from '@shared/types'
 import { DEFAULT_CONFIG } from '@shared/types'
-import { getConfigPath } from '../utils/paths'
+import { getConfigPath } from '@main/utils/paths'
 import { readJsonWithDefault, writeJson } from './file-store'
 
 /**

@@ -8,7 +8,7 @@
 
 import type { Group, GroupTreeNode } from '@shared/types'
 import { createGroup, generateGroupId, MAX_GROUP_NESTING_DEPTH } from '@shared/types'
-import { getDatabase, runTransaction } from '../database'
+import { getDatabase, runTransaction } from '@main/storage/database'
 
 // ============ Type Conversions ============
 

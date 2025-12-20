@@ -7,6 +7,7 @@
 import { EventEmitter } from 'events'
 import type { AgentProcess, AgentOutputEvent, AgentInvokeOptions } from '@shared/types'
 import { agentRegistry } from './registry'
+import { logger } from '@main/utils/logger'
 
 /**
  * State of a managed agent process
@@ -86,7 +87,7 @@ class ProcessManagerImpl extends EventEmitter {
    */
   setMaxTaskDuration(minutes: number): void {
     this.maxTaskDurationMinutes = Math.max(0, minutes)
-    console.log(`[ProcessManager] Max task duration set to ${this.maxTaskDurationMinutes} minutes`)
+    logger.debug(`[ProcessManager] Max task duration set to ${this.maxTaskDurationMinutes} minutes`)
   }
 
   /**
@@ -123,8 +124,8 @@ class ProcessManagerImpl extends EventEmitter {
     options: AgentInvokeOptions,
     agentId?: string
   ): Promise<ManagedProcess> {
-    console.log('[ProcessManager] Starting process for task:', taskId)
-    console.log('[ProcessManager] Options:', JSON.stringify(options, null, 2))
+    logger.debug('[ProcessManager] Starting process for task:', taskId)
+    logger.debug('[ProcessManager] Options:', JSON.stringify(options, null, 2))
 
     // Check if task already has a running process
     if (this.processes.has(taskId)) {
@@ -132,10 +133,10 @@ class ProcessManagerImpl extends EventEmitter {
       if (existing.state === 'running') {
         // Task is already running - this is fine, just return the existing process
         // This can happen due to race conditions in auto-play or UI interactions
-        console.log(`[ProcessManager] Task ${taskId} already has a running process, returning existing`)
+        logger.debug(`[ProcessManager] Task ${taskId} already has a running process, returning existing`)
         return existing
       }
-      console.log('[ProcessManager] Removing existing process entry for task')
+      logger.debug('[ProcessManager] Removing existing process entry for task')
       this.processes.delete(taskId)
     }
 
@@ -144,25 +145,25 @@ class ProcessManagerImpl extends EventEmitter {
     if (!adapter) {
       throw new Error(`Agent adapter '${agentId || 'default'}' not found`)
     }
-    console.log('[ProcessManager] Using adapter:', adapter.id, adapter.name)
+    logger.debug('[ProcessManager] Using adapter:', adapter.id, adapter.name)
 
     // Check if agent is available
     const available = await adapter.isAvailable()
-    console.log('[ProcessManager] Agent available:', available)
+    logger.debug('[ProcessManager] Agent available:', available)
     if (!available) {
       throw new Error(`Agent '${adapter.name}' is not available. Is it installed?`)
     }
 
     // Pre-load API key for adapters that need it (e.g., Gemini)
     if ('loadApiKey' in adapter && typeof adapter.loadApiKey === 'function') {
-      console.log('[ProcessManager] Loading API key for adapter...')
+      logger.debug('[ProcessManager] Loading API key for adapter...')
       await adapter.loadApiKey()
     }
 
     // Invoke the agent
-    console.log('[ProcessManager] Invoking agent...')
+    logger.debug('[ProcessManager] Invoking agent...')
     const agentProcess = adapter.invoke(options)
-    console.log('[ProcessManager] Agent invoked, PID:', agentProcess.pid)
+    logger.debug('[ProcessManager] Agent invoked, PID:', agentProcess.pid)
 
     // Create managed process
     const managed: ManagedProcess = {
@@ -176,13 +177,13 @@ class ProcessManagerImpl extends EventEmitter {
     }
 
     this.processes.set(taskId, managed)
-    console.log(`[ProcessManager] Added process for task ${taskId}, map now has ${this.processes.size} entries: ${Array.from(this.processes.keys()).join(', ')}`)
+    logger.debug(`[ProcessManager] Added process for task ${taskId}, map now has ${this.processes.size} entries: ${Array.from(this.processes.keys()).join(', ')}`)
     this.emit('process:started', taskId, managed)
 
     // Set up timeout monitoring if max duration is configured
     if (this.maxTaskDurationMinutes > 0) {
       const timeoutMs = this.maxTaskDurationMinutes * 60 * 1000
-      console.log(`[ProcessManager] Setting timeout for task ${taskId}: ${this.maxTaskDurationMinutes} minutes`)
+      logger.debug(`[ProcessManager] Setting timeout for task ${taskId}: ${this.maxTaskDurationMinutes} minutes`)
       managed.timeoutTimer = setTimeout(() => {
         this.handleTimeout(taskId)
       }, timeoutMs)
@@ -198,7 +199,7 @@ class ProcessManagerImpl extends EventEmitter {
     Promise.all([outputPromise, waitPromise])
       .then(([, { exitCode }]) => {
         const proc = this.processes.get(taskId)
-        console.log(`[ProcessManager] Process exit handler for task ${taskId}: exitCode=${exitCode}, proc=${!!proc}, proc.state=${proc?.state}`)
+        logger.debug(`[ProcessManager] Process exit handler for task ${taskId}: exitCode=${exitCode}, proc=${!!proc}, proc.state=${proc?.state}`)
 
         // Clear timeout timer on any completion
         if (proc) {
@@ -207,17 +208,17 @@ class ProcessManagerImpl extends EventEmitter {
 
         if (proc && proc.state === 'running') {
           if (exitCode === 0) {
-            console.log(`[ProcessManager] Setting task ${taskId} state to 'completed'`)
+            logger.debug(`[ProcessManager] Setting task ${taskId} state to 'completed'`)
             proc.state = 'completed'
             this.emit('process:completed', taskId, exitCode)
           } else {
-            console.log(`[ProcessManager] Setting task ${taskId} state to 'failed' (exitCode=${exitCode})`)
+            logger.debug(`[ProcessManager] Setting task ${taskId} state to 'failed' (exitCode=${exitCode})`)
             proc.state = 'failed'
             proc.error = `Process exited with code ${exitCode}`
             this.emit('process:failed', taskId, proc.error)
           }
         } else {
-          console.log(`[ProcessManager] Skipping state update for task ${taskId}: proc=${!!proc}, state=${proc?.state}`)
+          logger.debug(`[ProcessManager] Skipping state update for task ${taskId}: proc=${!!proc}, state=${proc?.state}`)
         }
       })
       .catch((error) => {
@@ -391,7 +392,7 @@ class ProcessManagerImpl extends EventEmitter {
     }
 
     const durationMinutes = this.maxTaskDurationMinutes
-    console.log(`[ProcessManager] Task ${taskId} timed out after ${durationMinutes} minutes`)
+    logger.debug(`[ProcessManager] Task ${taskId} timed out after ${durationMinutes} minutes`)
 
     // Kill the process
     try {
@@ -427,7 +428,7 @@ class ProcessManagerImpl extends EventEmitter {
    */
   getAll(): ManagedProcess[] {
     const all = Array.from(this.processes.values())
-    console.log(`[ProcessManager] getAll called, returning ${all.length} processes:`, all.map(p => ({ taskId: p.taskId, state: p.state })))
+    logger.debug(`[ProcessManager] getAll called, returning ${all.length} processes:`, all.map(p => ({ taskId: p.taskId, state: p.state })))
     return all
   }
 
@@ -468,15 +469,15 @@ class ProcessManagerImpl extends EventEmitter {
    */
   cleanupStale(): number {
     let cleaned = 0
-    console.log(`[ProcessManager] cleanupStale called, ${this.processes.size} processes in map`)
+    logger.debug(`[ProcessManager] cleanupStale called, ${this.processes.size} processes in map`)
     for (const [taskId, proc] of this.processes.entries()) {
-      console.log(`[ProcessManager] Checking task ${taskId}: state=${proc.state}, hasProcess=${!!proc.process}`)
+      logger.debug(`[ProcessManager] Checking task ${taskId}: state=${proc.state}, hasProcess=${!!proc.process}`)
       if (proc.state === 'running') {
         // Only clean up if the process reference is completely missing
         // A valid running process will always have a process object and pid
         // Note: pid can be -1 after exit (see claude-code.ts), but that's still truthy
         if (!proc.process) {
-          console.log(`[ProcessManager] cleanupStale: Marking task ${taskId} as failed (no process reference)`)
+          logger.debug(`[ProcessManager] cleanupStale: Marking task ${taskId} as failed (no process reference)`)
           proc.state = 'failed'
           proc.error = 'Process reference lost'
           // Emit the failed event so handlers can update database/UI
@@ -485,7 +486,7 @@ class ProcessManagerImpl extends EventEmitter {
         }
       }
     }
-    console.log(`[ProcessManager] cleanupStale completed, cleaned ${cleaned} processes`)
+    logger.debug(`[ProcessManager] cleanupStale completed, cleaned ${cleaned} processes`)
     return cleaned
   }
 

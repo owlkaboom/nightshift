@@ -6,8 +6,8 @@
 import fs from 'fs/promises'
 import path from 'path'
 import type { ContextAttachment } from '@shared/types'
-import * as vaultStore from '../storage/vault/vault-store'
-import { getProject, getProjectPath } from '../storage'
+import * as vaultStore from '@main/storage/vault/vault-store'
+import { getProject, getProjectPath } from '@main/storage'
 
 /**
  * Maximum file size to load (5MB)

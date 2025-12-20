@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { VoiceTaskDialog } from '../VoiceTaskDialog'
+import { VoiceTaskDialog } from '@/components/tasks/VoiceTaskDialog'
 import type { Project } from '@shared/types'
 
 // Mock the hooks and stores
-vi.mock('../../../hooks/useSpeechRecognition', () => ({
+vi.mock('@/hooks/useSpeechRecognition', () => ({
   useSpeechRecognition: vi.fn(() => ({
     status: 'idle',
     isListening: false,
@@ -23,26 +23,26 @@ vi.mock('../../../hooks/useSpeechRecognition', () => ({
   }))
 }))
 
-vi.mock('../../../stores/session-store', () => ({
+vi.mock('@/stores/session-store', () => ({
   useSessionStore: vi.fn(() => ({
     sessionProjectId: null,
     setSessionProject: vi.fn()
   }))
 }))
 
-vi.mock('../../../stores/skill-store', () => ({
+vi.mock('@/stores/skill-store', () => ({
   useSkillStore: vi.fn(() => ({
     skills: [],
     fetchSkills: vi.fn()
   }))
 }))
 
-vi.mock('../../../lib/skill-suggestions', () => ({
+vi.mock('@/lib/skill-suggestions', () => ({
   suggestSkills: vi.fn(() => [])
 }))
 
 // Mock RichTextEditor component
-vi.mock('../../ui/rich-text-editor', () => ({
+vi.mock('@/components/ui/rich-text-editor', () => ({
   RichTextEditor: ({ content, onChange, editable = true }: any) => (
     <div data-testid="rich-text-editor" data-editable={editable}>
       {content && <div data-testid="editor-content">{content}</div>}

@@ -20,6 +20,7 @@ import { existsSync } from 'fs'
 import { homedir, platform } from 'os'
 import { join } from 'path'
 import { promisify } from 'util'
+import { logger } from '@main/utils/logger'
 
 const execAsync = promisify(exec)
 
@@ -31,9 +32,9 @@ import type {
   AgentProcess
 } from '@shared/types'
 import { AGENT_IDS, OPENROUTER_DEFAULT_MODELS } from '@shared/types'
-import { getAgentApiKey } from '../../storage/secure-store'
+import { getAgentApiKey } from '@main/storage/secure-store'
 import { BaseAgentAdapter } from './base-adapter'
-import { quoteExecutablePath } from '../../utils/paths'
+import { quoteExecutablePath } from '@main/utils/paths'
 
 /** OpenRouter API endpoints */
 const OPENROUTER_API_BASE = 'https://openrouter.ai/api/v1'
@@ -106,14 +107,14 @@ function wrapChildProcess(child: ChildProcess): AgentProcess {
         child.on('exit', (code) => {
           if (!resolved) {
             resolved = true
-            console.log(`[OpenRouter] wait() resolved via 'exit' event, code=${code}, pid=${child.pid}`)
+            logger.debug(`[OpenRouter] wait() resolved via 'exit' event, code=${code}, pid=${child.pid}`)
             resolve({ exitCode: code ?? 1 })
           }
         })
         child.on('error', (err) => {
           if (!resolved) {
             resolved = true
-            console.log(
+            logger.debug(
               `[OpenRouter] wait() resolved via 'error' event, error=${err.message}, pid=${child.pid}`
             )
             resolve({ exitCode: 1 })
@@ -152,7 +153,7 @@ export class OpenRouterAdapter extends BaseAgentAdapter {
     if (!path) {
       this.cachedClaudePath = null
     }
-    console.log('[OpenRouter] Custom Claude CLI path set to:', path || '(auto-detect)')
+    logger.debug('[OpenRouter] Custom Claude CLI path set to:', path || '(auto-detect)')
   }
 
   /**
@@ -182,7 +183,7 @@ export class OpenRouterAdapter extends BaseAgentAdapter {
       if (output) {
         const versionMatch = output.match(/(\d+\.\d+\.\d+(?:-[a-z0-9.]+)?)/i)
         const version = versionMatch ? versionMatch[1] : output
-        console.log('[OpenRouter] CLI test successful, version:', version)
+        logger.debug('[OpenRouter] CLI test successful, version:', version)
         return { success: true, version }
       }
 
@@ -204,13 +205,13 @@ export class OpenRouterAdapter extends BaseAgentAdapter {
   async isAvailable(): Promise<boolean> {
     const claudePath = await this.getClaudeCliPath()
     if (!claudePath) {
-      console.log('[OpenRouter] Not available: Claude CLI not found')
+      logger.debug('[OpenRouter] Not available: Claude CLI not found')
       return false
     }
 
     const openrouterPath = await this.getOpenRouterCliPath()
     if (!openrouterPath) {
-      console.log('[OpenRouter] Not available: OpenRouter CLI not found')
+      logger.debug('[OpenRouter] Not available: OpenRouter CLI not found')
       return false
     }
 
@@ -243,7 +244,7 @@ export class OpenRouterAdapter extends BaseAgentAdapter {
   private async getClaudeCliPath(): Promise<string | null> {
     // If custom path is set, use it directly
     if (this.customPath) {
-      console.log('[OpenRouter] Using custom Claude CLI path:', this.customPath)
+      logger.debug('[OpenRouter] Using custom Claude CLI path:', this.customPath)
       return this.customPath
     }
 
@@ -261,7 +262,7 @@ export class OpenRouterAdapter extends BaseAgentAdapter {
       const stdout = String(result.stdout)
       const path = stdout.trim().split('\n')[0].trim()
       if (path && existsSync(path)) {
-        console.log('[OpenRouter] Found claude via PATH:', path)
+        logger.debug('[OpenRouter] Found claude via PATH:', path)
         this.cachedClaudePath = path
         return path
       }
@@ -279,7 +280,7 @@ export class OpenRouterAdapter extends BaseAgentAdapter {
           const { glob } = await import('glob')
           const matches = await glob(path.replace(/\\/g, '/'))
           if (matches.length > 0 && existsSync(matches[0])) {
-            console.log('[OpenRouter] Found claude via glob:', matches[0])
+            logger.debug('[OpenRouter] Found claude via glob:', matches[0])
             this.cachedClaudePath = matches[0]
             return matches[0]
           }
@@ -287,13 +288,13 @@ export class OpenRouterAdapter extends BaseAgentAdapter {
           // glob not available or no matches
         }
       } else if (existsSync(path)) {
-        console.log('[OpenRouter] Found claude at known path:', path)
+        logger.debug('[OpenRouter] Found claude at known path:', path)
         this.cachedClaudePath = path
         return path
       }
     }
 
-    console.log('[OpenRouter] Could not find Claude CLI')
+    logger.debug('[OpenRouter] Could not find Claude CLI')
     return null
   }
 
@@ -373,7 +374,7 @@ export class OpenRouterAdapter extends BaseAgentAdapter {
     const model = options.agentOptions?.model as string | undefined
     if (model) {
       args.push('--model', model)
-      console.log('[OpenRouter] Using model:', model)
+      logger.debug('[OpenRouter] Using model:', model)
     }
 
     // Add context files as allowed directories if provided
@@ -394,11 +395,11 @@ export class OpenRouterAdapter extends BaseAgentAdapter {
       args.push(options.prompt)
     }
 
-    console.log('[OpenRouter] Invoking with args:', args.join(' '))
-    console.log('[OpenRouter] Working directory:', options.workingDirectory)
-    console.log('[OpenRouter] Executable path:', execPath)
+    logger.debug('[OpenRouter] Invoking with args:', args.join(' '))
+    logger.debug('[OpenRouter] Working directory:', options.workingDirectory)
+    logger.debug('[OpenRouter] Executable path:', execPath)
     if (isWindows) {
-      console.log('[OpenRouter] Prompt will be passed via stdin (Windows mode)')
+      logger.debug('[OpenRouter] Prompt will be passed via stdin (Windows mode)')
     }
 
     // Quote the executable path if using shell mode (handles spaces in path)
@@ -419,7 +420,7 @@ export class OpenRouterAdapter extends BaseAgentAdapter {
       }
     })
 
-    console.log('[OpenRouter] Process spawned with PID:', child.pid)
+    logger.debug('[OpenRouter] Process spawned with PID:', child.pid)
 
     // On Windows, write the prompt to stdin then close it
     // On non-Windows, just close stdin immediately
@@ -427,16 +428,16 @@ export class OpenRouterAdapter extends BaseAgentAdapter {
       if (isWindows) {
         child.stdin.write(options.prompt)
         child.stdin.end()
-        console.log('[OpenRouter] Prompt written to stdin and closed (Windows mode)')
+        logger.debug('[OpenRouter] Prompt written to stdin and closed (Windows mode)')
       } else {
         child.stdin.end()
-        console.log('[OpenRouter] stdin closed')
+        logger.debug('[OpenRouter] stdin closed')
       }
     }
 
     // Log process events for debugging
     child.on('spawn', () => {
-      console.log('[OpenRouter] Process spawn event fired, PID:', child.pid)
+      logger.debug('[OpenRouter] Process spawn event fired, PID:', child.pid)
     })
 
     child.on('error', (err) => {
@@ -444,20 +445,20 @@ export class OpenRouterAdapter extends BaseAgentAdapter {
     })
 
     child.on('exit', (code, signal) => {
-      console.log('[OpenRouter] Process exited with code:', code, 'signal:', signal)
+      logger.debug('[OpenRouter] Process exited with code:', code, 'signal:', signal)
     })
 
     child.on('close', (code, signal) => {
-      console.log('[OpenRouter] Process closed with code:', code, 'signal:', signal)
+      logger.debug('[OpenRouter] Process closed with code:', code, 'signal:', signal)
     })
 
     // Log stdout/stderr data for debugging
     child.stdout?.on('data', (chunk) => {
-      console.log('[OpenRouter] stdout chunk received, size:', chunk.length)
+      logger.debug('[OpenRouter] stdout chunk received, size:', chunk.length)
     })
 
     child.stderr?.on('data', (chunk) => {
-      console.log('[OpenRouter] stderr chunk received, size:', chunk.length)
+      logger.debug('[OpenRouter] stderr chunk received, size:', chunk.length)
     })
 
     return wrapChildProcess(child)
@@ -1029,7 +1030,7 @@ export class OpenRouterAdapter extends BaseAgentAdapter {
       this.cachedModels = finalModels
       this.modelsCacheTime = now
 
-      console.log(`[OpenRouter] Fetched ${sorted.length} models from API`)
+      logger.debug(`[OpenRouter] Fetched ${sorted.length} models from API`)
       return finalModels
     } catch (error) {
       console.error('[OpenRouter] Failed to fetch models:', error)

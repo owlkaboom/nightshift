@@ -11,8 +11,8 @@ import type { AgentChatEvent, AgentProcess, ContextAttachment } from '@shared/ty
 import { AGENT_IDS } from '@shared/types'
 import { agentRegistry } from './registry'
 import type { ClaudeCodeAdapter } from './adapters/claude-code'
-import * as planningStore from '../storage/planning-store'
-import { formatContextAttachmentsForAgent, loadContextAttachmentContent } from '../utils/context-loader'
+import * as planningStore from '@main/storage/planning-store'
+import { formatContextAttachmentsForAgent, loadContextAttachmentContent } from '@main/utils/context-loader'
 
 /**
  * Active chat session info

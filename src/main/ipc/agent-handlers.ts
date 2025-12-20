@@ -6,8 +6,9 @@ import type { AgentInfo, RunningTaskInfo, UsageLimitState, UsagePercentageState,
 import type { AgentModelInfo, AgentOutputEvent } from '@shared/types'
 import { getAgentDefaultModel, getAgentModels as getDefaultModels } from '@shared/types'
 import { ipcMain } from 'electron'
-import { agentRegistry, processManager } from '../agents'
-import { getCurrentBranch } from '../git'
+import { agentRegistry, processManager } from '@main/agents'
+import { logger } from '@main/utils/logger'
+import { getCurrentBranch } from '@main/git'
 import {
   getProjectPath,
   buildMemoryContext,
@@ -18,9 +19,9 @@ import {
   loadTask,
   updateTask,
   loadConfig
-} from '../storage'
-import { broadcastTaskStatusChanged, broadcastUsageLimitStateChanged, broadcastAgentAuthStateChanged } from '../utils/broadcast'
-import { handleTaskStatusChange } from '../notifications/notification-service'
+} from '@main/storage'
+import { broadcastTaskStatusChanged, broadcastUsageLimitStateChanged, broadcastAgentAuthStateChanged } from '@main/utils/broadcast'
+import { handleTaskStatusChange } from '@main/notifications/notification-service'
 
 /**
  * Global usage limit state
@@ -141,14 +142,14 @@ export function registerAgentHandlers(): void {
   ipcMain.handle(
     'agent:startTask',
     async (_, projectId: string, taskId: string): Promise<boolean> => {
-      console.log(`[agent:startTask] Starting task ${taskId} for project ${projectId}`)
-      console.log(`[agent:startTask] Current processes before start:`, processManager.getAll().map(p => ({ taskId: p.taskId, state: p.state })))
+      logger.debug(`[agent:startTask] Starting task ${taskId} for project ${projectId}`)
+      logger.debug(`[agent:startTask] Current processes before start:`, processManager.getAll().map(p => ({ taskId: p.taskId, state: p.state })))
 
       // Check if task already has a running process FIRST (fastest check)
       // This handles race conditions where multiple start requests arrive simultaneously
       const existingProcess = processManager.get(taskId)
       if (existingProcess && existingProcess.state === 'running') {
-        console.log(`[agent:startTask] Task ${taskId} already has a running process, returning success`)
+        logger.debug(`[agent:startTask] Task ${taskId} already has a running process, returning success`)
         return true
       }
 
@@ -161,7 +162,7 @@ export function registerAgentHandlers(): void {
       // Only allow starting from queued status
       // This prevents race conditions where the same task could be started multiple times
       if (task.status !== 'queued') {
-        console.log(`[agent:startTask] Task ${taskId} is not queued (status: ${task.status}), skipping`)
+        logger.debug(`[agent:startTask] Task ${taskId} is not queued (status: ${task.status}), skipping`)
         // Don't throw an error - if the task is already running/awaiting, that's fine
         // Just return success since the desired outcome (task running) is achieved
         if (task.status === 'running' || task.status === 'awaiting_agent') {
@@ -225,10 +226,10 @@ export function registerAgentHandlers(): void {
         if (!adapter) {
           throw new Error(`Agent '${taskAgentId || 'default'}' not found or not available`)
         }
-        console.log(`[AgentHandlers] Using agent: ${adapter.id} for task ${taskId}`)
+        logger.debug(`[AgentHandlers] Using agent: ${adapter.id} for task ${taskId}`)
 
         // Pre-flight authentication check BEFORE usage limit check
-        console.log('[AgentHandlers] Performing pre-flight auth check...')
+        logger.debug('[AgentHandlers] Performing pre-flight auth check...')
         const authCheck = await adapter.validateAuth()
         if (!authCheck.isValid) {
           // Broadcast auth state change
@@ -243,10 +244,10 @@ export function registerAgentHandlers(): void {
             authCheck.error || 'Authentication required. Please authenticate with the agent.'
           )
         }
-        console.log('[AgentHandlers] Auth check passed')
+        logger.debug('[AgentHandlers] Auth check passed')
 
         // Pre-flight usage limit check with the agent
-        console.log('[AgentHandlers] Performing pre-flight usage limit check...')
+        logger.debug('[AgentHandlers] Performing pre-flight usage limit check...')
         const limitCheck = await adapter.checkUsageLimits()
         if (!limitCheck.canProceed) {
           // Set the usage limit state so auto-play stops
@@ -260,7 +261,7 @@ export function registerAgentHandlers(): void {
             limitCheck.message || 'Usage limit reached. Please wait for limits to reset.'
           )
         }
-        console.log('[AgentHandlers] Pre-flight check passed, proceeding with task')
+        logger.debug('[AgentHandlers] Pre-flight check passed, proceeding with task')
 
         // Use project directory directly (no worktrees)
         const workingDirectory = projectPath
@@ -343,7 +344,7 @@ export function registerAgentHandlers(): void {
                 const adapter = agentRegistry.get(effectiveAgentId)
                 if (adapter && outputLog.length > 0) {
                   incompletionAnalysis = adapter.detectIncompleteWork(outputLog)
-                  console.log(
+                  logger.debug(
                     `[AgentHandlers] Incomplete work analysis for task ${taskId}:`,
                     incompletionAnalysis
                   )
@@ -694,7 +695,7 @@ export function registerAgentHandlers(): void {
       elapsedMs: now - proc.startedAt.getTime(),
       error: proc.error
     }))
-    console.log('[agent:getRunningTasks] Returning:', JSON.stringify(result.map(r => ({ taskId: r.taskId, state: r.state }))))
+    logger.debug('[agent:getRunningTasks] Returning:', JSON.stringify(result.map(r => ({ taskId: r.taskId, state: r.state }))))
     return result
   })
 

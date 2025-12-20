@@ -22,7 +22,7 @@ import {
   getDocsDir,
   getDocSessionDir,
   getDocSessionPath
-} from '../utils/paths'
+} from '@main/utils/paths'
 import { readJson, writeJson, ensureDir, fileExists } from './file-store'
 
 /**

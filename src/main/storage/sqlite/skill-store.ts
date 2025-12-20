@@ -11,7 +11,7 @@ import {
   BUILT_IN_SKILLS,
   createSkill
 } from '@shared/types'
-import { getDatabase, runTransaction } from '../database'
+import { getDatabase, runTransaction } from '@main/storage/database'
 
 // ============ Type Conversions ============
 

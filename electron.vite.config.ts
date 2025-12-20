@@ -13,7 +13,8 @@ export default defineConfig({
     ],
     resolve: {
       alias: {
-        '@shared': resolve(__dirname, 'src/shared')
+        '@shared': resolve(__dirname, 'src/shared'),
+        '@main': resolve(__dirname, 'src/main')
       }
     },
     build: {
@@ -28,7 +29,8 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin()],
     resolve: {
       alias: {
-        '@shared': resolve(__dirname, 'src/shared')
+        '@shared': resolve(__dirname, 'src/shared'),
+        '@main': resolve(__dirname, 'src/main')
       }
     },
     build: {

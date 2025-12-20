@@ -1,13 +1,13 @@
 import type { Project } from '@shared/types'
 import { Brain, Download, Loader2, Mic, Square, Wand2 } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
-import { useSpeechRecognition } from '../../hooks/useSpeechRecognition'
-import { suggestSkills } from '../../lib/skill-suggestions'
-import { useSkillStore } from '../../stores/skill-store'
-import { useSessionStore } from '../../stores/session-store'
-import { useAgentCacheStore } from '../../stores/agent-cache-store'
-import { SkillSelector } from '../skills/SkillSelector'
-import { Button } from '../ui/button'
+import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
+import { suggestSkills } from '@/lib/skill-suggestions'
+import { useSkillStore } from '@/stores/skill-store'
+import { useSessionStore } from '@/stores/session-store'
+import { useAgentCacheStore } from '@/stores/agent-cache-store'
+import { SkillSelector } from '@/components/skills/SkillSelector'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -15,17 +15,17 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle
-} from '../ui/dialog'
-import { Label } from '../ui/label'
-import { Progress } from '../ui/progress'
+} from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Progress } from '@/components/ui/progress'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue
-} from '../ui/select'
-import { RichTextEditor } from '../ui/rich-text-editor'
+} from '@/components/ui/select'
+import { RichTextEditor } from '@/components/ui/rich-text-editor'
 
 interface AddTaskDialogProps {
   open: boolean

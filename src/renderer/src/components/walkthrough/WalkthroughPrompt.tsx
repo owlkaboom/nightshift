@@ -13,10 +13,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle
-} from '../ui/dialog'
-import { Button } from '../ui/button'
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { useWalkthrough } from './WalkthroughProvider'
-import { useWalkthroughStore } from '../../stores/walkthrough-store'
+import { useWalkthroughStore } from '@/stores/walkthrough-store'
 import { Compass } from 'lucide-react'
 
 interface WalkthroughPromptProps {

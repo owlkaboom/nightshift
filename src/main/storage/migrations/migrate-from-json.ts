@@ -8,6 +8,7 @@
 import { existsSync, mkdirSync, readdirSync, statSync } from 'fs'
 import { join } from 'path'
 import type Database from 'better-sqlite3'
+import { logger } from '@main/utils/logger'
 import type {
   Project,
   Group,
@@ -27,7 +28,7 @@ import {
   getMemoryDir,
   getTasksDir,
   getProjectTasksDir
-} from '../../utils/paths'
+} from '@main/utils/paths'
 // Note: We use fs.readFileSync directly in migration for simplicity
 
 interface MigrationResult {
@@ -125,7 +126,7 @@ function createBackup(): string {
     require('fs').copyFileSync(credentialsPath, join(backupDir, 'credentials.enc.json'))
   }
 
-  console.log(`[Migration] Created backup at: ${backupDir}`)
+  logger.debug(`[Migration] Created backup at: ${backupDir}`)
   return backupDir
 }
 
@@ -218,7 +219,7 @@ function cleanupJsonFiles(): void {
     }
   }
 
-  console.log('[Migration] Cleaned up old JSON files')
+  logger.debug('[Migration] Cleaned up old JSON files')
 }
 
 /**
@@ -554,8 +555,8 @@ export async function migrateFromJson(db: Database.Database): Promise<MigrationR
     cleanupJsonFiles()
 
     result.success = true
-    console.log('[Migration] Successfully migrated from JSON to SQLite')
-    console.log('[Migration] Items migrated:', result.migratedItems)
+    logger.debug('[Migration] Successfully migrated from JSON to SQLite')
+    logger.debug('[Migration] Items migrated:', result.migratedItems)
 
   } catch (error) {
     result.errors.push(`Migration failed: ${error}`)

@@ -6,13 +6,13 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle
-} from '../ui/dialog'
-import { Button } from '../ui/button'
-import { Input } from '../ui/input'
-import { Label } from '../ui/label'
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Loader2, Wand2 } from 'lucide-react'
-import { Textarea } from '../ui/textarea'
-import { IconPicker } from '../ui/icon-picker'
+import { Textarea } from '@/components/ui/textarea'
+import { IconPicker } from '@/components/ui/icon-picker'
 import * as LucideIcons from 'lucide-react'
 import type { Project } from '@shared/types'
 import { PROJECT_ICONS } from '@shared/types'

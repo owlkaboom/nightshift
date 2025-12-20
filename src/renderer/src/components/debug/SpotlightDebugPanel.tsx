@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { useWalkthroughStore } from '../../stores/walkthrough-store'
-import { featureHighlights } from '../walkthrough/features'
-import { Button } from '../ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog'
+import { useWalkthroughStore } from '@/stores/walkthrough-store'
+import { featureHighlights } from '@/components/walkthrough/features'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 interface SpotlightDebugPanelProps {
   open: boolean

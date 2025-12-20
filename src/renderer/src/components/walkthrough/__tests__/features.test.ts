@@ -4,7 +4,7 @@ import {
   getFeatureById,
   getFeaturesForRoute,
   getUnseenFeaturesForRoute
-} from '../features'
+} from '@/components/walkthrough/features'
 
 describe('Feature Highlights', () => {
   describe('featureHighlights registry', () => {

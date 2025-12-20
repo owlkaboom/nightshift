@@ -15,11 +15,11 @@ import type {
   DocSuggestion
 } from '@shared/types'
 import { getDefaultDocPath } from '@shared/types'
-import * as docSessionStore from '../storage/doc-session-store'
-import { DocumentationGenerator } from '../docs/doc-generator'
-import { docManager } from '../docs/doc-manager'
-import { getProjectPath } from '../storage/local-state-store'
-import { getProject } from '../storage/sqlite/project-store'
+import * as docSessionStore from '@main/storage/doc-session-store'
+import { DocumentationGenerator } from '@main/docs/doc-generator'
+import { docManager } from '@main/docs/doc-manager'
+import { getProjectPath } from '@main/storage/local-state-store'
+import { getProject } from '@main/storage/sqlite/project-store'
 
 /**
  * Register all documentation IPC handlers

@@ -7,7 +7,7 @@
 
 import type { Project } from '@shared/types'
 import { createProject, generateProjectId } from '@shared/types'
-import { getDatabase } from '../database'
+import { getDatabase } from '@main/storage/database'
 import {
   setProjectPath,
   removeProjectPath,

@@ -9,6 +9,7 @@ import { ipcMain } from 'electron'
 import type { AgentConfigInfo, SecureStorageInfo } from '@shared/ipc-types'
 import type { AgentConfig, AgentId } from '@shared/types'
 import { AGENT_IDS } from '@shared/types'
+import { logger } from '@main/utils/logger'
 import {
   loadConfig,
   updateConfig,
@@ -17,8 +18,8 @@ import {
   setAgentApiKey,
   deleteAgentApiKey,
   hasAgentApiKey
-} from '../storage'
-import { agentRegistry } from '../agents/registry'
+} from '@main/storage'
+import { agentRegistry } from '@main/agents/registry'
 
 /**
  * Agents that require an API key to function
@@ -172,7 +173,7 @@ export async function registerAgentConfigHandlers(): Promise<void> {
     // Update the registry's default adapter
     agentRegistry.setDefault(agentId)
 
-    console.log(`[AgentConfig] Selected agent changed to: ${agentId}`)
+    logger.debug(`[AgentConfig] Selected agent changed to: ${agentId}`)
   })
 
   // Set agent enabled state
@@ -188,7 +189,7 @@ export async function registerAgentConfigHandlers(): Promise<void> {
       }
 
       await updateConfig({ agents: updatedAgents })
-      console.log(`[AgentConfig] Agent '${agentId}' enabled: ${enabled}`)
+      logger.debug(`[AgentConfig] Agent '${agentId}' enabled: ${enabled}`)
     }
   )
 
@@ -203,14 +204,14 @@ export async function registerAgentConfigHandlers(): Promise<void> {
       }
 
       await setAgentApiKey(agentId, apiKey)
-      console.log(`[AgentConfig] API key stored for agent: ${agentId}`)
+      logger.debug(`[AgentConfig] API key stored for agent: ${agentId}`)
     }
   )
 
   // Delete agent API key
   ipcMain.handle('agentConfig:deleteApiKey', async (_, agentId: string): Promise<void> => {
     await deleteAgentApiKey(agentId)
-    console.log(`[AgentConfig] API key deleted for agent: ${agentId}`)
+    logger.debug(`[AgentConfig] API key deleted for agent: ${agentId}`)
   })
 
   // Check if agent has API key stored
@@ -233,7 +234,7 @@ export async function registerAgentConfigHandlers(): Promise<void> {
       }
 
       await updateConfig({ agents: updatedAgents })
-      console.log(`[AgentConfig] Agent '${agentId}' tier set to: ${tier}`)
+      logger.debug(`[AgentConfig] Agent '${agentId}' tier set to: ${tier}`)
     }
   )
 
@@ -266,7 +267,7 @@ export async function registerAgentConfigHandlers(): Promise<void> {
         adapter.setCustomPath(path)
       }
 
-      console.log(`[AgentConfig] Agent '${agentId}' custom path set to: ${path || '(auto-detect)'}`)
+      logger.debug(`[AgentConfig] Agent '${agentId}' custom path set to: ${path || '(auto-detect)'}`)
     }
   )
 
@@ -306,7 +307,7 @@ export async function registerAgentConfigHandlers(): Promise<void> {
       }
 
       await updateConfig({ agents: updatedAgents })
-      console.log(`[AgentConfig] Agent '${agentId}' setting '${key}' set to: ${value}`)
+      logger.debug(`[AgentConfig] Agent '${agentId}' setting '${key}' set to: ${value}`)
     }
   )
 
@@ -340,7 +341,7 @@ export async function registerAgentConfigHandlers(): Promise<void> {
     }
   })
 
-  console.log('[AgentConfig] Handlers registered')
+  logger.debug('[AgentConfig] Handlers registered')
 }
 
 /**
@@ -356,7 +357,7 @@ export async function initializeAgentConfig(): Promise<void> {
     const agentConfig = config.agents[adapter.id as AgentId]
     if (agentConfig?.customPath) {
       adapter.setCustomPath(agentConfig.customPath)
-      console.log(`[AgentConfig] Loaded custom path for '${adapter.id}': ${agentConfig.customPath}`)
+      logger.debug(`[AgentConfig] Loaded custom path for '${adapter.id}': ${agentConfig.customPath}`)
     }
   }
 
@@ -365,7 +366,7 @@ export async function initializeAgentConfig(): Promise<void> {
   if (selectedAgent && agentRegistry.get(selectedAgent)) {
     try {
       agentRegistry.setDefault(selectedAgent)
-      console.log(`[AgentConfig] Initialized default agent: ${selectedAgent}`)
+      logger.debug(`[AgentConfig] Initialized default agent: ${selectedAgent}`)
     } catch (error) {
       console.warn(`[AgentConfig] Failed to set default agent '${selectedAgent}':`, error)
     }

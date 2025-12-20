@@ -14,7 +14,7 @@ import {
   compactMemory,
   clearProjectMemory,
   hasProjectMemory
-} from '../storage'
+} from '@main/storage'
 
 /**
  * Register memory IPC handlers

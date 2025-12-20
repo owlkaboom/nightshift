@@ -20,7 +20,7 @@ import {
   MIN_CONFIDENCE_THRESHOLD
 } from '@shared/types'
 import type { TaskSummary } from '@shared/types/project-memory'
-import { getProjectMemoryPath, getProjectMemoryDir } from '../utils/paths'
+import { getProjectMemoryPath, getProjectMemoryDir } from '@main/utils/paths'
 import { readJson, writeJson, ensureDir, fileExists } from './file-store'
 
 /**

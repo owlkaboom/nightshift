@@ -17,11 +17,12 @@ import { AGENT_IDS, CLAUDE_CODE_MODELS } from '@shared/types'
 import { exec, spawn, type ChildProcess } from 'child_process'
 import { existsSync, readFileSync } from 'fs'
 import { homedir, platform } from 'os'
-import { launchInTerminal } from '../../utils/terminal'
+import { launchInTerminal } from '@main/utils/terminal'
 import { join } from 'path'
 import { promisify } from 'util'
 import { BaseAgentAdapter } from './base-adapter'
-import { quoteExecutablePath } from '../../utils/paths'
+import { quoteExecutablePath } from '@main/utils/paths'
+import { logger } from '@main/utils/logger'
 
 const execAsync = promisify(exec)
 
@@ -116,14 +117,14 @@ function wrapChildProcess(child: ChildProcess): AgentProcess {
         child.on('exit', (code) => {
           if (!resolved) {
             resolved = true
-            console.log(`[ClaudeCode] wait() resolved via 'exit' event, code=${code}, pid=${child.pid}`)
+            logger.debug(`[ClaudeCode] wait() resolved via 'exit' event, code=${code}, pid=${child.pid}`)
             resolve({ exitCode: code ?? 1 })
           }
         })
         child.on('error', (err) => {
           if (!resolved) {
             resolved = true
-            console.log(`[ClaudeCode] wait() resolved via 'error' event, error=${err.message}, pid=${child.pid}`)
+            logger.debug(`[ClaudeCode] wait() resolved via 'error' event, error=${err.message}, pid=${child.pid}`)
             resolve({ exitCode: 1 })
           }
         })
@@ -155,7 +156,7 @@ export class ClaudeCodeAdapter extends BaseAgentAdapter {
     if (!path) {
       this.cachedPath = null
     }
-    console.log('[ClaudeCode] Custom path set to:', path || '(auto-detect)')
+    logger.debug('[ClaudeCode] Custom path set to:', path || '(auto-detect)')
   }
 
   /**
@@ -183,7 +184,7 @@ export class ClaudeCodeAdapter extends BaseAgentAdapter {
       // Only add if not already in PATH
       if (!existingPath.split(pathSeparator).includes(claudeBinDir)) {
         env.PATH = `${claudeBinDir}${pathSeparator}${existingPath}`
-        console.log('[ClaudeCode] Enhanced PATH with node bin directory:', claudeBinDir)
+        logger.debug('[ClaudeCode] Enhanced PATH with node bin directory:', claudeBinDir)
       }
     }
 
@@ -225,7 +226,7 @@ export class ClaudeCodeAdapter extends BaseAgentAdapter {
         // Extract version from output like "claude-code 2.0.32" or just "2.0.32"
         const versionMatch = output.match(/(\d+\.\d+\.\d+(?:-[a-z0-9.]+)?)/i)
         const version = versionMatch ? versionMatch[1] : output
-        console.log('[ClaudeCode] CLI test successful, version:', version)
+        logger.debug('[ClaudeCode] CLI test successful, version:', version)
         return { success: true, version }
       }
 
@@ -268,7 +269,7 @@ export class ClaudeCodeAdapter extends BaseAgentAdapter {
   async getExecutablePath(): Promise<string | null> {
     // If custom path is set, use it directly and cache it for invoke()
     if (this.customPath) {
-      console.log('[ClaudeCode] Using custom path:', this.customPath)
+      logger.debug('[ClaudeCode] Using custom path:', this.customPath)
       this.cachedPath = this.customPath
       return this.customPath
     }
@@ -287,7 +288,7 @@ export class ClaudeCodeAdapter extends BaseAgentAdapter {
         const stdout = String(result.stdout)
         const path = stdout.trim().split('\n')[0].trim()
         if (path && existsSync(path)) {
-          console.log('[ClaudeCode] Found claude via where command:', path)
+          logger.debug('[ClaudeCode] Found claude via where command:', path)
           this.cachedPath = path
           return path
         }
@@ -301,12 +302,12 @@ export class ClaudeCodeAdapter extends BaseAgentAdapter {
           const result = await execAsync('which claude', { encoding: 'utf8', timeout: 3000 } as any)
           const path = String(result.stdout).trim()
           if (path && existsSync(path)) {
-            console.log('[ClaudeCode] Found claude via which:', path)
+            logger.debug('[ClaudeCode] Found claude via which:', path)
             this.cachedPath = path
             return path
           }
         } catch {
-          console.log('[ClaudeCode] which command failed, trying login shell')
+          logger.debug('[ClaudeCode] which command failed, trying login shell')
         }
 
         // Strategy 2: Try bash login shell (loads ~/.bash_profile, ~/.bashrc)
@@ -315,12 +316,12 @@ export class ClaudeCodeAdapter extends BaseAgentAdapter {
           const result = await execAsync('bash -l -c "which claude"', { encoding: 'utf8', timeout: 5000 } as any)
           const path = String(result.stdout).trim()
           if (path && existsSync(path)) {
-            console.log('[ClaudeCode] Found claude via bash login shell:', path)
+            logger.debug('[ClaudeCode] Found claude via bash login shell:', path)
             this.cachedPath = path
             return path
           }
         } catch {
-          console.log('[ClaudeCode] bash login shell failed, trying zsh')
+          logger.debug('[ClaudeCode] bash login shell failed, trying zsh')
         }
 
         // Strategy 3: Try zsh login shell (loads ~/.zshrc, ~/.zprofile) - common on modern macOS
@@ -330,17 +331,17 @@ export class ClaudeCodeAdapter extends BaseAgentAdapter {
             const result = await execAsync('zsh -l -c "which claude"', { encoding: 'utf8', timeout: 5000 } as any)
             const path = String(result.stdout).trim()
             if (path && existsSync(path)) {
-              console.log('[ClaudeCode] Found claude via zsh login shell:', path)
+              logger.debug('[ClaudeCode] Found claude via zsh login shell:', path)
               this.cachedPath = path
               return path
             }
           } catch {
-            console.log('[ClaudeCode] zsh login shell failed, checking known locations')
+            logger.debug('[ClaudeCode] zsh login shell failed, checking known locations')
           }
         }
       }
     } catch (error) {
-      console.log('[ClaudeCode] Could not find claude in PATH, checking known locations')
+      logger.debug('[ClaudeCode] Could not find claude in PATH, checking known locations')
     }
 
     // Check known installation paths
@@ -356,21 +357,21 @@ export class ClaudeCodeAdapter extends BaseAgentAdapter {
           // Sort by version number (descending) to get latest version
           const sortedMatches = matches.sort((a, b) => b.localeCompare(a))
           if (sortedMatches.length > 0 && existsSync(sortedMatches[0])) {
-            console.log('[ClaudeCode] Found claude via glob pattern:', sortedMatches[0])
+            logger.debug('[ClaudeCode] Found claude via glob pattern:', sortedMatches[0])
             this.cachedPath = sortedMatches[0]
             return sortedMatches[0]
           }
         } catch (err) {
-          console.log('[ClaudeCode] glob pattern failed:', path, err)
+          logger.debug('[ClaudeCode] glob pattern failed:', path, err)
         }
       } else if (existsSync(path)) {
-        console.log('[ClaudeCode] Found claude at known path:', path)
+        logger.debug('[ClaudeCode] Found claude at known path:', path)
         this.cachedPath = path
         return path
       }
     }
 
-    console.log('[ClaudeCode] Could not find claude executable')
+    logger.debug('[ClaudeCode] Could not find claude executable')
     return null
   }
 
@@ -397,14 +398,14 @@ export class ClaudeCodeAdapter extends BaseAgentAdapter {
     const model = options.agentOptions?.model as string | undefined
     if (model) {
       args.push('--model', model)
-      console.log('[ClaudeCode] Using model:', model)
+      logger.debug('[ClaudeCode] Using model:', model)
     }
 
     // Add thinking mode if enabled (extended thinking for complex reasoning)
     const thinkingMode = options.agentOptions?.thinkingMode as boolean | undefined
     if (thinkingMode) {
       args.push('--thinking')
-      console.log('[ClaudeCode] Thinking mode enabled')
+      logger.debug('[ClaudeCode] Thinking mode enabled')
     }
 
     // Add context files as allowed directories if provided
@@ -426,11 +427,11 @@ export class ClaudeCodeAdapter extends BaseAgentAdapter {
       args.push(options.prompt)
     }
 
-    console.log('[ClaudeCode] Invoking with args:', args.join(' '))
-    console.log('[ClaudeCode] Working directory:', options.workingDirectory)
-    console.log('[ClaudeCode] Executable path:', execPath)
+    logger.debug('[ClaudeCode] Invoking with args:', args.join(' '))
+    logger.debug('[ClaudeCode] Working directory:', options.workingDirectory)
+    logger.debug('[ClaudeCode] Executable path:', execPath)
     if (isWindows) {
-      console.log('[ClaudeCode] Prompt will be passed via stdin (Windows mode)')
+      logger.debug('[ClaudeCode] Prompt will be passed via stdin (Windows mode)')
     }
 
     // Build environment with enhanced PATH
@@ -447,7 +448,7 @@ export class ClaudeCodeAdapter extends BaseAgentAdapter {
       env: spawnEnv
     })
 
-    console.log('[ClaudeCode] Process spawned with PID:', child.pid)
+    logger.debug('[ClaudeCode] Process spawned with PID:', child.pid)
 
     // On Windows, write the prompt to stdin then close it
     // On non-Windows, just close stdin immediately
@@ -455,16 +456,16 @@ export class ClaudeCodeAdapter extends BaseAgentAdapter {
       if (isWindows) {
         child.stdin.write(options.prompt)
         child.stdin.end()
-        console.log('[ClaudeCode] Prompt written to stdin and closed (Windows mode)')
+        logger.debug('[ClaudeCode] Prompt written to stdin and closed (Windows mode)')
       } else {
         child.stdin.end()
-        console.log('[ClaudeCode] stdin closed')
+        logger.debug('[ClaudeCode] stdin closed')
       }
     }
 
     // Log process events for debugging
     child.on('spawn', () => {
-      console.log('[ClaudeCode] Process spawn event fired, PID:', child.pid)
+      logger.debug('[ClaudeCode] Process spawn event fired, PID:', child.pid)
     })
 
     child.on('error', (err) => {
@@ -472,20 +473,20 @@ export class ClaudeCodeAdapter extends BaseAgentAdapter {
     })
 
     child.on('exit', (code, signal) => {
-      console.log('[ClaudeCode] Process exited with code:', code, 'signal:', signal)
+      logger.debug('[ClaudeCode] Process exited with code:', code, 'signal:', signal)
     })
 
     child.on('close', (code, signal) => {
-      console.log('[ClaudeCode] Process closed with code:', code, 'signal:', signal)
+      logger.debug('[ClaudeCode] Process closed with code:', code, 'signal:', signal)
     })
 
     // Log stdout/stderr data for debugging
     child.stdout?.on('data', (chunk) => {
-      console.log('[ClaudeCode] stdout chunk received, size:', chunk.length)
+      logger.debug('[ClaudeCode] stdout chunk received, size:', chunk.length)
     })
 
     child.stderr?.on('data', (chunk) => {
-      console.log('[ClaudeCode] stderr chunk received, size:', chunk.length)
+      logger.debug('[ClaudeCode] stderr chunk received, size:', chunk.length)
     })
 
     return wrapChildProcess(child)
@@ -1049,7 +1050,7 @@ export class ClaudeCodeAdapter extends BaseAgentAdapter {
       this.cachedModels = sorted.length > 0 ? sorted : CLAUDE_CODE_MODELS
       this.modelsCacheTime = now
 
-      console.log(`[ClaudeCode] Fetched ${sorted.length} models from API`)
+      logger.debug(`[ClaudeCode] Fetched ${sorted.length} models from API`)
       return this.cachedModels
     } catch (error) {
       console.error('[ClaudeCode] Failed to fetch models:', error)
@@ -1115,7 +1116,7 @@ export class ClaudeCodeAdapter extends BaseAgentAdapter {
     // Add --resume for continuing a conversation
     if (options.conversationId) {
       args.push('--resume', options.conversationId)
-      console.log('[ClaudeCode] Resuming conversation:', options.conversationId)
+      logger.debug('[ClaudeCode] Resuming conversation:', options.conversationId)
     }
 
     // On Windows, always use shell: true for proper executable resolution
@@ -1129,10 +1130,10 @@ export class ClaudeCodeAdapter extends BaseAgentAdapter {
       args.push(options.message)
     }
 
-    console.log('[ClaudeCode] Starting chat with args:', args.join(' '))
-    console.log('[ClaudeCode] Working directory:', options.workingDirectory)
+    logger.debug('[ClaudeCode] Starting chat with args:', args.join(' '))
+    logger.debug('[ClaudeCode] Working directory:', options.workingDirectory)
     if (isWindows) {
-      console.log('[ClaudeCode] Message will be passed via stdin (Windows mode)')
+      logger.debug('[ClaudeCode] Message will be passed via stdin (Windows mode)')
     }
 
     // Build environment with enhanced PATH
@@ -1149,7 +1150,7 @@ export class ClaudeCodeAdapter extends BaseAgentAdapter {
       env: spawnEnv
     })
 
-    console.log('[ClaudeCode] Chat process spawned with PID:', child.pid)
+    logger.debug('[ClaudeCode] Chat process spawned with PID:', child.pid)
 
     // On Windows, write the message to stdin then close it
     // On non-Windows, just close stdin immediately
@@ -1157,7 +1158,7 @@ export class ClaudeCodeAdapter extends BaseAgentAdapter {
       if (isWindows) {
         child.stdin.write(options.message)
         child.stdin.end()
-        console.log('[ClaudeCode] Message written to stdin and closed (Windows mode)')
+        logger.debug('[ClaudeCode] Message written to stdin and closed (Windows mode)')
       } else {
         child.stdin.end()
       }
@@ -1187,7 +1188,7 @@ export class ClaudeCodeAdapter extends BaseAgentAdapter {
             // Extract conversation ID from init or first response
             if (json.session_id && !conversationId) {
               conversationId = json.session_id
-              console.log('[ClaudeCode] Got conversation ID:', conversationId)
+              logger.debug('[ClaudeCode] Got conversation ID:', conversationId)
             }
 
             // Handle different message types
@@ -1325,7 +1326,7 @@ export class ClaudeCodeAdapter extends BaseAgentAdapter {
 
         // If process exited cleanly, auth is valid
         if (code === 0) {
-          console.log('[ClaudeCode] Auth validation passed')
+          logger.debug('[ClaudeCode] Auth validation passed')
           resolve({ isValid: true, requiresReauth: false })
           return
         }
@@ -1392,7 +1393,7 @@ export class ClaudeCodeAdapter extends BaseAgentAdapter {
     }
 
     const workingDir = projectPath || homedir()
-    console.log(
+    logger.debug(
       `[ClaudeCode] Launching Claude Code in terminal for re-authentication (cwd: ${workingDir})...`
     )
 
@@ -1408,7 +1409,7 @@ export class ClaudeCodeAdapter extends BaseAgentAdapter {
         keepOpen: true
       })
 
-      console.log('[ClaudeCode] Terminal launched successfully')
+      logger.debug('[ClaudeCode] Terminal launched successfully')
 
       // Return success immediately - the user will authenticate in the terminal
       // The next task execution will validate the auth

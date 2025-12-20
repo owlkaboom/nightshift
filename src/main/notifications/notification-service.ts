@@ -7,7 +7,8 @@
 
 import { Notification } from 'electron'
 import type { TaskManifest } from '@shared/types'
-import { loadConfig } from '../storage/sqlite/config-store'
+import { loadConfig } from '@main/storage/sqlite/config-store'
+import { logger } from '@main/utils/logger'
 
 /**
  * Show a desktop notification for a completed task
@@ -17,7 +18,7 @@ async function showTaskCompletionNotification(task: TaskManifest): Promise<void>
 
   // Check if notifications are enabled
   if (!config.notifications.enabled) {
-    console.log('[NotificationService] Notifications disabled, skipping task completion notification')
+    logger.debug('[NotificationService] Notifications disabled, skipping task completion notification')
     return
   }
 
@@ -39,7 +40,7 @@ async function showTaskCompletionNotification(task: TaskManifest): Promise<void>
   }
 
   try {
-    console.log('[NotificationService] Showing task completion notification:', title)
+    logger.debug('[NotificationService] Showing task completion notification:', title)
 
     // Create and show notification
     const notification = new Notification({
@@ -72,7 +73,7 @@ async function playAudioAlert(): Promise<void> {
 
     // If custom sound is selected and path is configured, try to play it
     if (config.notifications.defaultSound === 'custom' && config.notifications.customSoundPath) {
-      console.log('[NotificationService] Playing custom sound:', config.notifications.customSoundPath)
+      logger.debug('[NotificationService] Playing custom sound:', config.notifications.customSoundPath)
 
       // Determine the appropriate player based on file extension and platform
       const soundPath = config.notifications.customSoundPath
@@ -82,7 +83,7 @@ async function playAudioAlert(): Promise<void> {
         exec(`afplay "${soundPath}"`, (error: Error | null) => {
           if (error) {
             console.error('[NotificationService] Failed to play custom audio alert:', error)
-            console.log('[NotificationService] Falling back to default sound')
+            logger.debug('[NotificationService] Falling back to default sound')
             playDefaultSound(config.notifications.defaultSound)
           }
         })
@@ -91,7 +92,7 @@ async function playAudioAlert(): Promise<void> {
         exec(`powershell -c "(New-Object Media.SoundPlayer '${soundPath}').PlaySync()"`, (error: Error | null) => {
           if (error) {
             console.error('[NotificationService] Failed to play custom audio alert:', error)
-            console.log('[NotificationService] Falling back to default sound')
+            logger.debug('[NotificationService] Falling back to default sound')
             playDefaultSound(config.notifications.defaultSound)
           }
         })
@@ -100,7 +101,7 @@ async function playAudioAlert(): Promise<void> {
         exec(`paplay "${soundPath}" || aplay "${soundPath}"`, (error: Error | null) => {
           if (error) {
             console.error('[NotificationService] Failed to play custom audio alert:', error)
-            console.log('[NotificationService] Falling back to default sound')
+            logger.debug('[NotificationService] Falling back to default sound')
             playDefaultSound(config.notifications.defaultSound)
           }
         })
@@ -127,7 +128,7 @@ function playDefaultSound(soundName: string): void {
       const actualSoundName = soundName === 'custom' ? 'Hero' : soundName
       const soundPath = `/System/Library/Sounds/${actualSoundName}.aiff`
 
-      console.log('[NotificationService] Playing default sound:', actualSoundName)
+      logger.debug('[NotificationService] Playing default sound:', actualSoundName)
       exec(`afplay "${soundPath}"`, (error: Error | null) => {
         if (error) {
           console.error('[NotificationService] Failed to play default sound:', error)
@@ -168,7 +169,7 @@ export async function initializeNotificationService(): Promise<void> {
     return
   }
 
-  console.log('[NotificationService] Notifications are supported')
+  logger.debug('[NotificationService] Notifications are supported')
 
   // On macOS, we need to request notification permissions
   if (process.platform === 'darwin') {
@@ -181,7 +182,7 @@ export async function initializeNotificationService(): Promise<void> {
       })
       // Close it immediately so it doesn't show
       mockNotification.close()
-      console.log('[NotificationService] Notification permissions requested')
+      logger.debug('[NotificationService] Notification permissions requested')
     } catch (error) {
       console.error('[NotificationService] Failed to request notification permissions:', error)
     }
@@ -202,7 +203,7 @@ export async function handleTaskStatusChange(task: TaskManifest): Promise<void> 
  * Preview a specific notification sound
  */
 export async function previewNotificationSound(soundName: string, customPath?: string): Promise<void> {
-  console.log('[NotificationService] Preview sound requested:', soundName, customPath)
+  logger.debug('[NotificationService] Preview sound requested:', soundName, customPath)
 
   try {
     if (soundName === 'custom' && customPath) {
@@ -243,13 +244,13 @@ export async function previewNotificationSound(soundName: string, customPath?: s
  * Test notification (for settings preview)
  */
 export async function showTestNotification(): Promise<void> {
-  console.log('[NotificationService] Test notification requested')
+  logger.debug('[NotificationService] Test notification requested')
 
   const config = await loadConfig()
-  console.log('[NotificationService] Notification config:', config.notifications)
+  logger.debug('[NotificationService] Notification config:', config.notifications)
 
   if (!config.notifications.enabled) {
-    console.log('[NotificationService] Notifications are disabled in config')
+    logger.debug('[NotificationService] Notifications are disabled in config')
     return
   }
 
@@ -267,26 +268,26 @@ export async function showTestNotification(): Promise<void> {
       timeoutType: 'default'
     })
 
-    console.log('[NotificationService] Showing notification...')
+    logger.debug('[NotificationService] Showing notification...')
     notification.show()
-    console.log('[NotificationService] Notification shown')
+    logger.debug('[NotificationService] Notification shown')
 
     // Add event listeners for debugging
     notification.on('show', () => {
-      console.log('[NotificationService] Notification displayed')
+      logger.debug('[NotificationService] Notification displayed')
     })
     notification.on('click', () => {
-      console.log('[NotificationService] Notification clicked')
+      logger.debug('[NotificationService] Notification clicked')
     })
     notification.on('close', () => {
-      console.log('[NotificationService] Notification closed')
+      logger.debug('[NotificationService] Notification closed')
     })
     notification.on('failed', (_event, error) => {
       console.error('[NotificationService] Notification failed:', error)
     })
 
     if (config.notifications.sound) {
-      console.log('[NotificationService] Playing audio alert...')
+      logger.debug('[NotificationService] Playing audio alert...')
       playAudioAlert()
     }
   } catch (error) {

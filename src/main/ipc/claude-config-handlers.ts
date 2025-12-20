@@ -15,8 +15,9 @@ import type {
   CreateClaudeSkillData,
   CreateClaudeCommandData
 } from '@shared/types'
-import { claudeConfigManager } from '../agents/claude-config-manager'
-import { getProjectPath } from '../storage/local-state-store'
+import { claudeConfigManager } from '@main/agents/claude-config-manager'
+import { getProjectPath } from '@main/storage/local-state-store'
+import { logger } from '@main/utils/logger'
 
 /**
  * Helper to get project path from project ID
@@ -234,5 +235,5 @@ export function registerClaudeConfigHandlers(): void {
     }
   )
 
-  console.log('[ClaudeConfig] Handlers registered')
+  logger.debug('[ClaudeConfig] Handlers registered')
 }

@@ -7,8 +7,9 @@
 
 import { ipcMain } from 'electron'
 import type { IpcMainInvokeEvent } from 'electron'
-import { getTagStore } from '../storage/tag-store'
+import { getTagStore } from '@main/storage/tag-store'
 import type { Tag } from '@shared/types/tag'
+import { logger } from '@main/utils/logger'
 
 /**
  * Registers all tag-related IPC handlers
@@ -118,5 +119,5 @@ export async function registerTagHandlers(): Promise<void> {
     }
   )
 
-  console.log('[TagHandlers] Registered tag IPC handlers')
+  logger.debug('[TagHandlers] Registered tag IPC handlers')
 }

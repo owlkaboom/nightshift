@@ -4,9 +4,9 @@
 
 import type { ContextAttachment } from '@shared/types'
 import { X, FileText, Link as LinkIcon, StickyNote, Folder, AlertCircle } from 'lucide-react'
-import { Badge } from '../ui/badge'
-import { Button } from '../ui/button'
-import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 interface ContextAttachmentListProps {
   attachments: ContextAttachment[]

@@ -5,7 +5,7 @@
 
 import type { LocalState, ProjectEcosystemInfo } from '@shared/types'
 import { createDefaultLocalState, generateMachineId } from '@shared/types'
-import { getLocalStatePath } from '../utils/paths'
+import { getLocalStatePath } from '@main/utils/paths'
 import { readJson, writeJson } from './file-store'
 
 /**

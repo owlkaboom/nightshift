@@ -1,8 +1,8 @@
 import type { Project, Tag } from '@shared/types'
 import { PROJECT_ICONS } from '@shared/types'
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
-import { Button } from '../ui/button'
-import { TagChip } from '../tags/TagChip'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { TagChip } from '@/components/tags/TagChip'
 import * as LucideIcons from 'lucide-react'
 import { FolderGit2, Folder, ExternalLink, Trash2, GitBranch, Edit2, Search, Download } from 'lucide-react'
 

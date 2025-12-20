@@ -4,7 +4,7 @@
 
 import type { Project, ProjectsRegistry } from '@shared/types'
 import { createProject, generateProjectId } from '@shared/types'
-import { getProjectsPath } from '../utils/paths'
+import { getProjectsPath } from '@main/utils/paths'
 import { readJsonWithDefault, writeJson } from './file-store'
 import {
   setProjectPath,

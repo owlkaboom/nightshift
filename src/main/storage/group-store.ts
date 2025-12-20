@@ -4,7 +4,7 @@
 
 import type { Group, GroupsRegistry } from '@shared/types'
 import { createGroup, generateGroupId } from '@shared/types'
-import { getGroupsPath } from '../utils/paths'
+import { getGroupsPath } from '@main/utils/paths'
 import { readJsonWithDefault, writeJson } from './file-store'
 
 const DEFAULT_REGISTRY: GroupsRegistry = { groups: [] }

@@ -15,6 +15,7 @@ import type { ChildProcess } from 'child_process'
 import { exec, spawn } from 'child_process'
 import { existsSync } from 'fs'
 import { promisify } from 'util'
+import { logger } from '@main/utils/logger'
 
 import type {
   AgentAdapter,
@@ -57,14 +58,14 @@ export function wrapChildProcess(child: ChildProcess, adapterName: string): Agen
         child.on('exit', (code) => {
           if (!resolved) {
             resolved = true
-            console.log(`[${adapterName}] wait() resolved via 'exit' event, code=${code}, pid=${child.pid}`)
+            logger.debug(`[${adapterName}] wait() resolved via 'exit' event, code=${code}, pid=${child.pid}`)
             resolve({ exitCode: code ?? 1 })
           }
         })
         child.on('error', (err) => {
           if (!resolved) {
             resolved = true
-            console.log(
+            logger.debug(
               `[${adapterName}] wait() resolved via 'error' event, error=${err.message}, pid=${child.pid}`
             )
             resolve({ exitCode: 1 })
@@ -536,9 +537,9 @@ export abstract class BaseAgentAdapter implements AgentAdapter {
     args: string[],
     options: AgentInvokeOptions
   ): AgentProcess {
-    console.log(`[${this.name}] Invoking with args:`, args.join(' '))
-    console.log(`[${this.name}] Working directory:`, options.workingDirectory)
-    console.log(`[${this.name}] Executable path:`, execPath)
+    logger.debug(`[${this.name}] Invoking with args:`, args.join(' '))
+    logger.debug(`[${this.name}] Working directory:`, options.workingDirectory)
+    logger.debug(`[${this.name}] Executable path:`, execPath)
 
     const child = spawn(execPath, args, {
       cwd: options.workingDirectory,
@@ -551,17 +552,17 @@ export abstract class BaseAgentAdapter implements AgentAdapter {
       }
     })
 
-    console.log(`[${this.name}] Process spawned with PID:`, child.pid)
+    logger.debug(`[${this.name}] Process spawned with PID:`, child.pid)
 
     // Close stdin immediately
     if (child.stdin) {
       child.stdin.end()
-      console.log(`[${this.name}] stdin closed`)
+      logger.debug(`[${this.name}] stdin closed`)
     }
 
     // Log process events for debugging
     child.on('spawn', () => {
-      console.log(`[${this.name}] Process spawn event fired, PID:`, child.pid)
+      logger.debug(`[${this.name}] Process spawn event fired, PID:`, child.pid)
     })
 
     child.on('error', (err) => {
@@ -569,20 +570,20 @@ export abstract class BaseAgentAdapter implements AgentAdapter {
     })
 
     child.on('exit', (code, signal) => {
-      console.log(`[${this.name}] Process exited with code:`, code, 'signal:', signal)
+      logger.debug(`[${this.name}] Process exited with code:`, code, 'signal:', signal)
     })
 
     child.on('close', (code, signal) => {
-      console.log(`[${this.name}] Process closed with code:`, code, 'signal:', signal)
+      logger.debug(`[${this.name}] Process closed with code:`, code, 'signal:', signal)
     })
 
     // Log stdout/stderr data for debugging
     child.stdout?.on('data', (chunk) => {
-      console.log(`[${this.name}] stdout chunk received, size:`, chunk.length)
+      logger.debug(`[${this.name}] stdout chunk received, size:`, chunk.length)
     })
 
     child.stderr?.on('data', (chunk) => {
-      console.log(`[${this.name}] stderr chunk received, size:`, chunk.length)
+      logger.debug(`[${this.name}] stderr chunk received, size:`, chunk.length)
     })
 
     return wrapChildProcess(child, this.name)

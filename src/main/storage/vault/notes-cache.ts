@@ -8,7 +8,8 @@
 import { watch, type FSWatcher } from 'chokidar'
 import type { Note, NoteStatus } from '@shared/types/note'
 import { getVaultPath } from './vault-store'
-import { broadcastToAll } from '../../utils/broadcast'
+import { broadcastToAll } from '@main/utils/broadcast'
+import { logger } from '@main/utils/logger'
 import { parseFrontmatter } from './frontmatter'
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
@@ -28,7 +29,7 @@ let fileWatcher: FSWatcher | null = null
 export async function initializeNotesCache(vaultStore: {
   loadNotes: () => Promise<Note[]>
 }): Promise<void> {
-  console.log('[NotesCache] Initializing notes cache...')
+  logger.debug('[NotesCache] Initializing notes cache...')
 
   try {
     // Load all notes into cache
@@ -39,7 +40,7 @@ export async function initializeNotesCache(vaultStore: {
     }
 
     cacheInitialized = true
-    console.log(`[NotesCache] Cache initialized with ${notes.length} notes`)
+    logger.debug(`[NotesCache] Cache initialized with ${notes.length} notes`)
 
     // Setup file watcher
     await setupFileWatcher()
@@ -64,7 +65,7 @@ async function setupFileWatcher(): Promise<void> {
     await fileWatcher.close()
   }
 
-  console.log('[NotesCache] Setting up file watcher for:', vaultPath)
+  logger.debug('[NotesCache] Setting up file watcher for:', vaultPath)
 
   fileWatcher = watch(vaultPath, {
     ignoreInitial: true,
@@ -91,7 +92,7 @@ async function handleFileAdded(filePath: string): Promise<void> {
   if (!filePath.endsWith('.md')) return
 
   try {
-    console.log('[NotesCache] File added:', filePath)
+    logger.debug('[NotesCache] File added:', filePath)
     const note = await loadNoteFromFile(filePath)
     if (note) {
       notesCache.set(note.id, note)
@@ -109,7 +110,7 @@ async function handleFileChanged(filePath: string): Promise<void> {
   if (!filePath.endsWith('.md')) return
 
   try {
-    console.log('[NotesCache] File changed:', filePath)
+    logger.debug('[NotesCache] File changed:', filePath)
     const note = await loadNoteFromFile(filePath)
     if (note) {
       notesCache.set(note.id, note)
@@ -127,7 +128,7 @@ async function handleFileDeleted(filePath: string): Promise<void> {
   if (!filePath.endsWith('.md')) return
 
   try {
-    console.log('[NotesCache] File deleted:', filePath)
+    logger.debug('[NotesCache] File deleted:', filePath)
 
     // Find note by filename
     const filename = path.basename(filePath)
@@ -318,7 +319,7 @@ export function isCacheInitialized(): boolean {
  * Shutdown the cache and file watcher
  */
 export async function shutdownNotesCache(): Promise<void> {
-  console.log('[NotesCache] Shutting down...')
+  logger.debug('[NotesCache] Shutting down...')
 
   if (fileWatcher) {
     await fileWatcher.close()
@@ -335,7 +336,7 @@ export async function shutdownNotesCache(): Promise<void> {
 export async function rebuildNotesCache(vaultStore: {
   loadNotes: () => Promise<Note[]>
 }): Promise<void> {
-  console.log('[NotesCache] Rebuilding cache...')
+  logger.debug('[NotesCache] Rebuilding cache...')
 
   const notes = await vaultStore.loadNotes()
   notesCache.clear()
@@ -343,6 +344,6 @@ export async function rebuildNotesCache(vaultStore: {
     notesCache.set(note.id, note)
   }
 
-  console.log(`[NotesCache] Cache rebuilt with ${notes.length} notes`)
+  logger.debug(`[NotesCache] Cache rebuilt with ${notes.length} notes`)
   broadcastToAll('notes:cache-rebuilt', notes.length)
 }

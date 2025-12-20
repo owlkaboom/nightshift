@@ -12,7 +12,8 @@ import { existsSync } from 'fs'
 import { exec } from 'child_process'
 import { promisify } from 'util'
 import { createRequire } from 'module'
-import { getAppDataDir } from '../utils/paths'
+import { getAppDataDir } from '@main/utils/paths'
+import { logger } from '@main/utils/logger'
 
 const execAsync = promisify(exec)
 
@@ -102,7 +103,7 @@ export async function installWhisperDeps(
     await writeFile(join(depsDir, 'package.json'), JSON.stringify(packageJson, null, 2))
 
     onProgress?.('Installing Whisper dependencies (this may take a few minutes)...')
-    console.log('[Whisper] Installing dependencies to:', depsDir)
+    logger.debug('[Whisper] Installing dependencies to:', depsDir)
 
     // Run npm install
     const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm'
@@ -121,13 +122,13 @@ export async function installWhisperDeps(
     if (stderr && !stderr.includes('npm warn') && !stderr.includes('npm WARN')) {
       console.warn('[Whisper] npm stderr:', stderr)
     }
-    console.log('[Whisper] npm stdout:', stdout)
+    logger.debug('[Whisper] npm stdout:', stdout)
 
     // Reset module availability cache so it re-checks
     modulesAvailable = null
 
     onProgress?.('Whisper dependencies installed successfully')
-    console.log('[Whisper] Dependencies installed successfully')
+    logger.debug('[Whisper] Dependencies installed successfully')
 
     return { success: true }
   } catch (error) {
@@ -258,7 +259,7 @@ function tryLoadFromUserDeps<T>(moduleName: string): T | null {
     const customRequire = createRequire(join(nodeModules, 'package.json'))
     return customRequire(moduleName) as T
   } catch (error) {
-    console.log(`[Whisper] Could not load ${moduleName} from user deps:`, error)
+    logger.debug(`[Whisper] Could not load ${moduleName} from user deps:`, error)
     return null
   }
 }
@@ -276,7 +277,7 @@ export async function isWhisperAvailable(): Promise<boolean> {
     await import('@huggingface/transformers')
     await import('wavefile')
     modulesAvailable = true
-    console.log('[Whisper] Using bundled dependencies')
+    logger.debug('[Whisper] Using bundled dependencies')
     return true
   } catch {
     // Bundled modules not available, try user-installed
@@ -288,12 +289,12 @@ export async function isWhisperAvailable(): Promise<boolean> {
 
   if (transformers && wavefile) {
     modulesAvailable = true
-    console.log('[Whisper] Using user-installed dependencies from:', getWhisperDepsDir())
+    logger.debug('[Whisper] Using user-installed dependencies from:', getWhisperDepsDir())
     return true
   }
 
   modulesAvailable = false
-  console.log('[Whisper] Dependencies not available - Whisper features disabled')
+  logger.debug('[Whisper] Dependencies not available - Whisper features disabled')
   return false
 }
 
@@ -488,7 +489,7 @@ export async function transcribeAudio(
 
     // Log audio duration for debugging
     const durationSeconds = audioData.length / 16000
-    console.log(`[Whisper] Transcribing audio: ${durationSeconds.toFixed(2)}s (${audioData.length} samples)`)
+    logger.debug(`[Whisper] Transcribing audio: ${durationSeconds.toFixed(2)}s (${audioData.length} samples)`)
 
     // Run transcription with chunk_length_s to handle longer audio
     // chunk_length_s: 30 means the model will process audio in 30-second chunks
@@ -500,7 +501,7 @@ export async function transcribeAudio(
       stride_length_s: 5
     }) as { text: string; chunks?: Array<{ timestamp: [number, number]; text: string }> }
 
-    console.log(`[Whisper] Transcription complete: ${result.text.length} characters`)
+    logger.debug(`[Whisper] Transcription complete: ${result.text.length} characters`)
 
     return {
       text: result.text.trim(),

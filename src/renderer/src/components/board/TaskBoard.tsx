@@ -17,7 +17,7 @@ import {
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import type { TaskManifest, TaskStatus } from '@shared/types'
 import { BoardColumn } from './BoardColumn'
-import { TaskCard } from '../tasks'
+import { TaskCard } from '@/components/tasks'
 import { cn } from '@/lib/utils'
 
 // Keyboard navigation focus state

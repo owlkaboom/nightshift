@@ -7,9 +7,9 @@
 
 import { readdir, rm } from 'fs/promises'
 import { join } from 'path'
-import { getGit } from '../git/git-info'
-import { loadProjects, getProjectPath, fileExists } from '../storage'
-import { getAppDataDir } from '../utils/paths'
+import { getGit } from '@main/git/git-info'
+import { loadProjects, getProjectPath, fileExists } from '@main/storage'
+import { getAppDataDir } from '@main/utils/paths'
 
 /**
  * Run the v2 migration

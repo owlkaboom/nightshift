@@ -7,7 +7,8 @@
 
 import Database from 'better-sqlite3'
 import { join } from 'path'
-import { getAppDataDir } from '../utils/paths'
+import { getAppDataDir } from '@main/utils/paths'
+import { logger } from '@main/utils/logger'
 
 const DB_FILENAME = 'nightshift.db'
 
@@ -65,7 +66,7 @@ export function initializeDatabase(): Database.Database {
   db.pragma('cache_size = -64000') // 64MB cache
   db.pragma('temp_store = MEMORY')
 
-  console.log('[Database] Initialized at:', dbPath)
+  logger.debug('[Database] Initialized at:', dbPath)
 
   return db
 }
@@ -77,7 +78,7 @@ export function closeDatabase(): void {
   if (db) {
     db.close()
     db = null
-    console.log('[Database] Connection closed')
+    logger.debug('[Database] Connection closed')
   }
 }
 

@@ -13,7 +13,8 @@
 
 import { safeStorage } from 'electron'
 import { join } from 'path'
-import { getAppDataDir } from '../utils/paths'
+import { logger } from '@main/utils/logger'
+import { getAppDataDir } from '@main/utils/paths'
 import { readJson, writeJson } from './file-store'
 
 /**
@@ -127,7 +128,7 @@ export async function setCredential(key: string, value: string): Promise<void> {
   const store = await loadStore()
   store.credentials[key] = encryptValue(value)
   await saveStore(store)
-  console.log(`[SecureStore] Stored credential: ${key}`)
+  logger.debug(`[SecureStore] Stored credential: ${key}`)
 }
 
 /**
@@ -169,7 +170,7 @@ export async function deleteCredential(key: string): Promise<boolean> {
 
   delete store.credentials[key]
   await saveStore(store)
-  console.log(`[SecureStore] Deleted credential: ${key}`)
+  logger.debug(`[SecureStore] Deleted credential: ${key}`)
   return true
 }
 
@@ -200,7 +201,7 @@ export async function listCredentialKeys(): Promise<string[]> {
  */
 export async function clearAllCredentials(): Promise<void> {
   await saveStore({ version: 1, credentials: {} })
-  console.log('[SecureStore] Cleared all credentials')
+  logger.debug('[SecureStore] Cleared all credentials')
 }
 
 // ============ Agent-Specific Credential Helpers ============

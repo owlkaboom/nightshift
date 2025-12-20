@@ -10,6 +10,7 @@ import { createReadStream, createWriteStream } from 'fs'
 import { pipeline } from 'stream/promises'
 import { unlink, stat, access } from 'fs/promises'
 import { readFile } from 'fs/promises'
+import { logger } from '@main/utils/logger'
 
 /**
  * Compress a file in-place, adding .gz extension
@@ -43,7 +44,7 @@ export async function compressFile(filePath: string): Promise<string | null> {
     const compressedSize = compressedStats.size
     const savings = ((1 - compressedSize / originalSize) * 100).toFixed(1)
 
-    console.log(
+    logger.debug(
       `[Compression] Compressed ${filePath.split('/').pop()}: ${originalSize} → ${compressedSize} bytes (${savings}% savings)`
     )
 

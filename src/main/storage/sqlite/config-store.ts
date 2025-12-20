@@ -7,7 +7,7 @@
 
 import type { AppConfig } from '@shared/types'
 import { DEFAULT_CONFIG } from '@shared/types'
-import { getDatabase } from '../database'
+import { getDatabase } from '@main/storage/database'
 
 // ============ Type Conversions ============
 
@@ -27,6 +27,7 @@ interface ConfigRow {
   archive_retention_days: number
   vault_path: string | null
   selected_project_id: string | null
+  debug_logging: number
 }
 
 function rowToConfig(row: ConfigRow): AppConfig {
@@ -44,7 +45,8 @@ function rowToConfig(row: ConfigRow): AppConfig {
     sync: JSON.parse(row.sync),
     archiveRetentionDays: row.archive_retention_days,
     vaultPath: row.vault_path,
-    selectedProjectId: row.selected_project_id
+    selectedProjectId: row.selected_project_id,
+    debugLogging: row.debug_logging === 1
   }
 }
 
@@ -63,7 +65,8 @@ function configToParams(config: AppConfig): Record<string, unknown> {
     sync: JSON.stringify(config.sync),
     archive_retention_days: config.archiveRetentionDays,
     vault_path: config.vaultPath,
-    selected_project_id: config.selectedProjectId
+    selected_project_id: config.selectedProjectId,
+    debug_logging: config.debugLogging ? 1 : 0
   }
 }
 
@@ -128,7 +131,8 @@ export async function saveConfig(config: AppConfig): Promise<void> {
       sync,
       archive_retention_days,
       vault_path,
-      selected_project_id
+      selected_project_id,
+      debug_logging
     ) VALUES (
       1,
       @claude_code_path,
@@ -144,7 +148,8 @@ export async function saveConfig(config: AppConfig): Promise<void> {
       @sync,
       @archive_retention_days,
       @vault_path,
-      @selected_project_id
+      @selected_project_id,
+      @debug_logging
     )
   `).run(params)
 }

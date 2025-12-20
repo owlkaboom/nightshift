@@ -9,8 +9,8 @@
 import { BrowserWindow } from 'electron'
 import { writeFile } from 'fs/promises'
 import type { AgentChatEvent, AgentProcess } from '@shared/types'
-import { ClaudeCodeAdapter } from '../agents/adapters/claude-code'
-import * as docSessionStore from '../storage/doc-session-store'
+import { ClaudeCodeAdapter } from '@main/agents/adapters/claude-code'
+import * as docSessionStore from '@main/storage/doc-session-store'
 
 /**
  * Active documentation session info
