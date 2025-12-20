@@ -206,7 +206,8 @@ describe('Model Alias Resolution', () => {
         { id: 'claude-opus-4-5', name: 'Claude Opus 4.5' }
       ]
 
-      const resolved = await adapter.resolveModelAlias('unknown-alias')
+      // Use an alias without dashes (dashes are treated as full model IDs)
+      const resolved = await adapter.resolveModelAlias('unknownalias')
       expect(resolved).toBe('claude-sonnet-4-5') // Default model
     })
   })

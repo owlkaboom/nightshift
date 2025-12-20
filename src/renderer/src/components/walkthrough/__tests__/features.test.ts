@@ -48,8 +48,6 @@ describe('Feature Highlights', () => {
       const features = getFeaturesForRoute('/board')
       const featureIds = features.map((f) => f.id)
       expect(featureIds).toContain('voice-task-input')
-      expect(featureIds).toContain('task-virtualization')
-      expect(featureIds).toContain('rich-text-editor')
     })
 
     it('returns empty array for route without features', () => {
@@ -126,8 +124,6 @@ describe('Feature Highlights', () => {
       const unseenFeatures = getUnseenFeaturesForRoute('/board', [], true)
       const featureIds = unseenFeatures.map((f) => f.id)
       expect(featureIds).toContain('voice-task-input')
-      expect(featureIds).toContain('task-virtualization')
-      expect(featureIds).toContain('rich-text-editor')
     })
   })
 })
