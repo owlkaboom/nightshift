@@ -60,7 +60,8 @@ export type {
   AgentAdapter,
   AgentRegistry,
   AgentId,
-  AgentModelInfo
+  AgentModelInfo,
+  ModelAlias
 } from './agent'
 export {
   AGENT_IDS,

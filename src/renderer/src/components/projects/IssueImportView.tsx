@@ -37,8 +37,7 @@ import {
   AlertCircle
 } from 'lucide-react'
 import { useIntegrationStore } from '@/stores/integration-store'
-import { useProjectStore } from '@/stores/project-store'
-import type { ExternalIssue, Integration, FetchIssuesOptions } from '@shared/types'
+import type { Integration, FetchIssuesOptions } from '@shared/types'
 import { cn } from '@/lib/utils'
 
 interface IssueImportViewProps {
@@ -49,7 +48,6 @@ interface IssueImportViewProps {
 
 export function IssueImportView({ projectId, open, onOpenChange }: IssueImportViewProps) {
   const {
-    integrations,
     fetchingIssues,
     fetchIntegrationsForProject,
     fetchIssues,

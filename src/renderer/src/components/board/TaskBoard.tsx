@@ -5,7 +5,6 @@ import {
   closestCenter,
   pointerWithin,
   rectIntersection,
-  getFirstCollision,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -65,7 +64,6 @@ const customCollisionDetection: CollisionDetection = (args) => {
   const { active, droppableContainers } = args
 
   // Get the active item's current column
-  const activeId = String(active.id)
   const activeTaskData = active.data.current
   const activeTask = activeTaskData?.task as TaskManifest | undefined
 
@@ -88,7 +86,6 @@ const customCollisionDetection: CollisionDetection = (args) => {
     if (taskCollisions.length > 0 && activeTask) {
       // Find which column this collision's task belongs to
       const firstTaskCollision = taskCollisions[0]
-      const [collisionProjectId, collisionTaskId] = String(firstTaskCollision.id).split('-')
 
       // Get the task from the collision
       const collisionContainer = droppableContainers.find(c => c.id === firstTaskCollision.id)
@@ -580,8 +577,7 @@ export function TaskBoard({
 
     // Collapse backlog only if the drop target was NOT the backlog
     const isDropTargetBacklog = overId === 'backlog' ||
-      (overTask && overTask.status === 'backlog') ||
-      (droppedColumn && droppedColumn.id === 'backlog')
+      (overTask && overTask.status === 'backlog')
 
     if (!isDropTargetBacklog) {
       if (onToggleBacklog && isBacklogExpanded) {
@@ -610,7 +606,7 @@ export function TaskBoard({
           aria-hidden="true"
         />
 
-        {columns.map((column, index) => {
+        {columns.map((column) => {
           const isBacklog = column.id === 'backlog'
 
           return (

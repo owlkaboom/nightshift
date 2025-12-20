@@ -30,10 +30,10 @@ function JiraIcon({ className }: { className?: string }) {
 }
 
 export function IntegrationBadge({ task, className, showLink = false }: IntegrationBadgeProps) {
-  // Check if task has integration metadata
-  const integrationSource = task.metadata?.integrationSource as string | undefined
-  const externalIssueId = task.metadata?.externalIssueId as string | undefined
-  const externalIssueUrl = task.metadata?.externalIssueUrl as string | undefined
+  // Check if task has integration data
+  const integrationSource = task.source !== 'manual' ? task.source : undefined
+  const externalIssueId = task.externalIssueId
+  const externalIssueUrl = task.externalIssueUrl
 
   if (!integrationSource || !externalIssueId) {
     return null

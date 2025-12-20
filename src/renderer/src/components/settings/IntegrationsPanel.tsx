@@ -8,7 +8,7 @@
  * - Enable/disable integrations
  */
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -28,7 +28,6 @@ import { SetupIntegrationDialog } from './SetupIntegrationDialog'
 export function IntegrationsPanel() {
   const {
     connections,
-    sources,
     loading,
     error,
     testingConnection,
@@ -106,7 +105,7 @@ export function IntegrationsPanel() {
     }
   }
 
-  const getConnectionDisplayName = (connectionId: string, connectionType: string) => {
+  const getConnectionDisplayName = (connectionId: string, _connectionType: string) => {
     const connectionSources = getSourcesForConnection(connectionId)
     if (connectionSources.length > 0) {
       return `${connectionSources.length} source${connectionSources.length > 1 ? 's' : ''}`

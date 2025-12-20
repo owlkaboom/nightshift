@@ -56,15 +56,6 @@ function isV1Registry(registry: IntegrationsRegistry): registry is IntegrationsR
 }
 
 /**
- * Check if registry is v2 (hierarchical)
- * Currently unused but kept for potential future use
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function isV2Registry(registry: IntegrationsRegistry): registry is IntegrationsRegistryV2 {
-  return 'version' in registry && registry.version === 2
-}
-
-/**
  * Migrate v1 registry to v2 (flat integrations → connections + sources)
  */
 async function migrateV1ToV2(v1: IntegrationsRegistryV1): Promise<IntegrationsRegistryV2> {

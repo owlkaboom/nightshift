@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select'
-import { useNoteStore, useProjectStore, useGroupStore, useTaskStore } from '@/stores'
+import { useNoteStore, useProjectStore, useTaskStore } from '@/stores'
 import { useKeyboardShortcuts, formatKbd, type KeyboardShortcut } from '@/hooks'
 import {
   NoteList,
@@ -50,7 +50,6 @@ export function NotesView() {
   } = useNoteStore()
 
   const { projects, fetchProjects } = useProjectStore()
-  const { groups, fetchGroups } = useGroupStore()
   const { createTask } = useTaskStore()
 
   const [activeTab, setActiveTab] = useState<FilterTab>('all')
@@ -82,8 +81,7 @@ export function NotesView() {
         fetchRecentNotes(),
         fetchAllTags(),
         fetchProjects(),
-        fetchGroups()
-      ])
+              ])
 
       // Ensure minimum loading time to prevent flash
       const elapsed = Date.now() - startTime
@@ -97,7 +95,7 @@ export function NotesView() {
     }
 
     fetchData()
-  }, [fetchNotes, fetchPinnedNotes, fetchRecentNotes, fetchAllTags, fetchProjects, fetchGroups])
+  }, [fetchNotes, fetchPinnedNotes, fetchRecentNotes, fetchAllTags, fetchProjects])
 
   // Get displayed notes based on active tab
   const displayedNotes = useMemo(() => {
@@ -362,10 +360,7 @@ export function NotesView() {
   }, [hasUnsavedChanges])
 
   const getProjects = useCallback(async () => projects, [projects])
-  const getGroups = useCallback(async () =>
-    groups.map(g => ({ ...g, color: g.color ?? undefined })),
-    [groups]
-  )
+  const getGroups = useCallback(async () => [], [])
 
   // Keyboard shortcuts
   const shortcuts: KeyboardShortcut[] = useMemo(
@@ -609,7 +604,7 @@ export function NotesView() {
                   variant="full"
                   content={htmlContent}
                   onChange={handleContentChange}
-                  placeholder="Start typing your note... Use @ for projects and # for groups"
+                  placeholder="Start typing your note... Use @ for projects"
                   getProjects={getProjects}
                   getGroups={getGroups}
                   autoFocus

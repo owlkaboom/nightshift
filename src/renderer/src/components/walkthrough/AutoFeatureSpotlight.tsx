@@ -6,7 +6,7 @@
  * to highlight them one at a time.
  */
 
-import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react'
+import React, { useEffect, useState, useCallback, useRef } from 'react'
 import { useLocation } from '@tanstack/react-router'
 import { createPortal } from 'react-dom'
 import type { FeatureHighlight, SpotlightBounds, TooltipPosition } from '@shared/types/walkthrough'
@@ -32,7 +32,6 @@ export const AutoFeatureSpotlight: React.FC = () => {
   const tooltipRef = useRef<HTMLDivElement | null>(null)
   const isDismissingRef = useRef(false)
   const targetElementRef = useRef<Element | null>(null)
-  const updateRafRef = useRef<number | undefined>(undefined)
 
   /**
    * Calculate spotlight bounds for the target element
@@ -289,7 +288,7 @@ export const AutoFeatureSpotlight: React.FC = () => {
 
     // Fallback: find position with minimum overlap
     // Try each position and calculate overlap area
-    let bestPosition = positions.bottom
+    let bestPosition: { top: number; left: number; position: 'top' | 'bottom' | 'left' | 'right' } = positions.bottom
     let minOverlapArea = Infinity
 
     for (const position of ['bottom', 'top', 'right', 'left'] as const) {

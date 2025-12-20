@@ -5,7 +5,7 @@
  * Manages positioning, animations, and rendering of the tooltip.
  */
 
-import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react'
+import React, { useEffect, useState, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import type { SpotlightBounds } from '@shared/types/walkthrough'
 import { useWalkthrough } from './WalkthroughProvider'
@@ -20,7 +20,6 @@ export const WalkthroughSpotlight: React.FC = () => {
   const [spotlightBounds, setSpotlightBounds] = useState<SpotlightBounds | null>(null)
   const [isVisible, setIsVisible] = useState(false)
   const animationFrameRef = useRef<number | undefined>(undefined)
-  const updateTimeoutRef = useRef<number | undefined>(undefined)
   const targetElementRef = useRef<Element | null>(null)
 
   /**

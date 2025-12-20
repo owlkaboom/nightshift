@@ -4,7 +4,6 @@
 
 export { useProjectStore } from './project-store'
 export { useTaskStore } from './task-store'
-export { useGroupStore } from './group-store'
 export { useConfigStore } from './config-store'
 export { useUIStore } from './ui-store'
 export { useSkillStore } from './skill-store'

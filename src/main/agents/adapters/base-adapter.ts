@@ -762,8 +762,8 @@ export abstract class BaseAgentAdapter implements AgentAdapter {
    * @returns Positive if a > b, negative if a < b, 0 if equal
    */
   protected compareVersions(a: string, b: string): number {
-    const [majorA, minorA = '0'] = a.split('.').map(Number)
-    const [majorB, minorB = '0'] = b.split('.').map(Number)
+    const [majorA, minorA = 0] = a.split('.').map(Number)
+    const [majorB, minorB = 0] = b.split('.').map(Number)
 
     if (majorA !== majorB) return majorA - majorB
     return minorA - minorB
