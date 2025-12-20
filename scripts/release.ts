@@ -151,7 +151,7 @@ function updateChangelog(currentVersion: string, newVersion: string): void {
   }
 
   // Update the comparison links at the bottom
-  const repoUrl = 'https://github.com/your-username/nightshift'
+  const repoUrl = 'https://github.com/owlkaboom/nightshift'
   const unreleasedLink = `[Unreleased]: ${repoUrl}/compare/v${newVersion}...HEAD`
   const newVersionLink = `[${newVersion}]: ${repoUrl}/compare/v${currentVersion}...v${newVersion}`
 

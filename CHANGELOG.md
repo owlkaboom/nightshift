@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.0.0-beta.1] - 2024-12-19
+## [1.0.0-beta.1] - 2025-12-19
 
 ### Added
 
@@ -36,5 +36,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - simple-git for git operations
 - better-sqlite3 for database
 
-[Unreleased]: https://github.com/your-username/nightshift/compare/v1.0.0-beta.1...HEAD
-[1.0.0-beta.1]: https://github.com/your-username/nightshift/releases/tag/v1.0.0-beta.1
+[Unreleased]: https://github.com/owlkaboom/nightshift/compare/v1.0.0-beta.1...HEAD
+[1.0.0-beta.1]: https://github.com/owlkaboom/nightshift/releases/tag/v1.0.0-beta.1

@@ -141,7 +141,13 @@ export function registerSystemHandlers(): void {
       : join(process.resourcesPath, 'CHANGELOG.md')
 
     try {
-      return await readFile(changelogPath, 'utf-8')
+      const content = await readFile(changelogPath, 'utf-8')
+      // Skip the header and preamble, start from the first version section
+      const versionStart = content.indexOf('\n## [')
+      if (versionStart !== -1) {
+        return content.slice(versionStart + 1) // +1 to skip the leading newline
+      }
+      return content
     } catch {
       return '# Changelog\n\nNo changelog available.'
     }

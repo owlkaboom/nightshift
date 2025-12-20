@@ -35,7 +35,7 @@ Nightshift is a local-first desktop application that enables developers to queue
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/nightshift.git
+git clone https://github.com/owlkaboom/nightshift.git
 cd nightshift
 
 # Install dependencies
@@ -192,9 +192,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/nightshift/issues)
+- **Issues**: [GitHub Issues](https://github.com/owlkaboom/nightshift/issues)
 - **Documentation**: [.claude/docs](./.claude/docs)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/nightshift/discussions)
+- **Discussions**: [GitHub Discussions](https://github.com/owlkaboom/nightshift/discussions)
 
 ## Acknowledgments
 
@@ -206,5 +206,3 @@ Built with:
 - [Claude Code](https://github.com/anthropics/claude-code)
 
 ---
-
-**Note**: Replace `yourusername` in URLs with your actual GitHub username before publishing.

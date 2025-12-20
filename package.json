@@ -5,6 +5,14 @@
   "main": "./out/main/index.js",
   "author": "Nick",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/owlkaboom/nightshift.git"
+  },
+  "bugs": {
+    "url": "https://github.com/owlkaboom/nightshift/issues"
+  },
+  "homepage": "https://github.com/owlkaboom/nightshift#readme",
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",

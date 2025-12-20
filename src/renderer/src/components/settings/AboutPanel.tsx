@@ -44,7 +44,7 @@ export function AboutPanel() {
   }
 
   const handleOpenGithub = () => {
-    window.api.openExternal('https://github.com/your-username/nightshift')
+    window.api.openExternal('https://github.com/owlkaboom/nightshift')
   }
 
   return (
