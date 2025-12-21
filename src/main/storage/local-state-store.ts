@@ -60,10 +60,10 @@ export async function getProjectPath(projectId: string): Promise<string | null> 
  */
 export async function setProjectPath(
   projectId: string,
-  localPath: string
+  path: string
 ): Promise<void> {
   const state = await loadLocalState()
-  state.projectPaths[projectId] = localPath
+  state.projectPaths[projectId] = path
   await saveLocalState(state)
 }
 

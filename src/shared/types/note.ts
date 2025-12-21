@@ -149,6 +149,49 @@ export const NOTE_ICONS = [
 ] as const
 
 /**
+ * A group for organizing notes (folder-like structure)
+ */
+export interface NoteGroup {
+  /** Unique group identifier */
+  id: string
+
+  /** Group name */
+  name: string
+
+  /** Custom icon (Lucide icon name) */
+  icon: string | null
+
+  /** Custom color for the group */
+  color: string | null
+
+  /** Order in the groups list (lower numbers appear first) */
+  order: number
+
+  /** Whether the group is collapsed in the UI */
+  isCollapsed: boolean
+
+  /** When the group was created (ISO string) */
+  createdAt: string
+
+  /** When the group was last updated (ISO string) */
+  updatedAt: string
+}
+
+/**
+ * Data required to create a new note group
+ */
+export interface CreateNoteGroupData {
+  /** Group name */
+  name: string
+
+  /** Optional icon */
+  icon?: string | null
+
+  /** Optional color */
+  color?: string | null
+}
+
+/**
  * A single note in the system
  */
 export interface Note {
@@ -205,6 +248,12 @@ export interface Note {
 
   /** Word count of the note content */
   wordCount: number
+
+  /** Group this note belongs to (optional) */
+  groupId: string | null
+
+  /** Order within the group or in the main list (lower numbers appear first) */
+  order: number
 }
 
 /**
@@ -358,6 +407,35 @@ export function createNote(data: CreateNoteData = {}): Note {
     createdAt: now,
     updatedAt: now,
     isPinned: false,
-    wordCount: countWords(content)
+    wordCount: countWords(content),
+    groupId: null,
+    order: 0
+  }
+}
+
+/**
+ * Generate a unique note group ID
+ */
+export function generateNoteGroupId(): string {
+  const timestamp = Date.now().toString(36)
+  const random = Math.random().toString(36).slice(2, 7)
+  return `notegroup_${timestamp}${random}`
+}
+
+/**
+ * Create a new note group
+ */
+export function createNoteGroup(data: CreateNoteGroupData): NoteGroup {
+  const now = new Date().toISOString()
+
+  return {
+    id: generateNoteGroupId(),
+    name: data.name,
+    icon: data.icon ?? 'Folder',
+    color: data.color ?? null,
+    order: 0,
+    isCollapsed: false,
+    createdAt: now,
+    updatedAt: now
   }
 }

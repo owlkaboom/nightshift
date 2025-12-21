@@ -13,7 +13,7 @@ export type MessageRole = 'user' | 'assistant' | 'system'
 /**
  * Type of planning session
  */
-export type PlanningSessionType = 'general' | 'init'
+export type PlanningSessionType = 'general' | 'init' | 'claude-md'
 
 /**
  * Status of a planning session
@@ -49,6 +49,20 @@ export interface ContextAttachment {
 
   /** Error message if content couldn't be loaded */
   error?: string
+}
+
+/**
+ * Current activity during streaming (what tool is being used)
+ */
+export interface StreamingActivity {
+  /** Tool name (Read, Edit, Bash, etc.) */
+  tool: string
+
+  /** Target of the tool (file path, command, etc.) */
+  target: string
+
+  /** When this activity started */
+  timestamp: string
 }
 
 /**
@@ -253,7 +267,8 @@ Your role is to:
 1. Discuss the project requirements and clarify any ambiguities
 2. Propose a directory structure and architecture
 3. Identify the key files and components needed
-4. Help create initialization tasks that can be executed
+4. Create a comprehensive initialization plan document
+5. Help prepare actionable initialization tasks
 
 When proposing directory structures, use clear tree format like:
 \`\`\`
@@ -265,12 +280,38 @@ project/
 └── package.json
 \`\`\`
 
-IMPORTANT: If you create any planning documents or markdown files during this session, always place them in a \`.claude/plans/\` directory in the project root. For example:
-- \`.claude/plans/architecture.md\`
-- \`.claude/plans/implementation-plan.md\`
-- \`.claude/plans/project-roadmap.md\`
+CRITICAL INSTRUCTION: You MUST create a detailed project initialization plan as a markdown file in the \`plans/\` directory at the project root. This is your primary deliverable.
 
-Focus on practical, actionable recommendations. Ask clarifying questions when needed.`
+Plan File Requirements:
+1. Create your plan in \`plans/\` directory (e.g., \`plans/project-initialization.md\`, \`plans/[project-name]-setup.md\`)
+2. Include sections for:
+   - Project Overview
+   - Architecture & Directory Structure
+   - Technology Stack & Dependencies
+   - Initial Setup Steps
+   - Development Workflow
+   - Next Steps/Tasks
+3. Make it detailed enough that someone could follow it to initialize the project
+4. Write the plan file BEFORE concluding the planning session
+
+MULTI-FILE PLAN ORGANIZATION:
+- For complex projects, keep the main plan file concise (<300 lines)
+- Create a sub-directory structure for detailed sections: \`plans/[project-name]/\`
+- Main file should contain overview and links to detailed sub-files
+- Use sub-files for: detailed architecture, setup phases, component specifications, etc.
+
+Example single-file: \`plans/my-project-initialization.md\`
+Example multi-file:
+\`\`\`
+plans/
+├── my-project-setup.md              # Main overview + links
+└── my-project-setup/
+    ├── architecture.md              # Detailed architecture
+    ├── setup-steps.md               # Step-by-step setup
+    └── component-specs.md           # Component specifications
+\`\`\`
+
+Focus on practical, actionable recommendations. Ask clarifying questions when needed, but always conclude by writing the plan file(s).`
 }
 
 /**

@@ -59,7 +59,6 @@ function extractSuggestedPrompt(session: PlanningSession, sectionContent?: strin
   // If section content is provided, use it directly
   if (sectionContent) {
     const parts: string[] = []
-    parts.push('## Task Description\n')
     parts.push(sectionContent.trim())
     parts.push('\n')
     parts.push('## Instructions\n')

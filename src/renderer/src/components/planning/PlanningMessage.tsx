@@ -22,6 +22,9 @@ interface PlanningMessageProps {
 
   /** Callback when user wants to view a plan file */
   onViewPlanFile?: (filePath: string) => void
+
+  /** Callback when user wants to create a task from a plan file path */
+  onCreateTaskFromPlanFile?: (filePath: string) => void
 }
 
 /**
@@ -61,9 +64,19 @@ function CodeBlock({ code, language }: { code: string; language: string }) {
 }
 
 /**
- * File reference component with view button
+ * File reference component with view and create task buttons
  */
-function FileReference({ path, onView }: { path: string; onView?: (path: string) => void }) {
+function FileReference({
+  path,
+  onView,
+  onCreateTask
+}: {
+  path: string
+  onView?: (path: string) => void
+  onCreateTask?: (path: string) => void
+}) {
+  const isPlanFile = path.startsWith('plans/') || path.includes('/plans/')
+
   return (
     <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-500/20 hover:border-blue-500/40 transition-colors mx-0.5">
       <FileText className="h-3.5 w-3.5 shrink-0" />
@@ -83,6 +96,24 @@ function FileReference({ path, onView }: { path: string; onView?: (path: string)
           title="Click to view file"
         >
           View
+        </span>
+      )}
+      {isPlanFile && onCreateTask && (
+        <span
+          onClick={() => onCreateTask(path)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              onCreateTask(path)
+            }
+          }}
+          className="ml-1 px-1.5 py-0.5 rounded bg-green-500/20 text-green-300 hover:bg-green-500/30 hover:text-green-200 transition-colors text-xs font-medium cursor-pointer"
+          title="Create task from plan file"
+        >
+          <ListPlus className="h-3 w-3 inline mr-0.5" />
+          Task
         </span>
       )}
     </span>
@@ -107,7 +138,11 @@ function isFilePath(str: string): boolean {
 /**
  * Format inline markdown (bold, italic, code, file references)
  */
-function formatInlineMarkdown(text: string, onViewFile?: (path: string) => void): React.ReactNode {
+function formatInlineMarkdown(
+  text: string,
+  onViewFile?: (path: string) => void,
+  onCreateTaskFromFile?: (path: string) => void
+): React.ReactNode {
   const parts: React.ReactNode[] = []
   let remaining = text
   let key = 0
@@ -156,6 +191,7 @@ function formatInlineMarkdown(text: string, onViewFile?: (path: string) => void)
           key={key++}
           path={filePath}
           onView={onViewFile}
+          onCreateTask={onCreateTaskFromFile}
         />
       )
 
@@ -177,6 +213,7 @@ function formatInlineMarkdown(text: string, onViewFile?: (path: string) => void)
             key={key++}
             path={matchContent.trim()}
             onView={onViewFile}
+            onCreateTask={onCreateTaskFromFile}
           />
         )
       } else {
@@ -285,7 +322,8 @@ function hasListItems(lines: string[]): boolean {
 function renderMarkdown(
   content: string,
   onCreateTask?: (content: string) => void,
-  onViewFile?: (path: string) => void
+  onViewFile?: (path: string) => void,
+  onCreateTaskFromFile?: (path: string) => void
 ): React.ReactNode[] {
   const elements: React.ReactNode[] = []
   const lines = content.split('\n')
@@ -343,7 +381,7 @@ function renderMarkdown(
       elements.push(
         <div key={key++} className="flex items-center gap-2 mt-3 mb-1 group">
           <h4 className="font-semibold text-base flex-1">
-            {formatInlineMarkdown(line.slice(4), onViewFile)}
+            {formatInlineMarkdown(line.slice(4), onViewFile, onCreateTaskFromFile)}
           </h4>
           {isHeaderOfPlanSection && onCreateTask && (
             <Button
@@ -365,7 +403,7 @@ function renderMarkdown(
       elements.push(
         <div key={key++} className="flex items-center gap-2 mt-4 mb-2 group">
           <h3 className="font-semibold text-lg flex-1">
-            {formatInlineMarkdown(line.slice(3), onViewFile)}
+            {formatInlineMarkdown(line.slice(3), onViewFile, onCreateTaskFromFile)}
           </h3>
           {isHeaderOfPlanSection && onCreateTask && (
             <Button
@@ -387,7 +425,7 @@ function renderMarkdown(
       elements.push(
         <div key={key++} className="flex items-center gap-2 mt-4 mb-2 group">
           <h2 className="font-bold text-xl flex-1">
-            {formatInlineMarkdown(line.slice(2), onViewFile)}
+            {formatInlineMarkdown(line.slice(2), onViewFile, onCreateTaskFromFile)}
           </h2>
           {isHeaderOfPlanSection && onCreateTask && (
             <Button
@@ -411,7 +449,7 @@ function renderMarkdown(
       elements.push(
         <div key={key++} className="flex gap-2 ml-2">
           <span className="text-muted-foreground">-</span>
-          <span>{formatInlineMarkdown(line.slice(2), onViewFile)}</span>
+          <span>{formatInlineMarkdown(line.slice(2), onViewFile, onCreateTaskFromFile)}</span>
         </div>
       )
       continue
@@ -423,7 +461,7 @@ function renderMarkdown(
       elements.push(
         <div key={key++} className="flex gap-2 ml-2">
           <span className="text-muted-foreground min-w-[1.5em]">{numberedMatch[1]}.</span>
-          <span>{formatInlineMarkdown(line.slice(numberedMatch[0].length), onViewFile)}</span>
+          <span>{formatInlineMarkdown(line.slice(numberedMatch[0].length), onViewFile, onCreateTaskFromFile)}</span>
         </div>
       )
       continue
@@ -432,7 +470,7 @@ function renderMarkdown(
     // Regular paragraph
     elements.push(
       <p key={key++} className="mb-1">
-        {formatInlineMarkdown(line, onViewFile)}
+        {formatInlineMarkdown(line, onViewFile, onCreateTaskFromFile)}
       </p>
     )
   }
@@ -451,7 +489,8 @@ export function PlanningMessage({
   message,
   isStreaming,
   onCreateTaskFromSection,
-  onViewPlanFile
+  onViewPlanFile,
+  onCreateTaskFromPlanFile
 }: PlanningMessageProps) {
   const isUser = message.role === 'user'
   const isAssistant = message.role === 'assistant'
@@ -468,9 +507,10 @@ export function PlanningMessage({
     return renderMarkdown(
       message.content || (isStreaming ? '...' : ''),
       isAssistant && !isStreaming ? onCreateTaskFromSection : undefined,
-      onViewPlanFile
+      onViewPlanFile,
+      isAssistant && !isStreaming ? onCreateTaskFromPlanFile : undefined
     )
-  }, [message.content, isUser, isStreaming, isAssistant, onCreateTaskFromSection, onViewPlanFile])
+  }, [message.content, isUser, isStreaming, isAssistant, onCreateTaskFromSection, onViewPlanFile, onCreateTaskFromPlanFile])
 
   return (
     <div className={cn('flex gap-3', isUser && 'flex-row-reverse')}>

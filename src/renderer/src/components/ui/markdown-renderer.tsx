@@ -44,7 +44,7 @@ export const MarkdownRenderer = memo<MarkdownRendererProps>(
           className={cn(
             'markdown-renderer-wrapper',
             lineClamp && 'overflow-hidden',
-            maxHeight && !lineClamp && 'overflow-y-auto',
+            maxHeight && !lineClamp && 'overflow-y-auto scrollbar-autohide',
             className
           )}
           style={{
@@ -101,7 +101,7 @@ export const MarkdownRenderer = memo<MarkdownRendererProps>(
         className={cn(
           'whitespace-pre-wrap overflow-x-hidden break-words',
           lineClamp && 'overflow-hidden',
-          maxHeight && !lineClamp && 'overflow-y-auto',
+          maxHeight && !lineClamp && 'overflow-y-auto scrollbar-autohide',
           className
         )}
         style={{

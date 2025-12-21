@@ -203,9 +203,32 @@ export const useNoteStore = create<NoteState>((set, get) => ({
   },
 
   updateNote: async (noteId: string, updates: Partial<Note>) => {
+    // Optimistic update - update UI immediately
+    let previousState: NoteState | null = null
+    set((state) => {
+      // Store previous state for rollback on error
+      previousState = { ...state }
+
+      // Find the note and create optimistic update
+      const note = state.notes.find(n => n.id === noteId)
+      if (!note) return state
+
+      const optimisticNote = { ...note, ...updates }
+
+      return {
+        notes: state.notes.map((n) => (n.id === noteId ? optimisticNote : n)),
+        currentNote: state.currentNote?.id === noteId ? optimisticNote : state.currentNote,
+        pinnedNotes: optimisticNote.isPinned
+          ? [...state.pinnedNotes.filter((n) => n.id !== noteId), optimisticNote]
+          : state.pinnedNotes.filter((n) => n.id !== noteId),
+        recentNotes: state.recentNotes.map((n) => (n.id === noteId ? optimisticNote : n))
+      }
+    })
+
     try {
       const updated = await window.api.updateNote(noteId, updates)
       if (updated) {
+        // Update with actual server response
         set((state) => ({
           notes: state.notes.map((n) => (n.id === noteId ? updated : n)),
           currentNote: state.currentNote?.id === noteId ? updated : state.currentNote,
@@ -218,6 +241,10 @@ export const useNoteStore = create<NoteState>((set, get) => ({
       return updated
     } catch (error) {
       console.error('Failed to update note:', error)
+      // Rollback to previous state on error
+      if (previousState) {
+        set(previousState)
+      }
       return null
     }
   },

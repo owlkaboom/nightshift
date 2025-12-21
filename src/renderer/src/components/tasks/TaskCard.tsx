@@ -13,7 +13,7 @@ import {
   Timer,
   Trash2
 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, memo } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -35,7 +35,7 @@ interface TaskCardProps {
   isFocused?: boolean
 }
 
-export function TaskCard({
+export const TaskCard = memo(function TaskCard({
   task,
   projectName,
   onStatusChange,
@@ -377,4 +377,4 @@ export function TaskCard({
       </div>
     </Card>
   )
-}
+})

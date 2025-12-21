@@ -18,7 +18,6 @@ import { getDefaultDocPath } from '@shared/types'
 import * as docSessionStore from '@main/storage/doc-session-store'
 import { DocumentationGenerator } from '@main/docs/doc-generator'
 import { docManager } from '@main/docs/doc-manager'
-import { getProjectPath } from '@main/storage/local-state-store'
 import { getProject } from '@main/storage/sqlite/project-store'
 
 /**
@@ -59,12 +58,14 @@ async function handleCreateSession(
     throw new Error(`Project not found: ${data.projectId}`)
   }
 
-  const projectPath = await getProjectPath(data.projectId)
-  if (!projectPath) {
+  if (!project.path) {
     throw new Error(
-      `Project path not configured. Please remove and re-add this project to set its local path.`
+      `Project "${project.name}" does not have a path configured. ` +
+      `Please set the path in the project settings.`
     )
   }
+
+  const projectPath = project.path
 
   // Determine target path
   const targetPath = data.outputPath || getDefaultDocPath(data.type, projectPath)
@@ -147,12 +148,14 @@ async function handleGenerate(
     throw new Error(`Project not found: ${session.projectId}`)
   }
 
-  const projectPath = await getProjectPath(session.projectId)
-  if (!projectPath) {
+  if (!project.path) {
     throw new Error(
-      `Project path not configured. Please remove and re-add this project to set its local path.`
+      `Project "${project.name}" does not have a path configured. ` +
+      `Please set the path in the project settings.`
     )
   }
+
+  const projectPath = project.path
 
   // Build generation prompt
   const prompt = await DocumentationGenerator.buildGenerationPrompt(
@@ -183,12 +186,19 @@ async function handleRefine(
     throw new Error(`Documentation session not found: ${sessionId}`)
   }
 
-  const projectPath = await getProjectPath(session.projectId)
-  if (!projectPath) {
+  const project = await getProject(session.projectId)
+  if (!project) {
+    throw new Error(`Project not found: ${session.projectId}`)
+  }
+
+  if (!project.path) {
     throw new Error(
-      `Project path not configured. Please remove and re-add this project to set its local path.`
+      `Project "${project.name}" does not have a path configured. ` +
+      `Please set the path in the project settings.`
     )
   }
+
+  const projectPath = project.path
 
   await docManager.sendRefinement(sessionId, message, projectPath)
 }
@@ -237,14 +247,19 @@ async function handleAnalyze(
   _event: Electron.IpcMainInvokeEvent,
   projectId: string
 ): Promise<ExistingDocAnalysis> {
-  const projectPath = await getProjectPath(projectId)
-  if (!projectPath) {
+  const project = await getProject(projectId)
+  if (!project) {
+    throw new Error(`Project not found: ${projectId}`)
+  }
+
+  if (!project.path) {
     throw new Error(
-      `Project path not configured. Please remove and re-add this project to set its local path.`
+      `Project "${project.name}" does not have a path configured. ` +
+      `Please set the path in the project settings.`
     )
   }
 
-  return DocumentationGenerator.analyzeExisting(projectPath)
+  return DocumentationGenerator.analyzeExisting(project.path)
 }
 
 /**
@@ -254,12 +269,17 @@ async function handleSuggest(
   _event: Electron.IpcMainInvokeEvent,
   projectId: string
 ): Promise<DocSuggestion[]> {
-  const projectPath = await getProjectPath(projectId)
-  if (!projectPath) {
+  const project = await getProject(projectId)
+  if (!project) {
+    throw new Error(`Project not found: ${projectId}`)
+  }
+
+  if (!project.path) {
     throw new Error(
-      `Project path not configured. Please remove and re-add this project to set its local path.`
+      `Project "${project.name}" does not have a path configured. ` +
+      `Please set the path in the project settings.`
     )
   }
 
-  return DocumentationGenerator.suggestImprovements(projectPath)
+  return DocumentationGenerator.suggestImprovements(project.path)
 }

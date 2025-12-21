@@ -95,43 +95,9 @@ export async function updateLocalState(
 }
 
 // ============ Project Paths ============
-
-/**
- * Get the local path for a project
- */
-export async function getProjectPath(projectId: string): Promise<string | null> {
-  const state = await loadLocalState()
-  return state.projectPaths[projectId] ?? null
-}
-
-/**
- * Set the local path for a project
- */
-export async function setProjectPath(
-  projectId: string,
-  localPath: string
-): Promise<void> {
-  const state = await loadLocalState()
-  state.projectPaths[projectId] = localPath
-  await saveLocalState(state)
-}
-
-/**
- * Remove a project path mapping
- */
-export async function removeProjectPath(projectId: string): Promise<void> {
-  const state = await loadLocalState()
-  delete state.projectPaths[projectId]
-  await saveLocalState(state)
-}
-
-/**
- * Get all project path mappings
- */
-export async function getAllProjectPaths(): Promise<Record<string, string>> {
-  const state = await loadLocalState()
-  return { ...state.projectPaths }
-}
+// DEPRECATED: Project paths are now stored directly on the Project object
+// The local_state.project_paths field is kept for backward compatibility during migration
+// but should not be used for new code
 
 // ============ Claude Code Ecosystem ============
 

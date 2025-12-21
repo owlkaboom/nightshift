@@ -51,13 +51,13 @@ export async function getProjectByGitUrl(
 
 /**
  * Add a new project
- * @param localPath - The local filesystem path (stored in local-state.json)
+ * @param path - The local filesystem path
  * @param gitUrl - Optional git URL (null for non-git directories)
  * @param defaultBranch - Optional default branch (null for non-git directories)
  */
 export async function addProject(
   name: string,
-  localPath: string,
+  path: string,
   gitUrl: string | null = null,
   defaultBranch: string | null = null,
   options: Partial<Project> = {}
@@ -74,12 +74,12 @@ export async function addProject(
 
   // Create project
   const id = generateProjectId()
-  const project = createProject(id, name, gitUrl, defaultBranch, options)
+  const project = createProject(id, name, gitUrl, defaultBranch, { ...options, path })
 
   // Save project and local path
   projects.push(project)
   await saveProjects(projects)
-  await setProjectPath(id, localPath)
+  await setProjectPath(id, path)
 
   return project
 }

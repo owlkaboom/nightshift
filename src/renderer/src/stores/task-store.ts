@@ -50,6 +50,11 @@ interface TaskState {
     taskId: string,
     newPrompt: string
   ) => Promise<TaskManifest | null>
+  replyToTask: (
+    projectId: string,
+    taskId: string,
+    replyMessage: string
+  ) => Promise<TaskManifest | null>
   acceptPlanAndCreateTask: (
     projectId: string,
     taskId: string,
@@ -336,6 +341,28 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'Failed to re-prompt task'
+      })
+      return null
+    }
+  },
+
+  replyToTask: async (projectId: string, taskId: string, replyMessage: string) => {
+    set({ error: null })
+    try {
+      const updated = await window.api.replyToTask(projectId, taskId, replyMessage)
+      if (updated) {
+        set((state) => ({
+          tasks: state.tasks.map((t) =>
+            t.id === taskId && t.projectId === projectId ? updated : t
+          ),
+          // Add to queued tasks since it's now queued
+          queuedTasks: [...state.queuedTasks.filter(t => t.id !== taskId), updated]
+        }))
+      }
+      return updated
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : 'Failed to reply to task'
       })
       return null
     }

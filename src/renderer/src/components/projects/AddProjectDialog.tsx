@@ -18,7 +18,7 @@ interface AddProjectDialogProps {
   onOpenChange: (open: boolean) => void
   onAdd: (data: {
     name: string
-    localPath: string
+    path: string
     gitUrl?: string | null
     defaultBranch?: string | null
   }) => Promise<void>
@@ -30,7 +30,7 @@ type ProjectType = 'git' | 'directory'
 export function AddProjectDialog({ open, onOpenChange, onAdd }: AddProjectDialogProps) {
   const [step, setStep] = useState<Step>('choose-type')
   const [projectType, setProjectType] = useState<ProjectType | null>(null)
-  const [localPath, setLocalPath] = useState('')
+  const [path, setPath] = useState('')
   const [repoInfo, setRepoInfo] = useState<GitRepoInfo | null>(null)
   const [projectName, setProjectName] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -39,7 +39,7 @@ export function AddProjectDialog({ open, onOpenChange, onAdd }: AddProjectDialog
   const reset = () => {
     setStep('choose-type')
     setProjectType(null)
-    setLocalPath('')
+    setPath('')
     setRepoInfo(null)
     setProjectName('')
     setError(null)
@@ -59,15 +59,15 @@ export function AddProjectDialog({ open, onOpenChange, onAdd }: AddProjectDialog
   }
 
   const handleSelectDirectory = async () => {
-    const path = await window.api.selectDirectory()
-    if (!path) return
+    const selectedPath = await window.api.selectDirectory()
+    if (!selectedPath) return
 
-    setLocalPath(path)
+    setPath(selectedPath)
     setStep('validating')
     setError(null)
 
     try {
-      const info = await window.api.getRepoInfo(path)
+      const info = await window.api.getRepoInfo(selectedPath)
 
       if (projectType === 'git') {
         // For git projects, validate it's a proper git repo
@@ -96,7 +96,7 @@ export function AddProjectDialog({ open, onOpenChange, onAdd }: AddProjectDialog
         setProjectName(name)
       } else {
         // For plain directories, just get the folder name
-        const folderName = path.split('/').pop() || path.split('\\').pop() || 'Project'
+        const folderName = selectedPath.split('/').pop() || selectedPath.split('\\').pop() || 'Project'
         setProjectName(folderName)
 
         // If it happens to be a git repo, store the info but don't require it
@@ -117,7 +117,7 @@ export function AddProjectDialog({ open, onOpenChange, onAdd }: AddProjectDialog
     try {
       await onAdd({
         name: projectName,
-        localPath,
+        path,
         gitUrl: projectType === 'git' && repoInfo?.remoteUrl ? repoInfo.remoteUrl : null,
         defaultBranch:
           projectType === 'git' && repoInfo
@@ -250,7 +250,7 @@ export function AddProjectDialog({ open, onOpenChange, onAdd }: AddProjectDialog
                 <div className="space-y-2">
                   <Label>Local Path</Label>
                   <div className="p-2 rounded-md bg-muted font-mono text-xs break-all">
-                    {localPath}
+                    {path}
                   </div>
                 </div>
 

@@ -1,25 +1,66 @@
-import type { Project, Tag } from '@shared/types'
+import type { Project, Tag, ClaudeMdAnalysis } from '@shared/types'
 import { PROJECT_ICONS } from '@shared/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { TagChip } from '@/components/tags/TagChip'
+import { QualityIndicator } from '@/components/context'
 import * as LucideIcons from 'lucide-react'
-import { FolderGit2, Folder, ExternalLink, Trash2, GitBranch, Edit2, Search, Download } from 'lucide-react'
+import { FolderGit2, Folder, ExternalLink, Trash2, GitBranch, Edit2, Search, Download, RefreshCw, ChevronRight } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import type { GitConversionCheck } from '@shared/ipc-types'
 
 interface ProjectCardProps {
   project: Project
-  localPath?: string | null
+  path?: string | null
   currentBranch?: string | null
   tags?: Tag[]
   onRemove: (id: string) => void
   onEdit: (project: Project) => void
   onOpenFolder: (path: string) => void
+  onViewDetails?: (project: Project) => void
   onAnalyze?: (project: Project) => void
   onImportIssues?: (project: Project) => void
+  onConvertToGit?: (project: Project) => void
 }
 
-export function ProjectCard({ project, localPath, currentBranch, tags, onRemove, onEdit, onOpenFolder, onAnalyze, onImportIssues }: ProjectCardProps) {
+export function ProjectCard({ project, path, currentBranch, tags, onRemove, onEdit, onOpenFolder, onViewDetails, onAnalyze, onImportIssues, onConvertToGit }: ProjectCardProps) {
   const isGitProject = !!project.gitUrl
+  const [analysis, setAnalysis] = useState<ClaudeMdAnalysis | null>(null)
+  const [conversionCheck, setConversionCheck] = useState<GitConversionCheck | null>(null)
+  const [checkingConversion, setCheckingConversion] = useState(false)
+
+  // Fetch CLAUDE.md analysis on mount
+  useEffect(() => {
+    const fetchAnalysis = async () => {
+      try {
+        const result = await window.api.analyzeClaudeMd(project.id)
+        setAnalysis(result)
+      } catch (error) {
+        console.error('[ProjectCard] Failed to analyze CLAUDE.md:', error)
+      }
+    }
+
+    fetchAnalysis()
+  }, [project.id])
+
+  // Check if project can be converted to Git (only for non-Git projects)
+  useEffect(() => {
+    if (!isGitProject && onConvertToGit) {
+      const checkConversion = async () => {
+        setCheckingConversion(true)
+        try {
+          const result = await window.api.checkGitConversion(project.id)
+          setConversionCheck(result)
+        } catch (error) {
+          console.error('[ProjectCard] Failed to check Git conversion:', error)
+        } finally {
+          setCheckingConversion(false)
+        }
+      }
+
+      checkConversion()
+    }
+  }, [project.id, isGitProject, onConvertToGit])
 
   const getIconComponent = (iconName: string) => {
     const Icon = LucideIcons[iconName as keyof typeof LucideIcons] as LucideIcons.LucideIcon
@@ -56,8 +97,19 @@ export function ProjectCard({ project, localPath, currentBranch, tags, onRemove,
     )
   }
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't navigate if clicking on buttons
+    if ((e.target as HTMLElement).closest('button')) {
+      return
+    }
+    onViewDetails?.(project)
+  }
+
   return (
-    <Card className="group relative overflow-hidden">
+    <Card
+      className={`group relative overflow-hidden ${onViewDetails ? 'cursor-pointer hover:border-primary/50 transition-colors' : ''}`}
+      onClick={handleCardClick}
+    >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -75,7 +127,13 @@ export function ProjectCard({ project, localPath, currentBranch, tags, onRemove,
               )}
             </div>
             <div className="min-w-0 flex-1">
-              <CardTitle className="text-base truncate">{project.name}</CardTitle>
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-base truncate">{project.name}</CardTitle>
+                {analysis && <QualityIndicator score={analysis.qualityScore} size="sm" />}
+                {onViewDetails && (
+                  <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-auto" />
+                )}
+              </div>
               {isGitProject && (
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <GitBranch className="h-3 w-3 shrink-0" />
@@ -93,15 +151,27 @@ export function ProjectCard({ project, localPath, currentBranch, tags, onRemove,
           </div>
           {/* Desktop: absolute positioned actions on hover */}
           <div className="hidden sm:flex absolute top-3 right-3 gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity bg-background/80 backdrop-blur-sm rounded-md p-1 shadow-sm">
-            {localPath && (
+            {path && (
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"
-                onClick={() => onOpenFolder(localPath)}
+                onClick={() => onOpenFolder(path)}
                 title="Open in Finder"
               >
                 <ExternalLink className="h-4 w-4" />
+              </Button>
+            )}
+            {!isGitProject && onConvertToGit && conversionCheck?.canConvert && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => onConvertToGit(project)}
+                title={`Convert to Git Project (${conversionCheck.gitUrl})`}
+                disabled={checkingConversion}
+              >
+                <RefreshCw className={`h-4 w-4 ${checkingConversion ? 'animate-spin' : ''}`} />
               </Button>
             )}
             {onImportIssues && (
@@ -157,11 +227,11 @@ export function ProjectCard({ project, localPath, currentBranch, tags, onRemove,
               </span>
             </div>
           )}
-          {localPath && (
+          {path && (
             <div className="flex items-center justify-between gap-2 min-w-0">
               <span className="text-muted-foreground shrink-0">Path:</span>
-              <span className="font-mono text-xs truncate" title={localPath}>
-                {localPath.replace(/^\/Users\/[^/]+/, '~')}
+              <span className="font-mono text-xs truncate" title={path}>
+                {path.replace(/^\/Users\/[^/]+/, '~')}
               </span>
             </div>
           )}
@@ -175,15 +245,27 @@ export function ProjectCard({ project, localPath, currentBranch, tags, onRemove,
         </div>
         {/* Mobile: actions at bottom */}
         <div className="flex sm:hidden gap-1 mt-3 pt-3 border-t">
-          {localPath && (
+          {path && (
             <Button
               variant="ghost"
               size="sm"
               className="flex-1"
-              onClick={() => onOpenFolder(localPath)}
+              onClick={() => onOpenFolder(path)}
             >
               <ExternalLink className="h-4 w-4 mr-1" />
               Open
+            </Button>
+          )}
+          {!isGitProject && onConvertToGit && conversionCheck?.canConvert && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="flex-1"
+              onClick={() => onConvertToGit(project)}
+              disabled={checkingConversion}
+            >
+              <RefreshCw className={`h-4 w-4 mr-1 ${checkingConversion ? 'animate-spin' : ''}`} />
+              Convert
             </Button>
           )}
           {onImportIssues && (

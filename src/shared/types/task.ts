@@ -65,6 +65,12 @@ export interface TaskIteration {
 
   /** Path to the plan file (if plan mode) - e.g., ~/.claude/plans/xyz.md */
   planFilePath?: string | null
+
+  /** Session ID from Claude Code (for --resume) */
+  sessionId?: string | null
+
+  /** Whether this iteration was a reply (continued conversation) */
+  isReply?: boolean
 }
 
 /**
@@ -177,6 +183,9 @@ export interface TaskManifest {
 
   /** Suggested next steps from the agent */
   suggestedNextSteps?: string[]
+
+  /** Session ID from Claude Code (for --resume) */
+  sessionId?: string | null
 }
 
 /**
@@ -231,6 +240,7 @@ export function createTaskManifest(
     iterations: [],
     isPlanMode: false,
     planFilePath: null,
+    sessionId: null,
     ...options
   }
 }

@@ -34,19 +34,21 @@ export function PlanningView() {
     currentSession,
     loading,
     error,
-    isAwaitingResponse,
-    isStreaming,
-    streamingContent,
     fetchAllSessions,
     createSession,
     loadSession,
     deleteSession,
     sendMessage,
+    interruptAndSend,
     cancelResponse,
     updatePlanItems,
     convertToTasks,
     setCurrentSession,
-    clearError
+    clearError,
+    isSessionAwaitingResponse,
+    isSessionStreaming,
+    getSessionStreamingContent,
+    getSessionActivity
   } = usePlanningStore()
 
   const { projects, fetchProjects } = useProjectStore()
@@ -197,6 +199,19 @@ export function PlanningView() {
     setShowPlanFileViewer(true)
   }, [])
 
+  // Handle creating task from a plan file path (reads file first)
+  const handleCreateTaskFromPlanFilePath = useCallback(async (filePath: string) => {
+    if (!currentSession) return
+    try {
+      const content = await window.api.readPlanningFile(currentSession.projectId, filePath)
+      setSectionContent(content)
+      setPlanFilePath(filePath)
+      setShowCreateTaskDialog(true)
+    } catch (error) {
+      console.error('Failed to read plan file:', error)
+    }
+  }, [currentSession])
+
   // Handle creating a task from the planning session
   const handleCreateTaskFromPlanning = useCallback(
     async (data: {
@@ -242,6 +257,18 @@ export function PlanningView() {
   const projectName = useMemo(() => {
     return currentProject?.name || ''
   }, [currentProject])
+
+  // Filter out claude-md sessions (they're only for context page)
+  const planningSessions = useMemo(() => {
+    return sessions.filter((s) => s.sessionType !== 'claude-md')
+  }, [sessions])
+
+  // Clear current session if it's a claude-md session (shouldn't be shown on planning page)
+  useEffect(() => {
+    if (currentSession && currentSession.sessionType === 'claude-md') {
+      setCurrentSession(null)
+    }
+  }, [currentSession, setCurrentSession])
 
   return (
     <div className="h-full flex flex-col" data-feature="planning-sessions">
@@ -330,7 +357,7 @@ export function PlanningView() {
         {/* Session list sidebar */}
         <div className="w-full lg:w-64 flex-shrink-0 border rounded-lg bg-card max-h-48 lg:max-h-none overflow-y-auto lg:overflow-y-visible">
           <PlanningSessionList
-            sessions={sessions}
+            sessions={planningSessions}
             currentSessionId={currentSession?.id || null}
             onSelectSession={handleSelectSession}
             onDeleteSession={handleDeleteSession}
@@ -375,17 +402,58 @@ export function PlanningView() {
                   <p className="text-xs text-muted-foreground truncate">{projectName}</p>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  {/* Create Task button - visible when there are messages */}
+                  {/* Quick Create Task button - creates task immediately from session */}
+                  {currentSession.messages.length > 0 && (
+                    <Button
+                      size="sm"
+                      onClick={async () => {
+                        // Build a prompt from the planning session
+                        const parts: string[] = []
+
+                        // Add title from first user message
+                        const firstUserMsg = currentSession.messages.find(m => m.role === 'user')
+                        if (firstUserMsg) {
+                          const firstLine = firstUserMsg.content.split('\n')[0].trim()
+                          parts.push(`## ${firstLine}\n`)
+                        }
+
+                        // Add all messages as context
+                        parts.push('## Planning Session Context\n')
+                        currentSession.messages.forEach((msg) => {
+                          if (msg.role === 'user') {
+                            parts.push(`**User:** ${msg.content}\n`)
+                          } else if (msg.role === 'assistant') {
+                            parts.push(`**Assistant:** ${msg.content}\n`)
+                          }
+                        })
+
+                        parts.push('\n## Instructions\n')
+                        parts.push('Implement the requirements discussed above following best practices.')
+
+                        // Create the task immediately
+                        await handleCreateTaskFromPlanning({
+                          prompt: parts.join('\n'),
+                          projectId: currentSession.projectId,
+                        })
+                      }}
+                      title="Create task from this planning session"
+                      className="shrink-0"
+                    >
+                      <ListTodo className="h-4 w-4 sm:mr-2" />
+                      <span className="hidden sm:inline">Quick Create Task</span>
+                    </Button>
+                  )}
+                  {/* Manual Create Task button - opens dialog for customization */}
                   {currentSession.messages.length > 0 && (
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={handleOpenCreateTaskDialog}
-                      title={`Create task from planning (${formatKbd('⌘⇧T')})`}
+                      title={`Customize task (${formatKbd('⌘⇧T')})`}
                       className="shrink-0"
                     >
                       <ListTodo className="h-4 w-4 sm:mr-2" />
-                      <span className="hidden sm:inline">Create Task</span>
+                      <span className="hidden sm:inline">Customize</span>
                     </Button>
                   )}
                   {currentSession.finalPlan.length > 0 && (
@@ -414,21 +482,26 @@ export function PlanningView() {
               {/* Chat messages */}
               <div className="flex-1 overflow-hidden">
                 <PlanningChat
+                  key={`planning-chat-${currentSession.id}`}
                   messages={currentSession.messages}
-                  isAwaitingResponse={isAwaitingResponse}
-                  isStreaming={isStreaming}
-                  streamingContent={streamingContent}
+                  isAwaitingResponse={isSessionAwaitingResponse(currentSession.id)}
+                  isStreaming={isSessionStreaming(currentSession.id)}
+                  streamingContent={getSessionStreamingContent(currentSession.id)}
+                  currentActivity={getSessionActivity(currentSession.id)}
                   onCreateTaskFromSection={handleCreateTaskFromSection}
                   onViewPlanFile={handleViewPlanFile}
+                  onCreateTaskFromPlanFile={handleCreateTaskFromPlanFilePath}
                 />
               </div>
 
               {/* Input area */}
               <PlanningInput
+                key={`planning-${currentSession.id}`}
                 onSend={handleSendMessage}
+                onInterruptAndSend={interruptAndSend}
                 onCancel={cancelResponse}
-                isAwaitingResponse={isAwaitingResponse}
-                isStreaming={isStreaming}
+                isAwaitingResponse={isSessionAwaitingResponse(currentSession.id)}
+                isStreaming={isSessionStreaming(currentSession.id)}
                 disabled={!hasProjects}
                 projectId={currentSession?.projectId || ''}
               />

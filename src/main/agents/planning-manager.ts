@@ -92,15 +92,132 @@ class PlanningManager {
       effectiveMessage = `${session.systemPrompt}\n\n---\n\nUser: ${message}`
     } else if (session.sessionType === 'general' && session.messages.length <= 1) {
       // For general sessions, add file organization instructions on first message
-      const planFileInstructions = `IMPORTANT: If you create any planning documents or markdown files during this session, always place them in a \`plans/\` directory in the project root. For example:
-- \`plans/architecture.md\`
-- \`plans/implementation-plan.md\`
-- \`plans/feature-spec.md\`
+      const planFileInstructions = `CRITICAL INSTRUCTION: Your primary goal in this planning session is to create a comprehensive plan document.
+
+You MUST create a markdown plan file in the \`plans/\` directory at the project root. This is not optional - every planning session should result in a written plan file.
+
+Plan File Requirements:
+1. ALWAYS create your plan file in \`plans/\` directory (e.g., \`plans/feature-name.md\`, \`plans/architecture-redesign.md\`)
+2. Use descriptive filenames that clearly indicate what the plan is for
+3. Structure your plan with clear sections (Overview, Requirements, Implementation Steps, etc.)
+4. Include actionable tasks that can be converted to work items
+5. Write the plan file BEFORE ending the conversation
+
+MULTI-FILE PLAN ORGANIZATION:
+- Keep the main plan file concise and focused (aim for <300 lines)
+- For complex plans with multiple phases or detailed sections, create a sub-directory structure
+- Use the pattern: \`plans/[feature-name]/\` for sub-files
+- Main file (\`plans/feature-name.md\`) should contain:
+  * Executive summary and high-level overview
+  * Overall requirements and goals
+  * Links to detailed sub-files
+  * Master task checklist
+- Sub-files should contain detailed information organized by:
+  * Implementation phases (\`phase-1-setup.md\`, \`phase-2-core.md\`, etc.)
+  * Major components or modules (\`backend-changes.md\`, \`ui-updates.md\`)
+  * Technical deep-dives (\`architecture-decisions.md\`, \`database-schema.md\`)
+  * Testing strategies (\`testing-plan.md\`)
+
+Example single-file plan structure (for simple features):
+\`\`\`markdown
+# [Feature/Project Name]
+
+## Overview
+[Brief description of what this plan accomplishes]
+
+## Requirements
+- [Requirement 1]
+- [Requirement 2]
+
+## Implementation Steps
+1. [Step 1 with details]
+2. [Step 2 with details]
+
+## Technical Decisions
+- [Key decision 1 and rationale]
+- [Key decision 2 and rationale]
+
+## Tasks
+- [ ] [Concrete task 1]
+- [ ] [Concrete task 2]
+\`\`\`
+
+Example multi-file plan structure (for complex features):
+\`\`\`
+plans/
+├── user-authentication.md           # Main plan file (overview + links)
+└── user-authentication/
+    ├── phase-1-backend.md          # Backend implementation details
+    ├── phase-2-frontend.md         # Frontend implementation details
+    ├── phase-3-testing.md          # Testing strategy
+    └── security-considerations.md   # Security analysis
+\`\`\`
+
+Main file (\`plans/user-authentication.md\`) example:
+\`\`\`markdown
+# User Authentication System
+
+## Overview
+High-level description of the authentication system.
+
+## Plan Structure
+This plan is organized into multiple documents:
+- [Phase 1: Backend Implementation](./user-authentication/phase-1-backend.md)
+- [Phase 2: Frontend Implementation](./user-authentication/phase-2-frontend.md)
+- [Phase 3: Testing Strategy](./user-authentication/phase-3-testing.md)
+- [Security Considerations](./user-authentication/security-considerations.md)
+
+## High-Level Requirements
+[Top-level requirements]
+
+## Implementation Order
+1. Phase 1: Backend (see detailed plan)
+2. Phase 2: Frontend (see detailed plan)
+3. Phase 3: Testing (see detailed plan)
+
+## Master Task List
+- [ ] Task from Phase 1
+- [ ] Task from Phase 2
+- [ ] Task from Phase 3
+\`\`\`
+
+Remember: The goal is to produce a written plan file (or plan file structure), not just a conversation. Use the Write tool to create your plan file(s) in the \`plans/\` directory. For complex plans, create a sub-directory to keep files organized and reduce context size.
 
 ---
 
 User: ${message}`
       effectiveMessage = planFileInstructions
+    } else if (session.sessionType === 'claude-md' && session.messages.length <= 1) {
+      // For claude-md sessions, add context about improving CLAUDE.md
+      const claudeMdInstructions = `You are helping improve the CLAUDE.md file for this project. The CLAUDE.md file provides important context and instructions for AI coding assistants working on the project.
+
+Your role is to:
+1. Review the current CLAUDE.md content (provided in context attachments)
+2. Answer questions about the project structure and conventions
+3. Suggest improvements to the CLAUDE.md to make it more helpful for AI assistants
+4. Help iterate on specific sections that need enhancement
+5. Ensure the CLAUDE.md follows best practices for AI-readable project documentation
+
+Focus on making the CLAUDE.md clear, actionable, and helpful for AI coding assistants.
+
+IMPORTANT FILE ORGANIZATION BEST PRACTICES:
+- Keep the main CLAUDE.md file under 300 lines when possible
+- For larger/complex projects, structure CLAUDE.md as an INDEX that links to focused documentation files in .claude/docs/
+- Recommend moving detailed sections to separate files in .claude/docs/ (e.g., .claude/docs/ARCHITECTURE.md, .claude/docs/API.md, .claude/docs/TESTING.md)
+- Each documentation file should focus on a specific domain (architecture, API, database, deployment, etc.)
+- The main CLAUDE.md should contain:
+  * High-level project overview
+  * Quick start commands
+  * Links/references to detailed documentation in .claude/docs/
+  * Critical conventions that apply across the entire project
+- Suggest creating separate focused files as the project grows rather than expanding CLAUDE.md indefinitely
+
+When reviewing the CLAUDE.md, if it's approaching or exceeding 300 lines, proactively suggest reorganizing it into an index file with links to separate focused documentation files.
+
+---
+
+User: ${message}`
+      effectiveMessage = claudeMdInstructions
     }
 
     // Add context attachments to the message
@@ -174,6 +291,16 @@ User: ${message}`
             sessionId,
             content: event.content,
             fullContent: activeSession.streamingContent
+          })
+        } else if (event.type === 'tool_use' && event.tool) {
+          // Extract a human-readable target from the tool input
+          const target = this.extractToolTarget(event.tool, event.toolInput)
+
+          // Broadcast activity
+          this.broadcastPlanningEvent('planning:activity', {
+            sessionId,
+            tool: event.tool,
+            target
           })
         } else if (event.type === 'complete') {
           conversationId = event.conversationId
@@ -262,11 +389,81 @@ User: ${message}`
   }
 
   /**
+   * Interrupt an active chat session and send a new message
+   * This kills the current response and starts a new one
+   */
+  async interruptAndSendMessage(
+    sessionId: string,
+    message: string,
+    workingDirectory: string,
+    contextAttachments?: ContextAttachment[]
+  ): Promise<void> {
+    const activeSession = this.activeSessions.get(sessionId)
+
+    // If there's an active session, interrupt it
+    if (activeSession) {
+      // Kill the process
+      activeSession.process.kill()
+
+      // Finalize the message with what we have so far
+      if (activeSession.streamingContent) {
+        await planningStore.updateLastMessage(
+          sessionId,
+          activeSession.streamingContent + '\n\n[Interrupted]',
+          false
+        )
+      }
+
+      // Clean up the active session
+      this.activeSessions.delete(sessionId)
+    }
+
+    // Now send the new message (will use --resume to continue conversation)
+    await this.sendMessage(sessionId, message, workingDirectory, contextAttachments)
+  }
+
+  /**
    * Get streaming content for a session
    */
   getStreamingContent(sessionId: string): string | null {
     const session = this.activeSessions.get(sessionId)
     return session ? session.streamingContent : null
+  }
+
+  /**
+   * Extract a human-readable target from tool input
+   */
+  private extractToolTarget(tool: string, toolInput?: Record<string, unknown>): string {
+    if (!toolInput) return ''
+
+    // Common patterns for different tools
+    switch (tool) {
+      case 'Read':
+      case 'Edit':
+      case 'Write':
+        return (toolInput.file_path as string) || ''
+      case 'Bash':
+        return (toolInput.command as string) || ''
+      case 'Grep':
+        return `"${toolInput.pattern || ''}" in ${toolInput.path || '.'}`
+      case 'Glob':
+        return (toolInput.pattern as string) || ''
+      case 'LSP':
+        return `${toolInput.operation || ''} at ${toolInput.filePath || ''}:${toolInput.line || ''}:${toolInput.character || ''}`
+      case 'WebFetch':
+        return (toolInput.url as string) || ''
+      case 'Task':
+        return (toolInput.description as string) || ''
+      default:
+        // For unknown tools, try common field names
+        return (
+          (toolInput.file_path as string) ||
+          (toolInput.path as string) ||
+          (toolInput.command as string) ||
+          (toolInput.pattern as string) ||
+          ''
+        )
+    }
   }
 
   /**

@@ -8,11 +8,7 @@
 import type { Project } from '@shared/types'
 import { createProject, generateProjectId } from '@shared/types'
 import { getDatabase } from '@main/storage/database'
-import {
-  setProjectPath,
-  removeProjectPath,
-  removeProjectEcosystemInfo
-} from './local-state-store'
+import { removeProjectEcosystemInfo } from './local-state-store'
 
 // ============ Type Conversions ============
 
@@ -28,6 +24,7 @@ interface ProjectRow {
   integration_ids: string
   added_at: string
   icon: string | null
+  path: string | null
 }
 
 function rowToProject(row: ProjectRow): Project {
@@ -42,7 +39,8 @@ function rowToProject(row: ProjectRow): Project {
     tagIds: JSON.parse(row.tag_ids),
     integrationIds: JSON.parse(row.integration_ids),
     addedAt: row.added_at,
-    icon: row.icon
+    icon: row.icon,
+    path: row.path
   }
 }
 
@@ -58,7 +56,8 @@ function projectToParams(project: Project): Record<string, unknown> {
     tag_ids: JSON.stringify(project.tagIds),
     integration_ids: JSON.stringify(project.integrationIds),
     added_at: project.addedAt,
-    icon: project.icon
+    icon: project.icon,
+    path: project.path
   }
 }
 
@@ -104,7 +103,7 @@ export async function getProjectByGitUrl(
  */
 export async function addProject(
   name: string,
-  localPath: string,
+  path: string,
   gitUrl: string | null = null,
   defaultBranch: string | null = null,
   options: Partial<Project> = {}
@@ -120,21 +119,21 @@ export async function addProject(
   }
 
   const id = generateProjectId()
-  const project = createProject(id, name, gitUrl, defaultBranch, options)
+  const project = createProject(id, name, gitUrl, defaultBranch, {
+    ...options,
+    path
+  })
   const params = projectToParams(project)
 
   db.prepare(`
     INSERT INTO projects (
       id, name, description, git_url, default_branch, default_skills,
-      include_claude_md, tag_ids, integration_ids, added_at, icon
+      include_claude_md, tag_ids, integration_ids, added_at, icon, path
     ) VALUES (
       @id, @name, @description, @git_url, @default_branch, @default_skills,
-      @include_claude_md, @tag_ids, @integration_ids, @added_at, @icon
+      @include_claude_md, @tag_ids, @integration_ids, @added_at, @icon, @path
     )
   `).run(params)
-
-  // Store local path in local state
-  await setProjectPath(id, localPath)
 
   return project
 }
@@ -166,7 +165,8 @@ export async function updateProject(
       include_claude_md = @include_claude_md,
       tag_ids = @tag_ids,
       integration_ids = @integration_ids,
-      icon = @icon
+      icon = @icon,
+      path = @path
     WHERE id = @id
   `).run(params)
 
@@ -184,8 +184,7 @@ export async function removeProject(projectId: string): Promise<boolean> {
     .run(projectId)
 
   if (result.changes > 0) {
-    // Clean up local state
-    await removeProjectPath(projectId)
+    // Clean up ecosystem info
     await removeProjectEcosystemInfo(projectId)
     return true
   }
@@ -218,4 +217,28 @@ export async function getProjectsByGroup(groupId: string): Promise<Project[]> {
     .all(groupId) as ProjectRow[]
 
   return rows.map(rowToProject)
+}
+
+// ============ Compatibility Helpers ============
+// These functions maintain backward compatibility with the old local_state approach
+// They can be removed once all code is updated to use Project.path directly
+
+/**
+ * Get the path for a project (compatibility wrapper)
+ * @deprecated Use project.path directly instead
+ */
+export async function getProjectPath(projectId: string): Promise<string | null> {
+  const project = await getProject(projectId)
+  return project?.path ?? null
+}
+
+/**
+ * Set the path for a project (compatibility wrapper)
+ * @deprecated Use updateProject({ path }) instead
+ */
+export async function setProjectPath(
+  projectId: string,
+  path: string
+): Promise<void> {
+  await updateProject(projectId, { path })
 }

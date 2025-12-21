@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useNavigate } from '@tanstack/react-router'
 import { useProjectStore } from '@/stores'
 import { useTagStore } from '@/stores/tag-store'
 import { ProjectCard, AddProjectDialog, EditProjectDialog, ScanProjectsDialog } from '@/components/projects'
@@ -10,6 +11,7 @@ import type { Project } from '@shared/types'
 import { Plus, FolderGit2, Loader2, Scan } from 'lucide-react'
 
 export function ProjectsView() {
+  const navigate = useNavigate()
   const { projects, loading, error, fetchProjects, addProject, updateProject, removeProject } = useProjectStore()
   const { loadTags, getTagsByIds } = useTagStore()
   const [addDialogOpen, setAddDialogOpen] = useState(false)
@@ -50,13 +52,13 @@ export function ProjectsView() {
 
   const handleAddProject = async (data: {
     name: string
-    localPath: string
+    path: string
     gitUrl?: string | null
     defaultBranch?: string | null
   }) => {
     await addProject({
       name: data.name,
-      localPath: data.localPath,
+      path: data.path,
       gitUrl: data.gitUrl,
       defaultBranch: data.defaultBranch
     })
@@ -80,6 +82,19 @@ export function ProjectsView() {
     setImportingProject(project)
   }
 
+  const handleConvertToGit = async (project: Project) => {
+    try {
+      const updated = await window.api.convertToGit(project.id)
+      if (updated) {
+        // Refresh projects to show the updated data
+        await fetchProjects()
+      }
+    } catch (error) {
+      console.error('[ProjectsView] Failed to convert project to Git:', error)
+      alert(`Failed to convert project: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
   const handleSaveProject = async (id: string, updates: Partial<Project>) => {
     await updateProject(id, updates)
     setEditingProject(null)
@@ -88,6 +103,10 @@ export function ProjectsView() {
   const handleOpenFolder = async (path: string) => {
     await window.api.openPath(path)
   }
+
+  const handleViewDetails = useCallback((project: Project) => {
+    navigate({ to: '/projects/$projectId', params: { projectId: project.id } })
+  }, [navigate])
 
   // Handle opening add dialog
   const handleOpenAddDialog = useCallback(() => {
@@ -172,14 +191,16 @@ export function ProjectsView() {
             <ProjectCard
               key={project.id}
               project={project}
-              localPath={projectPaths[project.id]}
+              path={projectPaths[project.id]}
               currentBranch={projectBranches[project.id]}
               tags={getTagsByIds(project.tagIds)}
               onRemove={handleRemoveProject}
               onEdit={handleEditProject}
               onOpenFolder={handleOpenFolder}
+              onViewDetails={handleViewDetails}
               onAnalyze={handleAnalyzeProject}
               onImportIssues={handleImportIssues}
+              onConvertToGit={handleConvertToGit}
             />
           ))}
         </div>

@@ -40,11 +40,11 @@ export function registerPlanningHandlers(): void {
 
       // If there's an initial message, start the chat
       if (data.initialMessage) {
-        const localPath = await getProjectPath(data.projectId)
-        if (localPath) {
+        const projectPath = await getProjectPath(data.projectId)
+        if (projectPath) {
           // Send message asynchronously (don't await - it streams)
           planningManager
-            .sendMessage(session.id, data.initialMessage, localPath)
+            .sendMessage(session.id, data.initialMessage, projectPath)
             .catch((error) => {
               console.error('[PlanningHandlers] Error sending initial message:', error)
             })
@@ -105,10 +105,10 @@ export function registerPlanningHandlers(): void {
         throw new Error(`Planning session not found: ${data.sessionId}`)
       }
 
-      const localPath = await getProjectPath(session.projectId)
-      if (!localPath) {
+      const projectPath = await getProjectPath(session.projectId)
+      if (!projectPath) {
         throw new Error(
-          `Project path not configured. Please remove and re-add this project to set its local path.`
+          `Project path not configured. Please remove and re-add this project to set its path.`
         )
       }
 
@@ -116,7 +116,35 @@ export function registerPlanningHandlers(): void {
       await planningManager.sendMessage(
         data.sessionId,
         data.content,
-        localPath,
+        projectPath,
+        data.contextAttachments
+      )
+    }
+  )
+
+  /**
+   * Interrupt current response and send a new message
+   */
+  ipcMain.handle(
+    'planning:interruptAndSend',
+    async (_event, data: SendPlanningMessageData): Promise<void> => {
+      const session = await planningStore.loadPlanningSession(data.sessionId)
+      if (!session) {
+        throw new Error(`Planning session not found: ${data.sessionId}`)
+      }
+
+      const projectPath = await getProjectPath(session.projectId)
+      if (!projectPath) {
+        throw new Error(
+          `Project path not configured. Please remove and re-add this project to set its path.`
+        )
+      }
+
+      // Interrupt and send new message
+      await planningManager.interruptAndSendMessage(
+        data.sessionId,
+        data.content,
+        projectPath,
         data.contextAttachments
       )
     }

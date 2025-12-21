@@ -90,6 +90,19 @@ body {
   background: hsl(var(--muted-foreground) / 0.3);
 }
 
+/* Auto-hide scrollbar - show only on hover */
+.scrollbar-autohide::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+
+.scrollbar-autohide:hover::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.2);
+}
+
+.scrollbar-autohide:hover::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.3);
+}
+
 /* Keyboard shortcut styling - ensure symbols render at consistent size */
 kbd {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
@@ -111,4 +124,35 @@ kbd {
 
 .no-drag {
   -webkit-app-region: no-drag;
+}
+
+/* ProseMirror typography overrides - Lexical-inspired baseline spacing */
+/* These defaults provide comfortable reading spacing similar to Lexical editor */
+.prose .ProseMirror > * {
+  margin-top: 0;
+  margin-bottom: 1rem; /* 16px - Lexical uses 15px, we use 1rem for consistency */
+}
+
+/* Last element shouldn't have bottom margin */
+.prose .ProseMirror > *:last-child {
+  margin-bottom: 0;
+}
+
+.prose .ProseMirror ul,
+.prose .ProseMirror ol {
+  padding-left: 1.5rem;
+}
+
+/* Headings get slightly more space before them for visual separation */
+.prose .ProseMirror h1,
+.prose .ProseMirror h2,
+.prose .ProseMirror h3 {
+  margin-top: 1.5rem;
+}
+
+/* First heading shouldn't have top margin */
+.prose .ProseMirror > h1:first-child,
+.prose .ProseMirror > h2:first-child,
+.prose .ProseMirror > h3:first-child {
+  margin-top: 0;
 }

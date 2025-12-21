@@ -408,6 +408,13 @@ export class ClaudeCodeAdapter extends BaseAgentAdapter {
       logger.debug('[ClaudeCode] Thinking mode enabled')
     }
 
+    // Add --resume support for continuing conversations
+    const resumeSessionId = options.agentOptions?.resumeSessionId as string | undefined
+    if (resumeSessionId) {
+      args.push('--resume', resumeSessionId)
+      logger.debug('[ClaudeCode] Resuming session:', resumeSessionId)
+    }
+
     // Add context files as allowed directories if provided
     if (options.contextFiles && options.contextFiles.length > 0) {
       for (const file of options.contextFiles) {
@@ -537,6 +544,9 @@ export class ClaudeCodeAdapter extends BaseAgentAdapter {
     try {
       const json = JSON.parse(line)
 
+      // Extract session_id if present
+      const sessionId = json.session_id || undefined
+
       // Determine event type for internal routing, but preserve raw line as message
       if (json.type === 'error') {
         // Check if the error is a usage limit
@@ -547,7 +557,8 @@ export class ClaudeCodeAdapter extends BaseAgentAdapter {
             type: 'usage-limit',
             message: line,
             timestamp,
-            resetAt: usageLimitResult.resetAt
+            resetAt: usageLimitResult.resetAt,
+            sessionId
           }
         }
 
@@ -556,20 +567,23 @@ export class ClaudeCodeAdapter extends BaseAgentAdapter {
           return {
             type: 'rate-limit',
             message: line,
-            timestamp
+            timestamp,
+            sessionId
           }
         }
 
         return {
           type: 'error',
           message: line, // Keep raw JSON for log viewer
-          timestamp
+          timestamp,
+          sessionId
         }
       } else if (json.type === 'result') {
         return {
           type: 'complete',
           message: line, // Keep raw JSON for log viewer
-          timestamp
+          timestamp,
+          sessionId
         }
       }
 
@@ -577,7 +591,8 @@ export class ClaudeCodeAdapter extends BaseAgentAdapter {
       return {
         type: 'log',
         message: line,
-        timestamp
+        timestamp,
+        sessionId
       }
     } catch {
       // Not JSON, treat as plain text
@@ -1201,6 +1216,13 @@ export class ClaudeCodeAdapter extends BaseAgentAdapter {
                     yield {
                       type: 'text',
                       content: block.text,
+                      conversationId
+                    }
+                  } else if (block.type === 'tool_use') {
+                    yield {
+                      type: 'tool_use',
+                      tool: block.name,
+                      toolInput: block.input,
                       conversationId
                     }
                   }

@@ -7,6 +7,7 @@ import type {
   CreateSkillData,
   CreateTaskData,
   FormattedPrompt,
+  GitConversionCheck,
   GitRepoInfo,
   GithubSkillData,
   MemoryStats,
@@ -28,6 +29,21 @@ import type {
   LoadContextContentData
 } from '@shared/ipc-types';
 import type {
+  BranchInfo,
+  FileStatus,
+  FileDiff,
+  CommitInfo,
+  CommitResult,
+  RemoteStatus,
+  FetchResult,
+  PullResult,
+  PushResult,
+  PushOptions,
+  StashEntry,
+  StashSaveOptions,
+  StashSaveResult
+} from '@shared/types';
+import type {
   AgentModelInfo,
   AgentOutputEvent,
   AnalysisProgress,
@@ -36,6 +52,8 @@ import type {
   ClaudeCommand,
   ClaudeProjectConfig,
   ClaudeSkill,
+  ClaudeMdAnalysis,
+  ClaudeMdSubFile,
   CodebaseStructure,
   ContextAttachment,
   CreateClaudeAgentData,
@@ -43,6 +61,7 @@ import type {
   CreateClaudeSkillData,
   CreateDocSessionData,
   CreateNoteData,
+  CreateNoteGroupData,
   CreatePlanningSessionData,
   DetectedPattern,
   DetectedTechnology,
@@ -54,6 +73,7 @@ import type {
   ExtractedPlanItem,
   MemoryEntry,
   Note,
+  NoteGroup,
   NoteStatus,
   PlanningSession,
   Project,
@@ -96,8 +116,8 @@ const api: RendererApi = {
 
   removeProject: (id: string): Promise<boolean> => ipcRenderer.invoke('project:remove', id),
 
-  setProjectPath: (id: string, localPath: string): Promise<void> =>
-    ipcRenderer.invoke('project:setPath', id, localPath),
+  setProjectPath: (id: string, path: string): Promise<void> =>
+    ipcRenderer.invoke('project:setPath', id, path),
 
   getProjectPath: (id: string): Promise<string | null> => ipcRenderer.invoke('project:getPath', id),
 
@@ -106,6 +126,12 @@ const api: RendererApi = {
 
   scanDirectory: (rootPath: string): Promise<ScannedRepo[]> =>
     ipcRenderer.invoke('project:scanDirectory', rootPath),
+
+  checkGitConversion: (id: string): Promise<GitConversionCheck> =>
+    ipcRenderer.invoke('project:checkGitConversion', id),
+
+  convertToGit: (id: string): Promise<Project | null> =>
+    ipcRenderer.invoke('project:convertToGit', id),
 
   // ============ Tasks ============
   listTasks: (projectId: string): Promise<TaskManifest[]> =>
@@ -169,6 +195,13 @@ const api: RendererApi = {
     newPrompt: string
   ): Promise<TaskManifest | null> =>
     ipcRenderer.invoke('task:reprompt', projectId, taskId, newPrompt),
+
+  replyToTask: (
+    projectId: string,
+    taskId: string,
+    replyMessage: string
+  ): Promise<TaskManifest | null> =>
+    ipcRenderer.invoke('task:reply', projectId, taskId, replyMessage),
 
   acceptPlanAndCreateTask: (
     projectId: string,
@@ -330,6 +363,87 @@ const api: RendererApi = {
   getCurrentBranch: (projectId: string): Promise<string | null> =>
     ipcRenderer.invoke('git:getCurrentBranch', projectId),
 
+  // Branch operations
+  listBranches: (projectId: string): Promise<BranchInfo[]> =>
+    ipcRenderer.invoke('git:listBranches', projectId),
+
+  createBranch: (projectId: string, name: string, startPoint?: string): Promise<void> =>
+    ipcRenderer.invoke('git:createBranch', projectId, name, startPoint),
+
+  checkoutBranch: (projectId: string, name: string): Promise<void> =>
+    ipcRenderer.invoke('git:checkoutBranch', projectId, name),
+
+  deleteBranch: (projectId: string, name: string, force?: boolean): Promise<void> =>
+    ipcRenderer.invoke('git:deleteBranch', projectId, name, force),
+
+  // Status & staging
+  getGitStatus: (projectId: string): Promise<FileStatus[]> =>
+    ipcRenderer.invoke('git:getStatus', projectId),
+
+  stageFiles: (projectId: string, files: string[]): Promise<void> =>
+    ipcRenderer.invoke('git:stageFiles', projectId, files),
+
+  unstageFiles: (projectId: string, files: string[]): Promise<void> =>
+    ipcRenderer.invoke('git:unstageFiles', projectId, files),
+
+  stageAll: (projectId: string): Promise<void> =>
+    ipcRenderer.invoke('git:stageAll', projectId),
+
+  unstageAll: (projectId: string): Promise<void> =>
+    ipcRenderer.invoke('git:unstageAll', projectId),
+
+  discardChanges: (projectId: string, file: string): Promise<void> =>
+    ipcRenderer.invoke('git:discardChanges', projectId, file),
+
+  discardAllChanges: (projectId: string): Promise<void> =>
+    ipcRenderer.invoke('git:discardAllChanges', projectId),
+
+  // Diff operations
+  getDiff: (projectId: string, options?: { file?: string; staged?: boolean }): Promise<string> =>
+    ipcRenderer.invoke('git:getDiff', projectId, options),
+
+  getFileDiff: (projectId: string, file: string, staged?: boolean): Promise<FileDiff> =>
+    ipcRenderer.invoke('git:getFileDiff', projectId, file, staged),
+
+  // Commit operations
+  gitCommit: (projectId: string, message: string): Promise<CommitResult> =>
+    ipcRenderer.invoke('git:commit', projectId, message),
+
+  getRecentCommits: (projectId: string, count?: number): Promise<CommitInfo[]> =>
+    ipcRenderer.invoke('git:getRecentCommits', projectId, count),
+
+  generateCommitMessage: (projectId: string): Promise<string> =>
+    ipcRenderer.invoke('git:generateCommitMessage', projectId),
+
+  // Remote operations
+  getRemoteStatus: (projectId: string): Promise<RemoteStatus> =>
+    ipcRenderer.invoke('git:getRemoteStatus', projectId),
+
+  gitFetch: (projectId: string, remote?: string): Promise<FetchResult> =>
+    ipcRenderer.invoke('git:fetch', projectId, remote),
+
+  gitPull: (projectId: string, remote?: string, branch?: string): Promise<PullResult> =>
+    ipcRenderer.invoke('git:pull', projectId, remote, branch),
+
+  gitPush: (projectId: string, remote?: string, branch?: string, options?: PushOptions): Promise<PushResult> =>
+    ipcRenderer.invoke('git:push', projectId, remote, branch, options),
+
+  // Stash operations
+  stashList: (projectId: string): Promise<StashEntry[]> =>
+    ipcRenderer.invoke('git:stashList', projectId),
+
+  stashSave: (projectId: string, options?: StashSaveOptions): Promise<StashSaveResult> =>
+    ipcRenderer.invoke('git:stashSave', projectId, options),
+
+  stashApply: (projectId: string, index?: number): Promise<void> =>
+    ipcRenderer.invoke('git:stashApply', projectId, index),
+
+  stashPop: (projectId: string, index?: number): Promise<void> =>
+    ipcRenderer.invoke('git:stashPop', projectId, index),
+
+  stashDrop: (projectId: string, index?: number): Promise<void> =>
+    ipcRenderer.invoke('git:stashDrop', projectId, index),
+
   // ============ Agents ============
   listAgents: (): Promise<AgentInfo[]> => ipcRenderer.invoke('agent:list'),
 
@@ -451,6 +565,9 @@ const api: RendererApi = {
   sendPlanningMessage: (data: SendPlanningMessageData): Promise<void> =>
     ipcRenderer.invoke('planning:sendMessage', data),
 
+  interruptAndSendPlanningMessage: (data: SendPlanningMessageData): Promise<void> =>
+    ipcRenderer.invoke('planning:interruptAndSend', data),
+
   cancelPlanningResponse: (sessionId: string): Promise<boolean> =>
     ipcRenderer.invoke('planning:cancelResponse', sessionId),
 
@@ -524,6 +641,34 @@ const api: RendererApi = {
     ipcRenderer.invoke('note:unlinkFromPlanning', noteId, planningId),
 
   getAllNoteTags: (): Promise<string[]> => ipcRenderer.invoke('note:getAllTags'),
+
+  reorderNotes: (noteOrders: Array<{ id: string; order: number; groupId?: string | null }>): Promise<void> =>
+    ipcRenderer.invoke('note:reorder', noteOrders),
+
+  moveNoteToGroup: (noteId: string, groupId: string | null): Promise<Note | null> =>
+    ipcRenderer.invoke('note:moveToGroup', noteId, groupId),
+
+  listNotesByGroup: (groupId: string | null): Promise<Note[]> =>
+    ipcRenderer.invoke('note:listByGroup', groupId),
+
+  // ============ Note Groups ============
+  listNoteGroups: (): Promise<NoteGroup[]> => ipcRenderer.invoke('noteGroup:list'),
+
+  getNoteGroup: (id: string): Promise<NoteGroup | null> => ipcRenderer.invoke('noteGroup:get', id),
+
+  createNoteGroup: (data: CreateNoteGroupData): Promise<NoteGroup> =>
+    ipcRenderer.invoke('noteGroup:create', data),
+
+  updateNoteGroup: (id: string, updates: Partial<NoteGroup>): Promise<NoteGroup | null> =>
+    ipcRenderer.invoke('noteGroup:update', id, updates),
+
+  deleteNoteGroup: (id: string): Promise<boolean> => ipcRenderer.invoke('noteGroup:delete', id),
+
+  reorderNoteGroups: (groupOrders: Array<{ id: string; order: number }>): Promise<void> =>
+    ipcRenderer.invoke('noteGroup:reorder', groupOrders),
+
+  toggleNoteGroupCollapsed: (id: string): Promise<NoteGroup | null> =>
+    ipcRenderer.invoke('noteGroup:toggleCollapsed', id),
 
   // ============ Whisper ============
   getWhisperStatus: (): Promise<WhisperStatus> => ipcRenderer.invoke('whisper:getStatus'),
@@ -614,6 +759,24 @@ const api: RendererApi = {
   deleteClaudeMd: (projectId: string): Promise<void> =>
     ipcRenderer.invoke('claudeConfig:deleteClaudeMd', projectId),
 
+  analyzeClaudeMd: (projectId: string): Promise<ClaudeMdAnalysis> =>
+    ipcRenderer.invoke('claudeConfig:analyze', projectId),
+
+  getClaudeMdSubFiles: (projectId: string): Promise<ClaudeMdSubFile[]> =>
+    ipcRenderer.invoke('claudeConfig:getSubFiles', projectId),
+
+  createClaudeMdSubFile: (projectId: string, name: string, content: string): Promise<void> =>
+    ipcRenderer.invoke('claudeConfig:createSubFile', projectId, name, content),
+
+  updateClaudeMdSubFile: (projectId: string, name: string, content: string): Promise<void> =>
+    ipcRenderer.invoke('claudeConfig:updateSubFile', projectId, name, content),
+
+  deleteClaudeMdSubFile: (projectId: string, name: string): Promise<void> =>
+    ipcRenderer.invoke('claudeConfig:deleteSubFile', projectId, name),
+
+  readClaudeMdSubFile: (projectId: string, name: string): Promise<string> =>
+    ipcRenderer.invoke('claudeConfig:readSubFile', projectId, name),
+
   // Event listeners (Main → Renderer)
   onTaskStatusChanged: (callback: (task: TaskManifest) => void): (() => void) => {
     const handler = (_event: Electron.IpcRendererEvent, task: TaskManifest) => callback(task)
@@ -643,6 +806,12 @@ const api: RendererApi = {
     const handler = (_event: Electron.IpcRendererEvent, data: { sessionId: string; content: string; fullContent: string }) => callback(data)
     ipcRenderer.on('planning:chunk', handler)
     return () => ipcRenderer.removeListener('planning:chunk', handler)
+  },
+
+  onPlanningActivity: (callback: (data: { sessionId: string; tool: string; target: string }) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: { sessionId: string; tool: string; target: string }) => callback(data)
+    ipcRenderer.on('planning:activity', handler)
+    return () => ipcRenderer.removeListener('planning:activity', handler)
   },
 
   onPlanningComplete: (callback: (data: { sessionId: string; session: PlanningSession }) => void): (() => void) => {

@@ -13,21 +13,40 @@ import type {
   ClaudeProjectConfig,
   CreateClaudeAgentData,
   CreateClaudeSkillData,
-  CreateClaudeCommandData
+  CreateClaudeCommandData,
+  ClaudeMdAnalysis,
+  ClaudeMdSubFile
 } from '@shared/types'
 import { claudeConfigManager } from '@main/agents/claude-config-manager'
-import { getProjectPath } from '@main/storage/local-state-store'
+import { getProject } from '@main/storage'
 import { logger } from '@main/utils/logger'
+import {
+  analyzeProjectClaudeMd,
+  getProjectSubFiles,
+  createSubFile,
+  updateSubFile,
+  deleteSubFile,
+  readSubFile
+} from '@main/analysis/claude-md-analyzer'
 
 /**
  * Helper to get project path from project ID
  */
 async function getPath(projectId: string): Promise<string> {
-  const path = await getProjectPath(projectId)
-  if (!path) {
+  const project = await getProject(projectId)
+
+  if (!project) {
     throw new Error(`Project not found: ${projectId}`)
   }
-  return path
+
+  if (!project.path) {
+    throw new Error(
+      `Project "${project.name}" does not have a path configured. ` +
+      `Please set the path in the project settings.`
+    )
+  }
+
+  return project.path
 }
 
 /**
@@ -232,6 +251,74 @@ export function registerClaudeConfigHandlers(): void {
     async (_, projectId: string): Promise<void> => {
       const projectPath = await getPath(projectId)
       return claudeConfigManager.deleteClaudeMd(projectPath)
+    }
+  )
+
+  // ============ CLAUDE.md Analysis Operations ============
+
+  /**
+   * Analyze CLAUDE.md quality and structure
+   */
+  ipcMain.handle(
+    'claudeConfig:analyze',
+    async (_, projectId: string): Promise<ClaudeMdAnalysis> => {
+      const projectPath = await getPath(projectId)
+      return analyzeProjectClaudeMd(projectPath)
+    }
+  )
+
+  /**
+   * Get sub-files in .claude/docs/
+   */
+  ipcMain.handle(
+    'claudeConfig:getSubFiles',
+    async (_, projectId: string): Promise<ClaudeMdSubFile[]> => {
+      const projectPath = await getPath(projectId)
+      return getProjectSubFiles(projectPath)
+    }
+  )
+
+  /**
+   * Create a sub-file in .claude/docs/
+   */
+  ipcMain.handle(
+    'claudeConfig:createSubFile',
+    async (_, projectId: string, name: string, content: string): Promise<void> => {
+      const projectPath = await getPath(projectId)
+      return createSubFile(projectPath, name, content)
+    }
+  )
+
+  /**
+   * Update a sub-file in .claude/docs/
+   */
+  ipcMain.handle(
+    'claudeConfig:updateSubFile',
+    async (_, projectId: string, name: string, content: string): Promise<void> => {
+      const projectPath = await getPath(projectId)
+      return updateSubFile(projectPath, name, content)
+    }
+  )
+
+  /**
+   * Delete a sub-file from .claude/docs/
+   */
+  ipcMain.handle(
+    'claudeConfig:deleteSubFile',
+    async (_, projectId: string, name: string): Promise<void> => {
+      const projectPath = await getPath(projectId)
+      return deleteSubFile(projectPath, name)
+    }
+  )
+
+  /**
+   * Read a sub-file's content
+   */
+  ipcMain.handle(
+    'claudeConfig:readSubFile',
+    async (_, projectId: string, name: string): Promise<string> => {
+      const projectPath = await getPath(projectId)
+      return readSubFile(projectPath, name)
     }
   )
 

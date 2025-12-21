@@ -3,6 +3,7 @@ import { CSS } from '@dnd-kit/utilities'
 import type { TaskManifest, TaskStatus } from '@shared/types'
 import { TaskCard } from '@/components/tasks'
 import { cn } from '@/lib/utils'
+import { memo } from 'react'
 
 interface SortableTaskCardProps {
   task: TaskManifest
@@ -14,7 +15,7 @@ interface SortableTaskCardProps {
   isFocused?: boolean
 }
 
-export function SortableTaskCard({
+export const SortableTaskCard = memo(function SortableTaskCard({
   task,
   projectName,
   onStatusChange,
@@ -69,4 +70,4 @@ export function SortableTaskCard({
       />
     </div>
   )
-}
+})

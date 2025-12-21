@@ -10,6 +10,7 @@ import TaskItem from '@tiptap/extension-task-item'
 import Highlight from '@tiptap/extension-highlight'
 import Typography from '@tiptap/extension-typography'
 import Mention from '@tiptap/extension-mention'
+import { Markdown } from '@tiptap/markdown'
 import type { SuggestionOptions } from '@tiptap/suggestion'
 import type { Extensions } from '@tiptap/react'
 
@@ -42,6 +43,16 @@ export function createExtensions(config: TiptapConfig = {}): Extensions {
       orderedList: {
         keepMarks: true,
         keepAttributes: false
+      },
+      // Disable the default Link extension from StarterKit so we can configure it separately
+      link: false
+    }),
+
+    // Enable native markdown support
+    Markdown.configure({
+      markedOptions: {
+        gfm: true, // GitHub Flavored Markdown
+        breaks: false // Don't treat single line breaks as <br>
       }
     }),
 
@@ -49,6 +60,7 @@ export function createExtensions(config: TiptapConfig = {}): Extensions {
       placeholder: config.placeholder ?? 'Start typing your note...'
     }),
 
+    // Configure Link extension with custom settings
     Link.configure({
       openOnClick: false,
       autolink: true,

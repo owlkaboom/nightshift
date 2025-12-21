@@ -85,9 +85,14 @@ export function EditTaskDialog({
     if (open && task && !initializedRef.current) {
       console.log('[EditTaskDialog] Initializing with task:', {
         agentId: task.agentId,
-        model: task.model
+        model: task.model,
+        promptLength: task.prompt?.length
       })
       setPrompt(task.prompt)
+      // CRITICAL FIX: Also initialize promptText so validation works
+      // The RichTextEditor will call onChange with both html and text,
+      // but we need to initialize promptText immediately for validation
+      setPromptText(task.prompt || '')
       setSelectedSkills(task.enabledSkills || [])
 
       const agentId = task.agentId || undefined

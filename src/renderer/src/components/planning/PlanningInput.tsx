@@ -17,6 +17,9 @@ interface PlanningInputProps {
   /** Called when user sends a message */
   onSend: (content: string, contextAttachments?: ContextAttachment[]) => Promise<void>
 
+  /** Called when user wants to interrupt and send a new message */
+  onInterruptAndSend: (content: string, contextAttachments?: ContextAttachment[]) => Promise<void>
+
   /** Called when user wants to cancel the current response */
   onCancel: () => Promise<void>
 
@@ -35,6 +38,7 @@ interface PlanningInputProps {
 
 export function PlanningInput({
   onSend,
+  onInterruptAndSend,
   onCancel,
   isAwaitingResponse,
   isStreaming,
@@ -113,6 +117,21 @@ export function PlanningInput({
     }
   }, [message, contextAttachments, sending, isBusy, disabled, onSend])
 
+  // Handle interrupting and sending a new message
+  const handleInterruptAndSend = useCallback(async () => {
+    const trimmed = message.trim()
+    if (!trimmed || sending || disabled) return
+
+    setSending(true)
+    try {
+      await onInterruptAndSend(trimmed, contextAttachments.length > 0 ? contextAttachments : undefined)
+      setMessage('')
+      setContextAttachments([]) // Clear attachments after sending
+    } finally {
+      setSending(false)
+    }
+  }, [message, contextAttachments, sending, disabled, onInterruptAndSend])
+
   // Handle keyboard events
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -176,7 +195,7 @@ export function PlanningInput({
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={getPlaceholder()}
-            disabled={disabled || isBusy || isListening}
+            disabled={disabled || isListening}
             className={'min-h-[60px] sm:min-h-[80px] resize-none text-sm' + (isListening ? ' ring-2 ring-red-500 ring-offset-2' : '')}
             rows={3}
           />
@@ -201,7 +220,7 @@ export function PlanningInput({
             variant="outline"
             size="icon"
             onClick={() => setShowContextDialog(true)}
-            disabled={disabled || isBusy || isListening}
+            disabled={disabled || isListening}
             title="Add context (file, URL, note, or project)"
             className="shrink-0"
           >
@@ -211,7 +230,7 @@ export function PlanningInput({
             variant={isListening ? 'destructive' : 'outline'}
             size="icon"
             onClick={handleToggleVoice}
-            disabled={disabled || isBusy || isModelLoading || isProcessing}
+            disabled={disabled || isModelLoading || isProcessing}
             title={isListening ? 'Stop voice input' : 'Start voice input'}
             className="shrink-0"
           >
@@ -224,15 +243,29 @@ export function PlanningInput({
             )}
           </Button>
           {isBusy ? (
-            <Button
-              variant="destructive"
-              size="icon"
-              onClick={handleCancel}
-              title="Cancel response"
-              className="shrink-0"
-            >
-              <Square className="h-4 w-4" />
-            </Button>
+            <>
+              {message.trim().length > 0 && (
+                <Button
+                  variant="default"
+                  size="icon"
+                  onClick={handleInterruptAndSend}
+                  disabled={sending || isListening}
+                  title="Interrupt and send new message"
+                  className="shrink-0"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              )}
+              <Button
+                variant="destructive"
+                size="icon"
+                onClick={handleCancel}
+                title="Cancel response"
+                className="shrink-0"
+              >
+                <Square className="h-4 w-4" />
+              </Button>
+            </>
           ) : (
             <Button
               size="icon"

@@ -51,6 +51,7 @@ interface TaskRow {
   running_session_started_at: string | null
   current_iteration: number
   iterations: string
+  session_id: string | null
 }
 
 function rowToTask(row: TaskRow): TaskManifest {
@@ -82,7 +83,8 @@ function rowToTask(row: TaskRow): TaskManifest {
     runtimeMs: row.runtime_ms,
     runningSessionStartedAt: row.running_session_started_at,
     currentIteration: row.current_iteration,
-    iterations: JSON.parse(row.iterations)
+    iterations: JSON.parse(row.iterations),
+    sessionId: row.session_id
   }
 }
 
@@ -115,7 +117,8 @@ function taskToParams(task: TaskManifest): Record<string, unknown> {
     runtime_ms: task.runtimeMs,
     running_session_started_at: task.runningSessionStartedAt,
     current_iteration: task.currentIteration,
-    iterations: JSON.stringify(task.iterations)
+    iterations: JSON.stringify(task.iterations),
+    session_id: task.sessionId
   }
 }
 
@@ -535,7 +538,8 @@ export async function completeIteration(
     reason?: 'multi-phase' | 'todo-items' | 'continuation-signal' | 'approval-needed' | 'token-limit'
     details?: string
     suggestedNextSteps?: string[]
-  }
+  },
+  sessionId?: string | null
 ): Promise<TaskManifest | null> {
   const task = await loadTask(projectId, taskId)
   if (!task) return null
@@ -559,7 +563,8 @@ export async function completeIteration(
     exitCode,
     runtimeMs: finalRuntimeMs,
     errorMessage: errorMessage || task.errorMessage || null,
-    finalStatus
+    finalStatus,
+    sessionId: sessionId || null
   }
 
   const iterations = [...(task.iterations || []), iteration]
@@ -572,7 +577,8 @@ export async function completeIteration(
     runtimeMs: finalRuntimeMs,
     runningSessionStartedAt: null,
     errorMessage: errorMessage || null,
-    iterations
+    iterations,
+    sessionId: sessionId || null
   }
 
   // Add incomplete work detection results if task completed successfully
@@ -612,6 +618,7 @@ export async function completeIteration(
 
 /**
  * Start a new iteration (for re-prompt)
+ * This clears the sessionId to start fresh
  */
 export async function startNewIteration(
   projectId: string,
@@ -636,7 +643,45 @@ export async function startNewIteration(
     exitCode: null,
     errorMessage: null,
     runtimeMs: 0,
+    runningSessionStartedAt: null,
+    sessionId: null // Clear session ID for fresh start
+  })
+}
+
+/**
+ * Start a reply iteration (continue conversation with --resume)
+ * This preserves the sessionId to continue the conversation
+ */
+export async function startReplyIteration(
+  projectId: string,
+  taskId: string,
+  replyMessage: string
+): Promise<TaskManifest | null> {
+  const task = await loadTask(projectId, taskId)
+  if (!task) return null
+
+  // Can only reply if task has a session ID
+  if (!task.sessionId) {
+    throw new Error('Cannot reply: task has no session ID')
+  }
+
+  if (!['needs_review', 'failed'].includes(task.status)) {
+    return null
+  }
+
+  const nextIteration = (task.currentIteration || 1) + 1
+
+  return updateTask(projectId, taskId, {
+    prompt: replyMessage,
+    status: 'queued',
+    currentIteration: nextIteration,
+    startedAt: null,
+    completedAt: null,
+    exitCode: null,
+    errorMessage: null,
+    runtimeMs: 0,
     runningSessionStartedAt: null
+    // sessionId is preserved (not cleared)
   })
 }
 

@@ -563,3 +563,36 @@ export async function getVaultStats(): Promise<VaultStats> {
     lastModified: latestMtime
   }
 }
+
+// ============ Note Ordering Functions ============
+
+/**
+ * Reorder notes
+ * Updates the order field for multiple notes at once
+ */
+export async function reorderNotes(noteOrders: Array<{ id: string; order: number; groupId?: string | null }>): Promise<void> {
+  for (const { id, order, groupId } of noteOrders) {
+    const updates: Partial<Note> = { order }
+    if (groupId !== undefined) {
+      updates.groupId = groupId
+    }
+    await updateNote(id, updates)
+  }
+}
+
+/**
+ * Move a note to a group
+ */
+export async function moveNoteToGroup(noteId: string, groupId: string | null): Promise<Note | null> {
+  return updateNote(noteId, { groupId })
+}
+
+/**
+ * Get notes by group ID
+ */
+export async function getNotesByGroup(groupId: string | null): Promise<Note[]> {
+  const allNotes = await loadNotes()
+  return allNotes
+    .filter(note => note.groupId === groupId)
+    .sort((a, b) => a.order - b.order)
+}

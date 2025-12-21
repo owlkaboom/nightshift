@@ -91,7 +91,20 @@ Be specific and include actual paths, commands, and file names from the project.
 Use clear markdown formatting with code blocks, tables, and lists.
 Focus on information that would help an AI assistant work effectively on this codebase.
 
-The documentation should be thorough but concise, around 200-400 lines.`
+IMPORTANT FILE ORGANIZATION GUIDELINES:
+- Keep the main CLAUDE.md file under 300 lines when possible
+- For larger/complex projects, the main CLAUDE.md should act as an INDEX that links to focused documentation files in .claude/docs/
+- Move detailed sections to separate files in .claude/docs/ (e.g., .claude/docs/ARCHITECTURE.md, .claude/docs/API.md, .claude/docs/TESTING.md)
+- Each documentation file should focus on a specific domain (architecture, API, database, deployment, etc.)
+- The main CLAUDE.md should contain:
+  * High-level project overview
+  * Quick start commands
+  * Links/references to detailed documentation in .claude/docs/
+  * Critical conventions that apply across the entire project
+- Use separate focused files as the project grows rather than making CLAUDE.md increasingly large
+
+The main CLAUDE.md documentation should be thorough but concise, ideally under 300 lines.
+For complex projects, structure it as an index with links to detailed documentation in .claude/docs/.`
 }
 
 /**

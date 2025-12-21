@@ -17,7 +17,6 @@ export { createTaskManifest } from './task'
 export type {
   Project,
   ProjectsRegistry,
-  ProjectPathMapping,
   ProjectEcosystemInfo,
   ProjectSkill,
   ScannedRepo
@@ -100,6 +99,18 @@ export {
   MIN_CONFIDENCE_THRESHOLD
 } from './project-memory'
 
+// Claude.md analysis types
+export type {
+  ClaudeMdAnalysis,
+  ClaudeMdSection,
+  ClaudeMdSubFile
+} from './claude-md-analysis'
+export {
+  analyzeClaudeMd,
+  calculateQualityScore,
+  generateRecommendations
+} from './claude-md-analysis'
+
 // Planning types
 export type {
   MessageRole,
@@ -110,7 +121,8 @@ export type {
   PlanningSession,
   CreatePlanningSessionData,
   ContextAttachmentType,
-  ContextAttachment
+  ContextAttachment,
+  StreamingActivity
 } from './planning'
 export {
   generatePlanningSessionId,
@@ -125,13 +137,15 @@ export {
 } from './planning'
 
 // Note types
-export type { Note, NoteStatus, CreateNoteData } from './note'
+export type { Note, NoteStatus, CreateNoteData, NoteGroup, CreateNoteGroupData } from './note'
 export {
   generateNoteId,
+  generateNoteGroupId,
   extractExcerpt,
   extractTitleFromContent,
   countWords,
   extractProjectMentions,
+  createNoteGroup,
   extractGroupMentions,
   createNote,
   NOTE_ICONS
@@ -213,6 +227,26 @@ export {
   filterByConfidence,
   groupTechnologiesByCategory
 } from './analysis'
+
+// Git types
+export type {
+  BranchInfo,
+  FileStatusType,
+  FileStatus,
+  DiffLine,
+  DiffHunk,
+  FileDiff,
+  CommitInfo,
+  CommitResult,
+  RemoteStatus,
+  FetchResult,
+  PullResult,
+  PushResult,
+  PushOptions,
+  StashEntry,
+  StashSaveOptions,
+  StashSaveResult
+} from './git'
 
 // Integration types
 export type {

@@ -2,7 +2,7 @@
  * Configuration types for Nightshift
  */
 
-import type { ProjectPathMapping, ProjectEcosystemInfo } from './project'
+import type { ProjectEcosystemInfo } from './project'
 import type { AgentId } from './agent'
 
 /**
@@ -155,8 +155,8 @@ export interface LocalState {
   /** Machine identifier for multi-machine sync */
   machineId: string
 
-  /** Mapping of project IDs to local filesystem paths */
-  projectPaths: ProjectPathMapping
+  /** DEPRECATED: Project paths are now stored on the Project object directly */
+  projectPaths: Record<string, string>
 
   /** Claude Code ecosystem info per project */
   claudeCodeEcosystem: {

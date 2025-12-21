@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/select'
 import { LogViewer } from './LogViewer'
 import { RepromptDialog } from './RepromptDialog'
+import { ReplyDialog } from './ReplyDialog'
 import { PlanReviewPanel } from './PlanReviewPanel'
 import { AcceptPlanDialog } from './AcceptPlanDialog'
 import { MarkdownRenderer } from '@/components/ui/markdown-renderer'
@@ -34,7 +35,8 @@ import {
   Activity,
   AlertTriangle,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  MessageSquare
 } from 'lucide-react'
 import { useTaskStore } from '@/stores'
 import { useKeyboardShortcuts, type KeyboardShortcut } from '@/hooks'
@@ -69,12 +71,13 @@ export function TaskDetailView({
   const [isLoading, setIsLoading] = useState(true)
   const [viewingIteration, setViewingIteration] = useState<number>(task.currentIteration || 1)
   const [repromptDialogOpen, setRepromptDialogOpen] = useState(false)
+  const [replyDialogOpen, setReplyDialogOpen] = useState(false)
   const [acceptPlanDialogOpen, setAcceptPlanDialogOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [agents, setAgents] = useState<AgentInfo[]>([])
   const [isPromptCollapsed, setIsPromptCollapsed] = useState(false)
 
-  const { acceptTask, rejectTask, repromptTask, acceptPlanAndCreateTask } = useTaskStore()
+  const { acceptTask, rejectTask, repromptTask, replyToTask, acceptPlanAndCreateTask } = useTaskStore()
 
   // Check if this is a plan mode task
   const isPlanMode = task.isPlanMode === true
@@ -95,6 +98,13 @@ export function TaskDetailView({
   const showRunningActions = useMemo(
     () => task.status === 'running' || task.status === 'awaiting_agent',
     [task.status]
+  )
+  // Show Reply button only for Claude Code tasks with sessionId (supports --resume)
+  const canReply = useMemo(
+    () => (showReviewActions || showRepromptForFailed) &&
+          task.sessionId &&
+          task.agentId === 'claude-code',
+    [showReviewActions, showRepromptForFailed, task.sessionId, task.agentId]
   )
 
   // Get the prompt for the currently viewing iteration
@@ -235,6 +245,18 @@ export function TaskDetailView({
     } finally {
       setIsSubmitting(false)
       setRepromptDialogOpen(false)
+    }
+  }
+
+  const handleReply = async (replyMessage: string) => {
+    setIsSubmitting(true)
+    try {
+      await replyToTask(task.projectId, task.id, replyMessage)
+      onTaskUpdated?.()
+      onBack()
+    } finally {
+      setIsSubmitting(false)
+      setReplyDialogOpen(false)
     }
   }
 
@@ -447,6 +469,19 @@ export function TaskDetailView({
               ))}
             </div>
           </Button>
+          {canReply && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-blue-300 hover:bg-blue-100 dark:border-blue-700 dark:hover:bg-blue-900"
+              onClick={() => setReplyDialogOpen(true)}
+              disabled={isSubmitting}
+              title="Reply to continue conversation"
+            >
+              <MessageSquare className="h-3.5 w-3.5 mr-1" />
+              Reply
+            </Button>
+          )}
           <Button
             variant="destructive"
             size="sm"
@@ -488,6 +523,19 @@ export function TaskDetailView({
             <RotateCcw className="h-3.5 w-3.5 mr-1" />
             Re-prompt
           </Button>
+          {canReply && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-blue-300 hover:bg-blue-100 dark:border-blue-700 dark:hover:bg-blue-900"
+              onClick={() => setReplyDialogOpen(true)}
+              disabled={isSubmitting}
+              title="Reply to continue conversation"
+            >
+              <MessageSquare className="h-3.5 w-3.5 mr-1" />
+              Reply
+            </Button>
+          )}
         </div>
       )}
 
@@ -657,6 +705,15 @@ export function TaskDetailView({
         onReprompt={handleReprompt}
         isSubmitting={isSubmitting}
         showRetryWithContext={task.status === 'failed'}
+      />
+
+      {/* Reply Dialog */}
+      <ReplyDialog
+        open={replyDialogOpen}
+        onOpenChange={setReplyDialogOpen}
+        task={task}
+        onReply={handleReply}
+        isSubmitting={isSubmitting}
       />
 
       {/* Accept Plan Dialog */}

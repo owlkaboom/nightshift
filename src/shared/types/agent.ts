@@ -46,10 +46,16 @@ export interface AgentChatOptions {
  */
 export interface AgentChatEvent {
   /** Type of event */
-  type: 'text' | 'complete' | 'error'
+  type: 'text' | 'tool_use' | 'complete' | 'error'
 
   /** Content chunk (for text events) */
   content?: string
+
+  /** Tool name (for tool_use events) */
+  tool?: string
+
+  /** Tool input (for tool_use events) */
+  toolInput?: Record<string, unknown>
 
   /** Conversation ID (returned on first response) */
   conversationId?: string
@@ -93,6 +99,9 @@ export interface AgentOutputEvent {
 
   /** For usage-limit events, when the limit resets (if available) */
   resetAt?: Date
+
+  /** Session ID from Claude Code (for --resume) */
+  sessionId?: string
 }
 
 /**

@@ -6,7 +6,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Plus, RefreshCw, Pin, FileText, Archive, X, Save, Trash2 } from 'lucide-react'
+import { Plus, RefreshCw, Pin, FileText, Archive, X, Save, Trash2, FolderPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
@@ -17,12 +17,12 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select'
-import { useNoteStore, useProjectStore, useTaskStore } from '@/stores'
+import { useNoteStore, useProjectStore, useTaskStore, useNoteGroupStore } from '@/stores'
 import { useKeyboardShortcuts, formatKbd, type KeyboardShortcut } from '@/hooks'
 import {
-  NoteList,
   NoteSearch,
-  ConvertToTaskDialog
+  ConvertToTaskDialog,
+  DroppableNotesArea
 } from '@/components/notes'
 import { RichTextEditor } from '@/components/ui/rich-text-editor'
 import type { Note } from '@shared/types'
@@ -51,6 +51,14 @@ export function NotesView() {
 
   const { projects, fetchProjects } = useProjectStore()
   const { createTask } = useTaskStore()
+  const {
+    groups,
+    fetchGroups,
+    createGroup,
+    updateGroup,
+    deleteGroup,
+    toggleCollapsed
+  } = useNoteGroupStore()
 
   const [activeTab, setActiveTab] = useState<FilterTab>('all')
   const [convertDialogOpen, setConvertDialogOpen] = useState(false)
@@ -59,15 +67,14 @@ export function NotesView() {
 
   // Selected note state
   const [selectedNote, setSelectedNote] = useState<Note | null>(null)
-  const [htmlContent, setHtmlContent] = useState('')
-  const [textContent, setTextContent] = useState('')
+  const [markdownContent, setMarkdownContent] = useState('')
   const [primaryProjectId, setPrimaryProjectId] = useState<string | null>(null)
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
   const [saving, setSaving] = useState(false)
   const [wordCount, setWordCount] = useState(0)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
-  const [autoSaveTimeout, setAutoSaveTimeout] = useState<NodeJS.Timeout | null>(null)
+  const [userHasEdited, setUserHasEdited] = useState(false)
 
   // Initial data fetch with minimum loading duration
   useEffect(() => {
@@ -81,7 +88,8 @@ export function NotesView() {
         fetchRecentNotes(),
         fetchAllTags(),
         fetchProjects(),
-              ])
+        fetchGroups()
+      ])
 
       // Ensure minimum loading time to prevent flash
       const elapsed = Date.now() - startTime
@@ -95,7 +103,7 @@ export function NotesView() {
     }
 
     fetchData()
-  }, [fetchNotes, fetchPinnedNotes, fetchRecentNotes, fetchAllTags, fetchProjects])
+  }, [fetchNotes, fetchPinnedNotes, fetchRecentNotes, fetchAllTags, fetchProjects, fetchGroups])
 
   // Get displayed notes based on active tab
   const displayedNotes = useMemo(() => {
@@ -111,19 +119,26 @@ export function NotesView() {
     }
   }, [activeTab, notes, pinnedNotes, recentNotes])
 
-  // Auto-select first note when notes are loaded or tab changes
-  useEffect(() => {
-    if (!showLoading && displayedNotes.length > 0 && !selectedNote) {
-      setSelectedNote(displayedNotes[0])
-    }
-  }, [showLoading, displayedNotes, selectedNote])
+  // Don't auto-select notes - let user choose which note to view
+  // This prevents content reset issues with the markdown editor
 
   // Update editor state when selected note changes
   useEffect(() => {
     if (selectedNote) {
-      // Use HTML content if available, otherwise fall back to text content
-      setHtmlContent(selectedNote.htmlContent || selectedNote.content || '')
-      setTextContent(selectedNote.content || '')
+      console.log('[NotesView] Selected note changed:', {
+        noteId: selectedNote.id,
+        contentLength: selectedNote.content?.length || 0,
+        contentPreview: selectedNote.content?.substring(0, 100)
+      })
+
+      // Auto-save timeout will be cleaned up by the useEffect's cleanup function
+
+      // Reset user edit flag when switching notes
+      setUserHasEdited(false)
+      setHasUnsavedChanges(false)
+
+      // Load markdown content directly
+      setMarkdownContent(selectedNote.content || '')
       setPrimaryProjectId(selectedNote.primaryProjectId)
       setTags(selectedNote.tags)
       setWordCount(selectedNote.wordCount)
@@ -134,47 +149,16 @@ export function NotesView() {
   useEffect(() => {
     if (!selectedNote) return
 
+    // Compare markdown content directly
+    const savedContent = selectedNote.content || ''
+
     const hasChanges =
-      htmlContent !== (selectedNote.htmlContent || selectedNote.content || '') ||
+      markdownContent !== savedContent ||
       primaryProjectId !== selectedNote.primaryProjectId ||
       JSON.stringify(tags) !== JSON.stringify(selectedNote.tags)
 
     setHasUnsavedChanges(hasChanges)
-  }, [selectedNote, htmlContent, primaryProjectId, tags])
-
-  // Auto-save with debouncing
-  useEffect(() => {
-    // Clear existing timeout
-    if (autoSaveTimeout) {
-      clearTimeout(autoSaveTimeout)
-    }
-
-    // Only auto-save if there are unsaved changes and a note is selected
-    if (hasUnsavedChanges && selectedNote && !saving) {
-      const timeout = setTimeout(() => {
-        handleSave(true)
-      }, 2000) // 2 seconds of inactivity
-
-      setAutoSaveTimeout(timeout)
-    }
-
-    // Cleanup timeout on unmount
-    return () => {
-      if (autoSaveTimeout) {
-        clearTimeout(autoSaveTimeout)
-      }
-    }
-  }, [hasUnsavedChanges, selectedNote, htmlContent, primaryProjectId, tags, saving])
-
-  // Cleanup timeout when note changes
-  useEffect(() => {
-    return () => {
-      if (autoSaveTimeout) {
-        clearTimeout(autoSaveTimeout)
-        setAutoSaveTimeout(null)
-      }
-    }
-  }, [selectedNote?.id])
+  }, [selectedNote, markdownContent, primaryProjectId, tags])
 
   // Handle creating a new note
   const handleNewNote = useCallback(async () => {
@@ -214,33 +198,36 @@ export function NotesView() {
     async (noteId: string) => {
       if (window.confirm('Are you sure you want to delete this note?')) {
         await deleteNote(noteId)
-        // If we deleted the selected note, select another one
+        // If we deleted the selected note, clear selection
         if (selectedNote?.id === noteId) {
-          const remainingNotes = displayedNotes.filter(n => n.id !== noteId)
-          setSelectedNote(remainingNotes.length > 0 ? remainingNotes[0] : null)
+          setSelectedNote(null)
         }
       }
     },
-    [deleteNote, selectedNote, displayedNotes]
+    [deleteNote, selectedNote]
   )
 
   // Editor handlers
-  const handleContentChange = useCallback((newHtml: string, newText: string) => {
-    setHtmlContent(newHtml)
-    setTextContent(newText)
-    setWordCount(countWords(newText))
+  const handleContentChange = useCallback((newMarkdown: string, _newText: string) => {
+    setMarkdownContent(newMarkdown)
+    // Mark that user has actually edited the content
+    setUserHasEdited(true)
+    // Count words directly from markdown
+    setWordCount(countWords(newMarkdown))
   }, [])
 
   const handleAddTag = useCallback(() => {
     const trimmedTag = tagInput.trim().toLowerCase()
     if (trimmedTag && !tags.includes(trimmedTag)) {
       setTags([...tags, trimmedTag])
+      setUserHasEdited(true)
     }
     setTagInput('')
   }, [tagInput, tags])
 
   const handleRemoveTag = useCallback((tag: string) => {
     setTags(tags.filter((t) => t !== tag))
+    setUserHasEdited(true)
   }, [tags])
 
   const handleTagKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -257,18 +244,17 @@ export function NotesView() {
 
     setSaving(true)
     try {
-      // Extract title from first line of text content
-      const title = extractTitleFromContent(textContent)
+      // Extract title from first line of markdown content
+      const title = extractTitleFromContent(markdownContent)
 
       const updates: Partial<Note> = {
         title: title || 'Untitled',
-        content: textContent,
-        htmlContent,
-        excerpt: extractExcerpt(textContent),
+        content: markdownContent, // Store as markdown
+        excerpt: extractExcerpt(markdownContent),
         primaryProjectId,
         tags,
-        wordCount,
-        status: selectedNote.status === 'draft' && textContent.length > 0 ? 'active' : selectedNote.status
+        wordCount: countWords(markdownContent),
+        status: selectedNote.status === 'draft' && markdownContent.length > 0 ? 'active' : selectedNote.status
       }
 
       await updateNote(selectedNote.id, updates)
@@ -282,7 +268,24 @@ export function NotesView() {
     } finally {
       setSaving(false)
     }
-  }, [selectedNote, textContent, htmlContent, primaryProjectId, tags, wordCount, updateNote])
+  }, [selectedNote, markdownContent, primaryProjectId, tags, updateNote])
+
+  // Auto-save with debouncing
+  useEffect(() => {
+    // Only auto-save if user has actually edited and there are unsaved changes
+    if (!userHasEdited || !hasUnsavedChanges || !selectedNote || saving) {
+      return
+    }
+
+    const timeout = setTimeout(() => {
+      handleSave(true)
+    }, 2000) // 2 seconds of inactivity
+
+    // Cleanup timeout when dependencies change or on unmount
+    return () => {
+      clearTimeout(timeout)
+    }
+  }, [hasUnsavedChanges, userHasEdited, selectedNote, saving, handleSave])
 
   const handleTogglePin = useCallback(async () => {
     if (!selectedNote) return
@@ -292,10 +295,9 @@ export function NotesView() {
   const handleArchive = useCallback(async () => {
     if (!selectedNote) return
     await archiveNote(selectedNote.id)
-    // Select another note after archiving
-    const remainingNotes = displayedNotes.filter(n => n.id !== selectedNote.id)
-    setSelectedNote(remainingNotes.length > 0 ? remainingNotes[0] : null)
-  }, [selectedNote, archiveNote, displayedNotes])
+    // Clear selection after archiving
+    setSelectedNote(null)
+  }, [selectedNote, archiveNote])
 
   const handleConvertToTask = useCallback(
     async (data: { prompt: string; projectId: string }) => {
@@ -346,7 +348,38 @@ export function NotesView() {
     fetchPinnedNotes()
     fetchRecentNotes()
     fetchAllTags()
-  }, [fetchNotes, fetchPinnedNotes, fetchRecentNotes, fetchAllTags])
+    fetchGroups()
+  }, [fetchNotes, fetchPinnedNotes, fetchRecentNotes, fetchAllTags, fetchGroups])
+
+  // Group handlers
+  const handleCreateGroup = useCallback(async () => {
+    // Create group immediately with default values
+    await createGroup({
+      name: 'New Group',
+      icon: 'Folder',
+      color: '#8b5cf6' // Default violet color
+    })
+  }, [createGroup])
+
+  const handleDeleteGroup = useCallback(async (groupId: string) => {
+    await deleteGroup(groupId)
+    // Refresh notes to see updated groupId values for ungrouped notes
+    await fetchNotes()
+  }, [deleteGroup, fetchNotes])
+
+  // Reorder handlers
+  const { reorderGroups } = useNoteGroupStore()
+  const handleReorderGroups = useCallback(async (groupOrders: Array<{ id: string; order: number }>) => {
+    await reorderGroups(groupOrders)
+  }, [reorderGroups])
+
+  const handleReorderNotes = useCallback(async (noteOrders: Array<{ id: string; order: number; groupId: string | null }>) => {
+    // Update each note's order and groupId optimistically
+    // The updateNote function now handles optimistic updates, so we don't need to refresh
+    for (const { id, order, groupId } of noteOrders) {
+      await updateNote(id, { order, groupId })
+    }
+  }, [updateNote])
 
   // Handle tab change
   const handleTabChange = useCallback((tab: FilterTab) => {
@@ -356,7 +389,7 @@ export function NotesView() {
       }
     }
     setActiveTab(tab)
-    setSelectedNote(null) // Will trigger auto-select of first note
+    setSelectedNote(null) // Clear selection when changing tabs
   }, [hasUnsavedChanges])
 
   const getProjects = useCallback(async () => projects, [projects])
@@ -390,28 +423,37 @@ export function NotesView() {
           <div className="p-4 border-b space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="font-semibold">Notes</h2>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleRefresh}
-                disabled={loading}
-                className="h-7 w-7"
-                title={`Refresh (${formatKbd('⌘R')})`}
-              >
-                <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleNewNote}
-                className="h-7 w-7"
-                title={`New note (${formatKbd('⌘N')})`}
-              >
-                <Plus className="h-3.5 w-3.5" />
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleRefresh}
+                  disabled={loading}
+                  className="h-7 w-7"
+                  title={`Refresh (${formatKbd('⌘R')})`}
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleCreateGroup}
+                  className="h-7 w-7"
+                  title="Create group"
+                >
+                  <FolderPlus className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleNewNote}
+                  className="h-7 w-7"
+                  title={`New note (${formatKbd('⌘N')})`}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             </div>
-          </div>
 
           {/* Search */}
           <NoteSearch
@@ -449,18 +491,24 @@ export function NotesView() {
           </div>
         </div>
 
-        {/* Notes list */}
+        {/* Notes list with drag-and-drop */}
         <div className="flex-1 overflow-y-auto p-2">
-          <NoteList
+          <DroppableNotesArea
+            groups={groups}
             notes={displayedNotes}
             loading={showLoading}
-            layout="list"
-            onNoteClick={handleNoteClick}
-            onTogglePin={(noteId) => togglePin(noteId)}
-            onArchive={(noteId) => archiveNote(noteId)}
-            onUnarchive={(noteId) => unarchiveNote(noteId)}
-            onDelete={handleDeleteNote}
             selectedNoteId={selectedNote?.id ?? null}
+            onNoteClick={handleNoteClick}
+            onTogglePin={togglePin}
+            onArchive={archiveNote}
+            onUnarchive={unarchiveNote}
+            onDelete={handleDeleteNote}
+            onToggleGroup={toggleCollapsed}
+            onUpdateGroup={updateGroup}
+            onDeleteGroup={handleDeleteGroup}
+            onReorderNotes={handleReorderNotes}
+            onReorderGroups={handleReorderGroups}
+            activeTab={activeTab}
             emptyMessage={
               activeTab === 'pinned'
                 ? 'No pinned notes'
@@ -489,7 +537,10 @@ export function NotesView() {
                   <Label htmlFor="project" className="text-xs text-muted-foreground">Project:</Label>
                   <Select
                     value={primaryProjectId ?? 'none'}
-                    onValueChange={(value) => setPrimaryProjectId(value === 'none' ? null : value)}
+                    onValueChange={(value) => {
+                      setPrimaryProjectId(value === 'none' ? null : value)
+                      setUserHasEdited(true)
+                    }}
                   >
                     <SelectTrigger className="h-7 text-xs w-auto min-w-[120px]">
                       <SelectValue placeholder="None" />
@@ -599,10 +650,10 @@ export function NotesView() {
             {/* Editor content */}
             <div className="flex-1 overflow-y-auto">
               <div className="max-w-5xl mx-auto py-8">
-                {/* Content editor */}
+                {/* Content editor - content prop updates trigger sync via useEffect in RichTextEditor */}
                 <RichTextEditor
                   variant="full"
-                  content={htmlContent}
+                  content={markdownContent}
                   onChange={handleContentChange}
                   placeholder="Start typing your note... Use @ for projects"
                   getProjects={getProjects}
@@ -620,7 +671,10 @@ export function NotesView() {
               <div>
                 <h3 className="text-lg font-semibold text-muted-foreground">No note selected</h3>
                 <p className="text-sm text-muted-foreground">
-                  Select a note from the list or create a new one
+                  {displayedNotes.length > 0
+                    ? 'Select a note from the left to view and edit'
+                    : 'Create a new note to get started'
+                  }
                 </p>
               </div>
               <Button onClick={handleNewNote}>

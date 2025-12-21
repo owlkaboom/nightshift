@@ -18,8 +18,11 @@ import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as ProcessesRouteImport } from './routes/processes'
 import { Route as PlanningRouteImport } from './routes/planning'
 import { Route as NotesRouteImport } from './routes/notes'
+import { Route as ContextRouteImport } from './routes/context'
 import { Route as BoardRouteImport } from './routes/board'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ProjectsIndexRouteImport } from './routes/projects.index'
+import { Route as ProjectsProjectIdRouteImport } from './routes/projects.$projectId'
 import { Route as IntegrationsIntegrationIdRouteImport } from './routes/integrations.$integrationId'
 import { Route as BoardAddVoiceTaskRouteImport } from './routes/board.add-voice-task'
 import { Route as BoardAddTaskRouteImport } from './routes/board.add-task'
@@ -69,6 +72,11 @@ const NotesRoute = NotesRouteImport.update({
   path: '/notes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ContextRoute = ContextRouteImport.update({
+  id: '/context',
+  path: '/context',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BoardRoute = BoardRouteImport.update({
   id: '/board',
   path: '/board',
@@ -78,6 +86,16 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ProjectsIndexRoute = ProjectsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ProjectsRoute,
+} as any)
+const ProjectsProjectIdRoute = ProjectsProjectIdRouteImport.update({
+  id: '/$projectId',
+  path: '/$projectId',
+  getParentRoute: () => ProjectsRoute,
 } as any)
 const IntegrationsIntegrationIdRoute =
   IntegrationsIntegrationIdRouteImport.update({
@@ -99,10 +117,11 @@ const BoardAddTaskRoute = BoardAddTaskRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/board': typeof BoardRouteWithChildren
+  '/context': typeof ContextRoute
   '/notes': typeof NotesRoute
   '/planning': typeof PlanningRoute
   '/processes': typeof ProcessesRoute
-  '/projects': typeof ProjectsRoute
+  '/projects': typeof ProjectsRouteWithChildren
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
   '/shortcuts': typeof ShortcutsRoute
@@ -111,14 +130,16 @@ export interface FileRoutesByFullPath {
   '/board/add-task': typeof BoardAddTaskRoute
   '/board/add-voice-task': typeof BoardAddVoiceTaskRoute
   '/integrations/$integrationId': typeof IntegrationsIntegrationIdRoute
+  '/projects/$projectId': typeof ProjectsProjectIdRoute
+  '/projects/': typeof ProjectsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/board': typeof BoardRouteWithChildren
+  '/context': typeof ContextRoute
   '/notes': typeof NotesRoute
   '/planning': typeof PlanningRoute
   '/processes': typeof ProcessesRoute
-  '/projects': typeof ProjectsRoute
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
   '/shortcuts': typeof ShortcutsRoute
@@ -127,15 +148,18 @@ export interface FileRoutesByTo {
   '/board/add-task': typeof BoardAddTaskRoute
   '/board/add-voice-task': typeof BoardAddVoiceTaskRoute
   '/integrations/$integrationId': typeof IntegrationsIntegrationIdRoute
+  '/projects/$projectId': typeof ProjectsProjectIdRoute
+  '/projects': typeof ProjectsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/board': typeof BoardRouteWithChildren
+  '/context': typeof ContextRoute
   '/notes': typeof NotesRoute
   '/planning': typeof PlanningRoute
   '/processes': typeof ProcessesRoute
-  '/projects': typeof ProjectsRoute
+  '/projects': typeof ProjectsRouteWithChildren
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
   '/shortcuts': typeof ShortcutsRoute
@@ -144,12 +168,15 @@ export interface FileRoutesById {
   '/board/add-task': typeof BoardAddTaskRoute
   '/board/add-voice-task': typeof BoardAddVoiceTaskRoute
   '/integrations/$integrationId': typeof IntegrationsIntegrationIdRoute
+  '/projects/$projectId': typeof ProjectsProjectIdRoute
+  '/projects/': typeof ProjectsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/board'
+    | '/context'
     | '/notes'
     | '/planning'
     | '/processes'
@@ -162,14 +189,16 @@ export interface FileRouteTypes {
     | '/board/add-task'
     | '/board/add-voice-task'
     | '/integrations/$integrationId'
+    | '/projects/$projectId'
+    | '/projects/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/board'
+    | '/context'
     | '/notes'
     | '/planning'
     | '/processes'
-    | '/projects'
     | '/schedule'
     | '/settings'
     | '/shortcuts'
@@ -178,10 +207,13 @@ export interface FileRouteTypes {
     | '/board/add-task'
     | '/board/add-voice-task'
     | '/integrations/$integrationId'
+    | '/projects/$projectId'
+    | '/projects'
   id:
     | '__root__'
     | '/'
     | '/board'
+    | '/context'
     | '/notes'
     | '/planning'
     | '/processes'
@@ -194,15 +226,18 @@ export interface FileRouteTypes {
     | '/board/add-task'
     | '/board/add-voice-task'
     | '/integrations/$integrationId'
+    | '/projects/$projectId'
+    | '/projects/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BoardRoute: typeof BoardRouteWithChildren
+  ContextRoute: typeof ContextRoute
   NotesRoute: typeof NotesRoute
   PlanningRoute: typeof PlanningRoute
   ProcessesRoute: typeof ProcessesRoute
-  ProjectsRoute: typeof ProjectsRoute
+  ProjectsRoute: typeof ProjectsRouteWithChildren
   ScheduleRoute: typeof ScheduleRoute
   SettingsRoute: typeof SettingsRoute
   ShortcutsRoute: typeof ShortcutsRoute
@@ -276,6 +311,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NotesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/context': {
+      id: '/context'
+      path: '/context'
+      fullPath: '/context'
+      preLoaderRoute: typeof ContextRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/board': {
       id: '/board'
       path: '/board'
@@ -289,6 +331,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/projects/': {
+      id: '/projects/'
+      path: '/'
+      fullPath: '/projects/'
+      preLoaderRoute: typeof ProjectsIndexRouteImport
+      parentRoute: typeof ProjectsRoute
+    }
+    '/projects/$projectId': {
+      id: '/projects/$projectId'
+      path: '/$projectId'
+      fullPath: '/projects/$projectId'
+      preLoaderRoute: typeof ProjectsProjectIdRouteImport
+      parentRoute: typeof ProjectsRoute
     }
     '/integrations/$integrationId': {
       id: '/integrations/$integrationId'
@@ -326,13 +382,28 @@ const BoardRouteChildren: BoardRouteChildren = {
 
 const BoardRouteWithChildren = BoardRoute._addFileChildren(BoardRouteChildren)
 
+interface ProjectsRouteChildren {
+  ProjectsProjectIdRoute: typeof ProjectsProjectIdRoute
+  ProjectsIndexRoute: typeof ProjectsIndexRoute
+}
+
+const ProjectsRouteChildren: ProjectsRouteChildren = {
+  ProjectsProjectIdRoute: ProjectsProjectIdRoute,
+  ProjectsIndexRoute: ProjectsIndexRoute,
+}
+
+const ProjectsRouteWithChildren = ProjectsRoute._addFileChildren(
+  ProjectsRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BoardRoute: BoardRouteWithChildren,
+  ContextRoute: ContextRoute,
   NotesRoute: NotesRoute,
   PlanningRoute: PlanningRoute,
   ProcessesRoute: ProcessesRoute,
-  ProjectsRoute: ProjectsRoute,
+  ProjectsRoute: ProjectsRouteWithChildren,
   ScheduleRoute: ScheduleRoute,
   SettingsRoute: SettingsRoute,
   ShortcutsRoute: ShortcutsRoute,

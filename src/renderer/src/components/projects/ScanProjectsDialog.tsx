@@ -123,7 +123,7 @@ export function ScanProjectsDialog({
           // Add as new project
           await window.api.addProject({
             name: selection.name,
-            localPath: selection.repo.path,
+            path: selection.repo.path,
             gitUrl: selection.repo.gitUrl,
             defaultBranch: selection.repo.defaultBranch
           })

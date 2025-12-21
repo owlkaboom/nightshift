@@ -64,7 +64,7 @@ const DEFAULT_SKIP_DIRS = [
  */
 export async function scanForRepos(
   rootPath: string,
-  existingProjects: Array<{ id: string; gitUrl: string | null; localPath?: string }>,
+  existingProjects: Array<{ id: string; gitUrl: string | null; path?: string }>,
   options: ScanOptions = {}
 ): Promise<ScannedRepo[]> {
   const { maxDepth = 3, skipDirs = DEFAULT_SKIP_DIRS } = options
@@ -81,8 +81,9 @@ export async function scanForRepos(
       const normalized = normalizeGitUrl(project.gitUrl)
       existingByUrl.set(normalized, project.id)
     }
-    if (project.localPath) {
-      existingByPath.set(path.resolve(project.localPath), project.id)
+    const projectPath = project.path
+    if (projectPath) {
+      existingByPath.set(path.resolve(projectPath), project.id)
     }
   }
 

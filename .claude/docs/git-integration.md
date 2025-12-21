@@ -262,7 +262,7 @@ async function runTask(taskId: string): Promise<void> {
   const project = await projectStore.getProject(task.projectId)
 
   // 1. Create worktree
-  const gitService = new GitService(project.localPath)
+  const gitService = new GitService(project.path)
   const worktreePath = await gitService.createWorktree(taskId)
 
   // 2. Update task with worktree path
@@ -274,7 +274,7 @@ async function runTask(taskId: string): Promise<void> {
   // 3. Run agent in worktree
   const adapter = AgentRegistry.getAdapter(task.agentId)
   adapter.invoke({
-    projectPath: project.localPath,
+    projectPath: project.path,
     worktreePath,
     prompt: task.prompt,
     // ...

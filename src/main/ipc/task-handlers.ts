@@ -21,6 +21,7 @@ import {
   acceptTask,
   rejectTask,
   startNewIteration,
+  startReplyIteration,
   reorderTasks,
   addTaskSummary
 } from '@main/storage'
@@ -219,6 +220,19 @@ export function registerTaskHandlers(): void {
       newPrompt: string
     ): Promise<TaskManifest | null> => {
       return startNewIteration(projectId, taskId, newPrompt)
+    }
+  )
+
+  // Reply to a task (continues conversation with --resume)
+  ipcMain.handle(
+    'task:reply',
+    async (
+      _,
+      projectId: string,
+      taskId: string,
+      replyMessage: string
+    ): Promise<TaskManifest | null> => {
+      return startReplyIteration(projectId, taskId, replyMessage)
     }
   )
 

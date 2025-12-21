@@ -5,12 +5,8 @@ import { createWindow } from './window'
 import { initializeStorage, getStorageStatus } from './storage'
 import { registerIpcHandlers } from './ipc'
 import { needsMigration, migrateFromWorktrees } from './migration/v2-migration'
-import {
-  needsGroupToTagMigration,
-  migrateGroupsToTags
-} from './storage/migrations/migrate-groups-to-tags'
-import { migrateCompressExistingLogs } from './storage/migrations/compress-existing-logs'
 import { cleanupExpiredTasks } from './storage/retention-service'
+import { cleanupOrphanedTaskLogs } from './storage/orphaned-logs-cleanup'
 import { loadWhisperModel, ensureWhisperDeps } from './whisper/whisper-service'
 import { initializeLogger, closeLogger, logger } from './utils/logger'
 import { setStartupStatus, completeStartup } from './ipc/system-handlers'
@@ -97,52 +93,16 @@ app.whenReady().then(async () => {
   await initializeNotificationService()
   logger.debug('Notification service initialized')
 
-  // Run groups to tags migration if needed (only if groups.json exists)
-  try {
-    if (needsGroupToTagMigration()) {
-      setStartupStatus({ stage: 'migration', message: 'Converting groups to tags...' })
-      logger.debug('Running groups to tags migration...')
-      const result = await migrateGroupsToTags()
-      logger.debug('Groups to tags migration result:')
-      logger.debug(`  - Groups converted: ${result.groupsConverted}`)
-      logger.debug(`  - Projects updated: ${result.projectsUpdated}`)
-
-      if (result.errors.length > 0) {
-        console.warn(`  - Errors: ${result.errors.length}`)
-        result.errors.forEach((e) => console.warn('    ', e))
-      }
-
-      // Clean up groups.json after migration (even if there were errors)
-      // This prevents the migration from running again
-      const { cleanupGroupsJson } = await import('./storage/migrations/migrate-groups-to-tags')
-      await cleanupGroupsJson()
-    }
-  } catch (error) {
-    console.error('Groups to tags migration error (non-fatal):', error)
-  }
-
-  // Run log compression migration (one-time, compresses all existing logs)
-  try {
-    setStartupStatus({ stage: 'migration', message: 'Compressing task logs...' })
-    const compressionResult = await migrateCompressExistingLogs()
-    if (!compressionResult.alreadyRan) {
-      logger.debug('Log compression migration result:')
-      logger.debug(`  - Files compressed: ${compressionResult.filesCompressed}`)
-      const mbReclaimed = (compressionResult.bytesReclaimed / 1024 / 1024).toFixed(2)
-      logger.debug(`  - Space reclaimed: ${mbReclaimed} MB`)
-      if (compressionResult.errors.length > 0) {
-        console.warn(`  - Errors: ${compressionResult.errors.length}`)
-        compressionResult.errors.forEach((e) => console.warn('    ', e))
-      }
-    }
-  } catch (error) {
-    console.error('Log compression migration error (non-fatal):', error)
-  }
-
   // Run retention cleanup (delete old completed tasks)
   // Non-blocking - errors are logged but don't fail startup
   cleanupExpiredTasks().catch((err) => {
     console.error('[Startup] Retention cleanup failed:', err)
+  })
+
+  // Clean up orphaned task logs (logs for tasks that no longer exist in database)
+  // Non-blocking - errors are logged but don't fail startup
+  cleanupOrphanedTaskLogs().catch((err) => {
+    console.error('[Startup] Orphaned logs cleanup failed:', err)
   })
 
   // Ensure Whisper dependencies are installed, then preload model (non-blocking)

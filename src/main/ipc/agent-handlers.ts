@@ -228,24 +228,6 @@ export function registerAgentHandlers(): void {
         }
         logger.debug(`[AgentHandlers] Using agent: ${adapter.id} for task ${taskId}`)
 
-        // Pre-flight authentication check BEFORE usage limit check
-        logger.debug('[AgentHandlers] Performing pre-flight auth check...')
-        const authCheck = await adapter.validateAuth()
-        if (!authCheck.isValid) {
-          // Broadcast auth state change
-          broadcastAgentAuthStateChanged({
-            agentId: adapter.id,
-            isAuthenticated: false,
-            lastCheckedAt: new Date().toISOString(),
-            error: authCheck.error || null,
-            requiresReauth: authCheck.requiresReauth
-          })
-          throw new Error(
-            authCheck.error || 'Authentication required. Please authenticate with the agent.'
-          )
-        }
-        logger.debug('[AgentHandlers] Auth check passed')
-
         // Pre-flight usage limit check with the agent
         logger.debug('[AgentHandlers] Performing pre-flight usage limit check...')
         const limitCheck = await adapter.checkUsageLimits()
@@ -339,8 +321,10 @@ export function registerAgentHandlers(): void {
 
               // Analyze agent output for incomplete work detection (only for successful completions)
               let incompletionAnalysis
+              let sessionId: string | null = null
+              const outputLog = processManager.getOutputLog(taskId)
+
               if (exitCode === 0) {
-                const outputLog = processManager.getOutputLog(taskId)
                 const adapter = agentRegistry.get(effectiveAgentId)
                 if (adapter && outputLog.length > 0) {
                   incompletionAnalysis = adapter.detectIncompleteWork(outputLog)
@@ -351,13 +335,25 @@ export function registerAgentHandlers(): void {
                 }
               }
 
+              // Extract session ID from output log (find the last sessionId in the log)
+              if (outputLog.length > 0) {
+                for (let i = outputLog.length - 1; i >= 0; i--) {
+                  if (outputLog[i].sessionId) {
+                    sessionId = outputLog[i].sessionId ?? null
+                    logger.debug(`[AgentHandlers] Extracted session ID for task ${taskId}:`, sessionId)
+                    break
+                  }
+                }
+              }
+
               // Complete iteration - this records history and sets status to needs_review or failed
               const updatedTask = await completeIteration(
                 projectId,
                 taskId,
                 exitCode,
                 undefined,
-                incompletionAnalysis
+                incompletionAnalysis,
+                sessionId
               )
               if (updatedTask) {
                 broadcastTaskStatusChanged(updatedTask)
@@ -629,6 +625,11 @@ export function registerAgentHandlers(): void {
           }
           if (effectiveThinkingMode) {
             agentOptions.thinkingMode = true
+          }
+          // Add resumeSessionId if task has a session ID (for reply/continue)
+          if (task.sessionId) {
+            agentOptions.resumeSessionId = task.sessionId
+            logger.debug(`[AgentHandlers] Task ${taskId} will resume session ${task.sessionId}`)
           }
 
           await processManager.start(

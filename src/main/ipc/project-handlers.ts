@@ -10,12 +10,11 @@ import {
   getProject,
   addProject,
   updateProject,
-  removeProject,
-  getProjectPath,
-  setProjectPath
+  removeProject
 } from '@main/storage'
 import { generateProjectDescription } from '@main/agents/description-generator'
 import { scanForRepos } from '@main/git/repo-scanner'
+import { getRepoInfo } from '@main/git'
 
 export function registerProjectHandlers(): void {
   // List all projects
@@ -34,7 +33,7 @@ export function registerProjectHandlers(): void {
     async (_, data: AddProjectData): Promise<Project> => {
       const project = await addProject(
         data.name,
-        data.localPath,
+        data.path,
         data.gitUrl || null,
         data.defaultBranch || null,
         {
@@ -59,19 +58,20 @@ export function registerProjectHandlers(): void {
     return removeProject(id)
   })
 
-  // Set local path for a project
+  // Set path for a project
   ipcMain.handle(
     'project:setPath',
-    async (_, id: string, localPath: string): Promise<void> => {
-      await setProjectPath(id, localPath)
+    async (_, id: string, path: string): Promise<void> => {
+      await updateProject(id, { path })
     }
   )
 
-  // Get local path for a project
+  // Get path for a project
   ipcMain.handle(
     'project:getPath',
     async (_, id: string): Promise<string | null> => {
-      return getProjectPath(id)
+      const project = await getProject(id)
+      return project?.path ?? null
     }
   )
 
@@ -95,17 +95,12 @@ export function registerProjectHandlers(): void {
       // Load existing projects to check for duplicates
       const projects = await loadProjects()
 
-      // Get local paths for existing projects
-      const projectsWithPaths = await Promise.all(
-        projects.map(async (project) => {
-          const localPath = await getProjectPath(project.id)
-          return {
-            id: project.id,
-            gitUrl: project.gitUrl,
-            localPath: localPath || undefined
-          }
-        })
-      )
+      // Get paths for existing projects
+      const projectsWithPaths = projects.map((project) => ({
+        id: project.id,
+        gitUrl: project.gitUrl,
+        path: project.path || undefined
+      }))
 
       // Scan for repos
       const repos = await scanForRepos(rootPath, projectsWithPaths, {
@@ -113,6 +108,90 @@ export function registerProjectHandlers(): void {
       })
 
       return repos
+    }
+  )
+
+  // Check if a project can be converted to a Git project
+  ipcMain.handle(
+    'project:checkGitConversion',
+    async (_, id: string): Promise<{ canConvert: boolean; gitUrl: string | null; defaultBranch: string | null; error?: string }> => {
+      try {
+        const project = await getProject(id)
+        if (!project) {
+          return { canConvert: false, gitUrl: null, defaultBranch: null, error: 'Project not found' }
+        }
+
+        // Already a git project
+        if (project.gitUrl) {
+          return { canConvert: false, gitUrl: null, defaultBranch: null, error: 'Project is already a Git project' }
+        }
+
+        if (!project.path) {
+          return { canConvert: false, gitUrl: null, defaultBranch: null, error: 'Project has no path' }
+        }
+
+        const projectPath = project.path
+
+        // Check if the directory is a git repo with a remote
+        const repoInfo = await getRepoInfo(projectPath)
+
+        if (!repoInfo.isRepo) {
+          return { canConvert: false, gitUrl: null, defaultBranch: null, error: 'Directory is not a Git repository' }
+        }
+
+        if (!repoInfo.hasRemote) {
+          return { canConvert: false, gitUrl: null, defaultBranch: null, error: 'Git repository has no remote configured' }
+        }
+
+        return {
+          canConvert: true,
+          gitUrl: repoInfo.remoteUrl,
+          defaultBranch: repoInfo.defaultBranch
+        }
+      } catch (error) {
+        return {
+          canConvert: false,
+          gitUrl: null,
+          defaultBranch: null,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        }
+      }
+    }
+  )
+
+  // Convert a local path project to a Git project
+  ipcMain.handle(
+    'project:convertToGit',
+    async (_, id: string): Promise<Project | null> => {
+      const project = await getProject(id)
+      if (!project) {
+        throw new Error('Project not found')
+      }
+
+      if (project.gitUrl) {
+        throw new Error('Project is already a Git project')
+      }
+
+      if (!project.path) {
+        throw new Error('Project has no path')
+      }
+
+      const projectPath = project.path
+
+      // Get git info
+      const repoInfo = await getRepoInfo(projectPath)
+
+      if (!repoInfo.isRepo || !repoInfo.hasRemote) {
+        throw new Error('Directory is not a Git repository with a remote')
+      }
+
+      // Update the project with git information
+      const updated = await updateProject(id, {
+        gitUrl: repoInfo.remoteUrl,
+        defaultBranch: repoInfo.defaultBranch
+      })
+
+      return updated
     }
   )
 }

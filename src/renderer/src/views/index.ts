@@ -1,4 +1,5 @@
 export { ProjectsView } from './ProjectsView'
+export { ProjectDetailView } from './ProjectDetailView'
 export { BoardView } from './BoardView'
 export { SettingsView } from './SettingsView'
 export { TagsView } from './TagsView'

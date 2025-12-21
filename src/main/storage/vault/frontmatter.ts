@@ -27,6 +27,8 @@ export interface NoteFrontmatter {
   updatedAt: string
   isPinned: boolean
   wordCount: number
+  groupId: string | null
+  order: number
 }
 
 /**
@@ -67,7 +69,9 @@ export function parseFrontmatter(fileContent: string): Note {
     createdAt: fm.createdAt,
     updatedAt: fm.updatedAt ?? fm.createdAt,
     isPinned: fm.isPinned ?? false,
-    wordCount: fm.wordCount ?? 0
+    wordCount: fm.wordCount ?? 0,
+    groupId: fm.groupId ?? null,
+    order: fm.order ?? 0
   }
 
   return note
@@ -95,7 +99,9 @@ export function serializeFrontmatter(note: Note): string {
     createdAt: note.createdAt,
     updatedAt: note.updatedAt,
     isPinned: note.isPinned,
-    wordCount: note.wordCount
+    wordCount: note.wordCount,
+    groupId: note.groupId,
+    order: note.order
   }
 
   return matter.stringify(note.content, frontmatter)

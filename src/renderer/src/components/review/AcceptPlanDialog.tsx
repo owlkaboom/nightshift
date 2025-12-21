@@ -13,7 +13,6 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { RichTextEditor } from '@/components/ui/rich-text-editor'
-import { markdownToHtml } from '@/lib/markdown-to-html'
 import { Loader2, FileText, Play } from 'lucide-react'
 import type { TaskManifest } from '@shared/types'
 
@@ -52,9 +51,8 @@ export function AcceptPlanDialog({
           // Use first line of prompt as title for the execution prompt
           const taskTitle = task.prompt.split('\n')[0].slice(0, 100)
           const defaultPrompt = generateExecutionPrompt(taskTitle, content)
-          // Convert markdown to HTML for RichTextEditor
-          const htmlPrompt = markdownToHtml(defaultPrompt)
-          setPrompt(htmlPrompt)
+          // Set markdown content directly - RichTextEditor will handle it
+          setPrompt(defaultPrompt)
         }
       } catch (err) {
         console.error('Failed to load plan:', err)

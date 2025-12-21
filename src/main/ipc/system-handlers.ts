@@ -11,6 +11,7 @@ import { copyFile, mkdir, readFile } from 'fs/promises'
 import { join } from 'path'
 import { logger } from '@main/utils/logger'
 import { updateConfig } from '@main/storage/config-store'
+import { getMainWindow } from '@main/window'
 
 // Startup status state
 export interface StartupStatus {
@@ -61,7 +62,12 @@ export function registerSystemHandlers(): void {
   })
   // Open directory selection dialog
   ipcMain.handle('system:selectDirectory', async (): Promise<string | null> => {
-    const result = await dialog.showOpenDialog({
+    const mainWindow = getMainWindow()
+    if (!mainWindow) {
+      throw new Error('Main window not available')
+    }
+
+    const result = await dialog.showOpenDialog(mainWindow, {
       properties: ['openDirectory', 'createDirectory']
     })
 
@@ -76,7 +82,12 @@ export function registerSystemHandlers(): void {
   ipcMain.handle(
     'system:selectFile',
     async (_, filters?: Electron.FileFilter[]): Promise<string | null> => {
-      const result = await dialog.showOpenDialog({
+      const mainWindow = getMainWindow()
+      if (!mainWindow) {
+        throw new Error('Main window not available')
+      }
+
+      const result = await dialog.showOpenDialog(mainWindow, {
         properties: ['openFile'],
         filters: filters || []
       })

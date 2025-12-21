@@ -3,8 +3,8 @@
  */
 
 /**
- * Project registry entry stored in ~/.nightshift/sync/projects.json
- * Note: localPath is NOT stored here - it's in local-state.json because it's machine-specific
+ * Project registry entry
+ * All project data including local path is stored in the projects table
  */
 export interface Project {
   /** Unique project identifier (e.g., proj_abc123) */
@@ -39,6 +39,9 @@ export interface Project {
 
   /** Custom icon - either a Lucide icon name or a file path/URL to an image */
   icon: string | null
+
+  /** Filesystem path to the project directory */
+  path: string | null
 }
 
 /**
@@ -46,13 +49,6 @@ export interface Project {
  */
 export interface ProjectsRegistry {
   projects: Project[]
-}
-
-/**
- * Local project path mapping (stored in local-state.json)
- */
-export interface ProjectPathMapping {
-  [projectId: string]: string // projectId → local filesystem path
 }
 
 /**
@@ -137,6 +133,7 @@ export function createProject(
     integrationIds: [],
     addedAt: new Date().toISOString(),
     icon: null,
+    path: null,
     ...options
   }
 }

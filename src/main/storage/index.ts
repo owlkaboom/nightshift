@@ -14,8 +14,7 @@ import {
   getDatabase,
   runTransaction
 } from './database'
-import { ensureSchema, hasSchema } from './migrations/schema'
-import { needsMigration, migrateFromJson } from './migrations/migrate-from-json'
+import { ensureSchema, hasSchema } from './migrations'
 import { logger } from '@main/utils/logger'
 
 // Re-export SQLite-based stores
@@ -55,26 +54,14 @@ export async function initializeStorage(): Promise<void> {
   // Initialize SQLite database
   const db = initializeDatabase()
 
-  // Check if we need to migrate from JSON
-  const dbHasData = hasSchema(db)
-  const jsonExists = needsMigration()
+  // Ensure schema is up to date (handles fresh installs and migrations)
+  ensureSchema(db)
 
-  if (!dbHasData && jsonExists) {
-    // Migrate from JSON files to SQLite
-    logger.debug('[Storage] Migrating from JSON to SQLite...')
-    ensureSchema(db) // Create schema first
-    const result = await migrateFromJson(db)
-    if (!result.success) {
-      console.error('[Storage] Migration had errors:', result.errors)
-    }
-  } else if (!dbHasData) {
-    // Fresh install - just create schema
-    ensureSchema(db)
-    logger.debug('[Storage] Created fresh database')
-  } else {
-    // Database already exists with data
-    ensureSchema(db) // Ensure schema is up to date
+  const dbHasData = hasSchema(db)
+  if (dbHasData) {
     logger.debug('[Storage] Using existing database')
+  } else {
+    logger.debug('[Storage] Created fresh database')
   }
 }
 

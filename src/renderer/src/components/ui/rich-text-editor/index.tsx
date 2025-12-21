@@ -3,17 +3,6 @@
  * Consolidates NoteEditor and TaskPromptEditor into a single configurable component
  */
 
-import { useEffect, useState, useCallback } from 'react'
-import { useEditor, EditorContent } from '@tiptap/react'
-import {
-  createExtensions,
-  createProjectMentionSuggestion,
-  createGroupMentionSuggestion,
-  createTagMentionSuggestion
-} from '@/lib/tiptap'
-import { cn } from '@/lib/utils'
-import { markdownToHtml, isMarkdown } from '@/lib/markdown-to-html'
-import { Toolbar } from './toolbar'
 import {
   ContextMenu,
   ContextMenuContent,
@@ -21,7 +10,17 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger
 } from '@/components/ui/context-menu'
-import { Copy, Scissors, Clipboard, Type, Undo, Redo } from 'lucide-react'
+import {
+  createExtensions,
+  createGroupMentionSuggestion,
+  createProjectMentionSuggestion,
+  createTagMentionSuggestion
+} from '@/lib/tiptap'
+import { cn } from '@/lib/utils'
+import { EditorContent, useEditor } from '@tiptap/react'
+import { Clipboard, Copy, Redo, Scissors, Type, Undo } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState, memo } from 'react'
+import { Toolbar } from './toolbar'
 
 /**
  * Variant presets for different use cases
@@ -47,7 +46,7 @@ export interface RichTextEditorProps {
   // Content
   content?: string
   placeholder?: string
-  onChange?: (html: string, plainText: string) => void
+  onChange?: (markdown: string, plainText: string) => void
   onBlur?: () => void
 
   // Variant presets
@@ -141,7 +140,7 @@ const VARIANT_STYLES = {
  * Unified RichTextEditor component
  * Supports multiple variants and configurable features
  */
-export function RichTextEditor({
+export const RichTextEditor = memo(function RichTextEditor({
   content = '',
   placeholder = 'Start typing...',
   onChange,
@@ -187,55 +186,35 @@ export function RichTextEditor({
     extensionConfig.groupSuggestion = createGroupMentionSuggestion(getGroups)
   }
 
+  // Track when we're programmatically updating content (not user edits)
+  // Use ref so the onUpdate callback always sees the latest value
+  const isLoadingContentRef = useRef(false)
+  // Track the last content we programmatically set to avoid unnecessary updates
+  const lastSetContentRef = useRef<string>('')
+
   const editor = useEditor({
     extensions: createExtensions(extensionConfig),
     content: content || '',
     editable,
     autofocus: autoFocus,
     onUpdate: ({ editor }) => {
-      const html = editor.getHTML()
+      // Don't trigger onChange if we're loading content programmatically
+      if (isLoadingContentRef.current) {
+        console.log('[RichTextEditor] Skipping onChange during content load')
+        return
+      }
+      // Get markdown directly from the editor using the Markdown extension
+      const markdown = editor.storage.markdown.manager.serialize(editor.getJSON())
       const text = editor.getText()
-      onChange?.(html, text)
+      onChange?.(markdown, text)
     },
     onBlur: () => {
       onBlur?.()
     }
   })
 
-  // Handle paste events
-  useEffect(() => {
-    if (!editor) return
-
-    const handlePaste = (event: Event) => {
-      const clipboardEvent = event as ClipboardEvent & { shiftKey?: boolean }
-      const text = clipboardEvent.clipboardData?.getData('text/plain')
-      if (!text) return
-
-      // Always prevent default to stop TipTap's built-in paste handling
-      event.preventDefault()
-      event.stopPropagation()
-
-      // Shift+Paste: Always paste as plain text without formatting
-      if (clipboardEvent.shiftKey) {
-        editor.commands.insertContent(text)
-        return
-      }
-
-      // Normal Paste (Cmd+V/Ctrl+V): Convert markdown to HTML if detected
-      // This matches the context menu "Paste" behavior
-      if (isMarkdown(text)) {
-        const html = markdownToHtml(text)
-        editor.commands.insertContent(html)
-      } else {
-        editor.commands.insertContent(text)
-      }
-    }
-
-    const editorElement = editor.view.dom
-    // Use capture phase to intercept before TipTap's handlers
-    editorElement.addEventListener('paste', handlePaste, true)
-    return () => editorElement.removeEventListener('paste', handlePaste, true)
-  }, [editor])
+  // Note: Paste handling is now automatic via the Markdown extension
+  // It will auto-convert pasted markdown text to the editor format
 
   // Context menu handlers
   const handleCopy = useCallback(() => {
@@ -256,19 +235,14 @@ export function RichTextEditor({
   const handlePaste = useCallback(async () => {
     if (!editor) return
     const text = await navigator.clipboard.readText()
-    // Convert markdown to HTML if detected
-    if (isMarkdown(text)) {
-      const html = markdownToHtml(text)
-      editor.commands.insertContent(html)
-    } else {
-      editor.commands.insertContent(text)
-    }
+    // The Markdown extension will automatically handle markdown conversion
+    editor.commands.insertContent(text)
   }, [editor])
 
   const handlePasteWithoutFormatting = useCallback(async () => {
     if (!editor) return
     const text = await navigator.clipboard.readText()
-    // Always paste as plain text without markdown conversion
+    // Insert as plain text without any formatting
     editor.commands.insertContent(text)
   }, [editor])
 
@@ -293,20 +267,41 @@ export function RichTextEditor({
   useEffect(() => {
     if (!editor) return
 
-    // Check if content is markdown and convert if needed
-    const htmlContent = isMarkdown(content) ? markdownToHtml(content) : content
+    const newContent = content || ''
 
-    // Get current editor HTML
-    const currentHTML = editor.getHTML()
+    // Get current editor markdown
+    const currentMarkdown = editor.storage.markdown.manager.serialize(editor.getJSON())
 
-    // Normalize both HTMLs for comparison (strip whitespace, normalize formatting)
-    const normalizeHTML = (html: string) => html.replace(/>\s+</g, '><').trim()
-    const normalizedContent = normalizeHTML(htmlContent || '<p></p>')
-    const normalizedCurrent = normalizeHTML(currentHTML || '<p></p>')
+    // Normalize both for comparison (trim whitespace)
+    const normalizeMarkdown = (md: string) => md.trim()
+    const normalizedContent = normalizeMarkdown(newContent)
+    const normalizedCurrent = normalizeMarkdown(currentMarkdown || '')
 
-    // Only update if content actually differs
+    console.log('[RichTextEditor] Content sync check:', {
+      propContent: newContent.substring(0, 100),
+      currentMarkdown: currentMarkdown?.substring(0, 100),
+      willUpdate: normalizedContent !== normalizedCurrent
+    })
+
+    // Only update if content actually differs from what's in the editor
     if (normalizedContent !== normalizedCurrent) {
-      editor.commands.setContent(htmlContent || '')
+      console.log('[RichTextEditor] Updating editor content')
+      // Set flag to prevent onChange from firing during programmatic update
+      isLoadingContentRef.current = true
+
+      // Parse markdown and set as JSON content
+      const parsedContent = editor.storage.markdown.manager.parse(newContent)
+      editor.commands.setContent(parsedContent)
+
+      // Update the last set content ref to match what we just set
+      lastSetContentRef.current = newContent
+
+      // Reset flag synchronously after setContent completes
+      // setContent is synchronous in TipTap, so we can reset immediately
+      isLoadingContentRef.current = false
+    } else {
+      // Even if content hasn't changed, update the ref to stay in sync
+      lastSetContentRef.current = newContent
     }
   }, [content, editor])
 
@@ -314,6 +309,27 @@ export function RichTextEditor({
   useEffect(() => {
     if (editor) {
       editor.setEditable(editable)
+    }
+  }, [editor, editable])
+
+  // Handle clicking anywhere in the editor area to focus
+  const handleEditorClick = useCallback((e: React.MouseEvent) => {
+    if (!editor || !editable) return
+
+    // If clicking directly on the ProseMirror container (empty space below content),
+    // focus the editor and move cursor to end
+    const target = e.target as HTMLElement
+    const isDirectProseMirrorClick = target.classList.contains('ProseMirror')
+
+    if (isDirectProseMirrorClick) {
+      // Focus at end when clicking empty space below content
+      editor.commands.focus('end')
+    } else {
+      // For clicks on content or within the editor wrapper, just ensure focus
+      // TipTap will handle cursor positioning naturally
+      if (!editor.isFocused) {
+        editor.commands.focus()
+      }
     }
   }, [editor, editable])
 
@@ -339,8 +355,9 @@ export function RichTextEditor({
           )}
           <EditorContent
             editor={editor}
+            onClick={handleEditorClick}
             className={cn(
-              'flex-1 prose dark:prose-invert max-w-none',
+              'flex-1 prose dark:prose-invert max-w-none cursor-text',
               styles.proseSize,
               styles.padding,
               'focus-within:outline-none',
@@ -362,42 +379,40 @@ export function RichTextEditor({
                 '[&_.ProseMirror>*:first-child]:leading-tight',
                 '[&_.ProseMirror>*:first-child]:tracking-tight'
               ],
-              // Element spacing
-              variant === 'full'
-                ? [
-                    '[&_.ProseMirror>*]:mb-2',
-                    // Paragraph spacing
-                    '[&_.ProseMirror>p]:mt-0',
-                    '[&_.ProseMirror>p]:mb-2',
-                    // Heading spacing
-                    '[&_.ProseMirror>h1]:text-2xl',
-                    '[&_.ProseMirror>h1]:font-bold',
-                    '[&_.ProseMirror>h1]:mt-4',
-                    '[&_.ProseMirror>h1]:mb-2',
-                    '[&_.ProseMirror>h2]:text-xl',
-                    '[&_.ProseMirror>h2]:font-semibold',
-                    '[&_.ProseMirror>h2]:mt-3',
-                    '[&_.ProseMirror>h2]:mb-2',
-                    '[&_.ProseMirror>h3]:text-lg',
-                    '[&_.ProseMirror>h3]:font-semibold',
-                    '[&_.ProseMirror>h3]:mt-2',
-                    '[&_.ProseMirror>h3]:mb-1.5'
-                  ]
-                : [
-                    '[&_.ProseMirror>*]:mb-1.5',
-                    '[&_.ProseMirror>*:last-child]:mb-0',
-                    // Paragraph spacing for compact/minimal
-                    '[&_.ProseMirror>p]:mt-0',
-                    '[&_.ProseMirror>p]:mb-1.5'
-                  ],
+              // Heading size and font weight (full variant only)
+              variant === 'full' && [
+                '[&_.ProseMirror>h1]:text-2xl',
+                '[&_.ProseMirror>h1]:font-bold',
+                '[&_.ProseMirror>h2]:text-xl',
+                '[&_.ProseMirror>h2]:font-semibold',
+                '[&_.ProseMirror>h3]:text-lg',
+                '[&_.ProseMirror>h3]:font-semibold'
+              ],
+              // Compact/minimal variants: override global spacing with tighter values
+              variant !== 'full' && [
+                '[&_.ProseMirror>*]:!mb-2',
+                '[&_.ProseMirror>*:last-child]:!mb-0',
+                // Headings in compact mode get less space
+                '[&_.ProseMirror>h1]:!mt-3',
+                '[&_.ProseMirror>h1]:!mb-2',
+                '[&_.ProseMirror>h2]:!mt-2.5',
+                '[&_.ProseMirror>h2]:!mb-1.5',
+                '[&_.ProseMirror>h3]:!mt-2',
+                '[&_.ProseMirror>h3]:!mb-1.5'
+              ],
               // Task list styles
               '[&_.ProseMirror_ul[data-type="taskList"]]:list-none',
               '[&_.ProseMirror_ul[data-type="taskList"]]:pl-0',
               '[&_.ProseMirror_ul[data-type="taskList"]_li]:flex',
               '[&_.ProseMirror_ul[data-type="taskList"]_li]:items-start',
               '[&_.ProseMirror_ul[data-type="taskList"]_li]:gap-2',
+              '[&_.ProseMirror_ul[data-type="taskList"]_li]:mb-1',
+              '[&_.ProseMirror_ul[data-type="taskList"]_li:last-child]:mb-0',
               '[&_.ProseMirror_ul[data-type="taskList"]_li_label]:mt-0.5',
               '[&_.ProseMirror_ul[data-type="taskList"]_li_div]:flex-1',
+              // Regular list item spacing
+              '[&_.ProseMirror_li]:mb-1',
+              '[&_.ProseMirror_li:last-child]:mb-0',
               // Code block styling
               '[&_.ProseMirror_pre]:bg-muted',
               variant === 'full'
@@ -428,7 +443,21 @@ export function RichTextEditor({
               '[&_.ProseMirror_blockquote]:border-l-2',
               '[&_.ProseMirror_blockquote]:border-muted-foreground/30',
               '[&_.ProseMirror_blockquote]:pl-3',
-              '[&_.ProseMirror_blockquote]:italic'
+              '[&_.ProseMirror_blockquote]:italic',
+              // Horizontal rule styling
+              '[&_.ProseMirror_hr]:my-2',
+              '[&_.ProseMirror_hr]:border-0',
+              '[&_.ProseMirror_hr]:border-t',
+              '[&_.ProseMirror_hr]:border-border',
+              // Table styling
+              '[&_.ProseMirror_table]:my-0',
+              '[&_.ProseMirror_table]:border-collapse',
+              '[&_.ProseMirror_td]:p-1',
+              '[&_.ProseMirror_th]:p-1',
+              '[&_.ProseMirror_td]:border',
+              '[&_.ProseMirror_th]:border',
+              '[&_.ProseMirror_td]:border-border',
+              '[&_.ProseMirror_th]:border-border'
             )}
             style={{
               minHeight: effectiveMinHeight,
@@ -468,4 +497,4 @@ export function RichTextEditor({
       )}
     </ContextMenu>
   )
-}
+})

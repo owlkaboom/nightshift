@@ -21,6 +21,8 @@ import type {
   Note,
   NoteStatus,
   CreateNoteData,
+  NoteGroup,
+  CreateNoteGroupData,
   ClaudeAgent,
   ClaudeSkill,
   ClaudeCommand,
@@ -28,6 +30,8 @@ import type {
   CreateClaudeAgentData,
   CreateClaudeSkillData,
   CreateClaudeCommandData,
+  ClaudeMdAnalysis,
+  ClaudeMdSubFile,
   DocSession,
   CreateDocSessionData,
   DocumentationType,
@@ -54,14 +58,28 @@ import type {
   JiraBoard,
   JiraSprint,
   JiraFilter,
-  JiraProject
+  JiraProject,
+  // Git types
+  BranchInfo,
+  FileStatus,
+  FileDiff,
+  CommitInfo,
+  CommitResult,
+  RemoteStatus,
+  FetchResult,
+  PullResult,
+  PushResult,
+  PushOptions,
+  StashEntry,
+  StashSaveOptions,
+  StashSaveResult
 } from './types'
 
 // ============ Project Channels ============
 
 export interface AddProjectData {
   name: string
-  localPath: string
+  path: string
   gitUrl?: string | null
   defaultBranch?: string | null
   includeClaudeMd?: boolean
@@ -84,16 +102,25 @@ export interface ScanProgress {
   currentPath: string
 }
 
+export interface GitConversionCheck {
+  canConvert: boolean
+  gitUrl: string | null
+  defaultBranch: string | null
+  error?: string
+}
+
 export interface ProjectHandlers {
   'project:list': () => Promise<Project[]>
   'project:get': (id: string) => Promise<Project | null>
   'project:add': (data: AddProjectData) => Promise<Project>
   'project:update': (id: string, updates: Partial<Project>) => Promise<Project | null>
   'project:remove': (id: string) => Promise<boolean>
-  'project:setPath': (id: string, localPath: string) => Promise<void>
+  'project:setPath': (id: string, path: string) => Promise<void>
   'project:getPath': (id: string) => Promise<string | null>
   'project:generateDescription': (id: string) => Promise<string>
   'project:scanDirectory': (rootPath: string) => Promise<ScannedRepo[]>
+  'project:checkGitConversion': (id: string) => Promise<GitConversionCheck>
+  'project:convertToGit': (id: string) => Promise<Project | null>
 }
 
 // ============ Task Channels ============
@@ -168,6 +195,11 @@ export interface TaskHandlers {
     projectId: string,
     taskId: string,
     newPrompt: string
+  ) => Promise<TaskManifest | null>
+  'task:reply': (
+    projectId: string,
+    taskId: string,
+    replyMessage: string
   ) => Promise<TaskManifest | null>
   'task:acceptPlanAndCreateTask': (
     projectId: string,
@@ -287,10 +319,48 @@ export interface GitRepoInfo {
 }
 
 export interface GitHandlers {
+  // Existing handlers
   'git:getRepoInfo': (path: string) => Promise<GitRepoInfo>
   'git:extractRepoName': (gitUrl: string) => Promise<string>
   'git:normalizeUrl': (gitUrl: string) => Promise<string>
   'git:getCurrentBranch': (projectId: string) => Promise<string | null>
+
+  // Branch operations
+  'git:listBranches': (projectId: string) => Promise<BranchInfo[]>
+  'git:createBranch': (projectId: string, name: string, startPoint?: string) => Promise<void>
+  'git:checkoutBranch': (projectId: string, name: string) => Promise<void>
+  'git:deleteBranch': (projectId: string, name: string, force?: boolean) => Promise<void>
+
+  // Status & staging
+  'git:getStatus': (projectId: string) => Promise<FileStatus[]>
+  'git:stageFiles': (projectId: string, files: string[]) => Promise<void>
+  'git:unstageFiles': (projectId: string, files: string[]) => Promise<void>
+  'git:stageAll': (projectId: string) => Promise<void>
+  'git:unstageAll': (projectId: string) => Promise<void>
+  'git:discardChanges': (projectId: string, file: string) => Promise<void>
+  'git:discardAllChanges': (projectId: string) => Promise<void>
+
+  // Diff operations
+  'git:getDiff': (projectId: string, options?: { file?: string; staged?: boolean }) => Promise<string>
+  'git:getFileDiff': (projectId: string, file: string, staged?: boolean) => Promise<FileDiff>
+
+  // Commit operations
+  'git:commit': (projectId: string, message: string) => Promise<CommitResult>
+  'git:getRecentCommits': (projectId: string, count?: number) => Promise<CommitInfo[]>
+  'git:generateCommitMessage': (projectId: string) => Promise<string>
+
+  // Remote operations
+  'git:getRemoteStatus': (projectId: string) => Promise<RemoteStatus>
+  'git:fetch': (projectId: string, remote?: string) => Promise<FetchResult>
+  'git:pull': (projectId: string, remote?: string, branch?: string) => Promise<PullResult>
+  'git:push': (projectId: string, remote?: string, branch?: string, options?: PushOptions) => Promise<PushResult>
+
+  // Stash operations
+  'git:stashList': (projectId: string) => Promise<StashEntry[]>
+  'git:stashSave': (projectId: string, options?: StashSaveOptions) => Promise<StashSaveResult>
+  'git:stashApply': (projectId: string, index?: number) => Promise<void>
+  'git:stashPop': (projectId: string, index?: number) => Promise<void>
+  'git:stashDrop': (projectId: string, index?: number) => Promise<void>
 }
 
 // ============ Agent Channels ============
@@ -449,6 +519,7 @@ export interface PlanningHandlers {
   'planning:listAll': () => Promise<PlanningSession[]>
   'planning:delete': (sessionId: string) => Promise<boolean>
   'planning:sendMessage': (data: SendPlanningMessageData) => Promise<void>
+  'planning:interruptAndSend': (data: SendPlanningMessageData) => Promise<void>
   'planning:cancelResponse': (sessionId: string) => Promise<boolean>
   'planning:updatePlanItems': (sessionId: string, items: ExtractedPlanItem[]) => Promise<PlanningSession | null>
   'planning:convertToTasks': (sessionId: string, itemIds: string[]) => Promise<TaskManifest[]>
@@ -482,6 +553,21 @@ export interface NoteHandlers {
   'note:linkToPlanning': (noteId: string, planningId: string) => Promise<Note | null>
   'note:unlinkFromPlanning': (noteId: string, planningId: string) => Promise<Note | null>
   'note:getAllTags': () => Promise<string[]>
+  'note:reorder': (noteOrders: Array<{ id: string; order: number; groupId?: string | null }>) => Promise<void>
+  'note:moveToGroup': (noteId: string, groupId: string | null) => Promise<Note | null>
+  'note:listByGroup': (groupId: string | null) => Promise<Note[]>
+}
+
+// ============ Note Group Channels ============
+
+export interface NoteGroupHandlers {
+  'noteGroup:list': () => Promise<NoteGroup[]>
+  'noteGroup:get': (id: string) => Promise<NoteGroup | null>
+  'noteGroup:create': (data: CreateNoteGroupData) => Promise<NoteGroup>
+  'noteGroup:update': (id: string, updates: Partial<NoteGroup>) => Promise<NoteGroup | null>
+  'noteGroup:delete': (id: string) => Promise<boolean>
+  'noteGroup:reorder': (groupOrders: Array<{ id: string; order: number }>) => Promise<void>
+  'noteGroup:toggleCollapsed': (id: string) => Promise<NoteGroup | null>
 }
 
 // ============ Whisper Channels ============
@@ -549,6 +635,14 @@ export interface ClaudeConfigHandlers {
   // CLAUDE.md operations
   'claudeConfig:updateClaudeMd': (projectId: string, content: string) => Promise<void>
   'claudeConfig:deleteClaudeMd': (projectId: string) => Promise<void>
+
+  // CLAUDE.md analysis operations
+  'claudeConfig:analyze': (projectId: string) => Promise<ClaudeMdAnalysis>
+  'claudeConfig:getSubFiles': (projectId: string) => Promise<ClaudeMdSubFile[]>
+  'claudeConfig:createSubFile': (projectId: string, name: string, content: string) => Promise<void>
+  'claudeConfig:updateSubFile': (projectId: string, name: string, content: string) => Promise<void>
+  'claudeConfig:deleteSubFile': (projectId: string, name: string) => Promise<void>
+  'claudeConfig:readSubFile': (projectId: string, name: string) => Promise<string>
 }
 
 // ============ Documentation Channels ============
@@ -792,10 +886,12 @@ export interface RendererApi {
   addProject: (data: AddProjectData) => Promise<Project>
   updateProject: (id: string, updates: Partial<Project>) => Promise<Project | null>
   removeProject: (id: string) => Promise<boolean>
-  setProjectPath: (id: string, localPath: string) => Promise<void>
+  setProjectPath: (id: string, path: string) => Promise<void>
   getProjectPath: (id: string) => Promise<string | null>
   generateProjectDescription: (id: string) => Promise<string>
   scanDirectory: (rootPath: string) => Promise<ScannedRepo[]>
+  checkGitConversion: (id: string) => Promise<GitConversionCheck>
+  convertToGit: (id: string) => Promise<Project | null>
 
   // Tasks
   listTasks: (projectId: string) => Promise<TaskManifest[]>
@@ -832,6 +928,11 @@ export interface RendererApi {
     projectId: string,
     taskId: string,
     newPrompt: string
+  ) => Promise<TaskManifest | null>
+  replyToTask: (
+    projectId: string,
+    taskId: string,
+    replyMessage: string
   ) => Promise<TaskManifest | null>
   acceptPlanAndCreateTask: (
     projectId: string,
@@ -909,11 +1010,48 @@ export interface RendererApi {
     callback: (status: { stage: string; message: string; complete: boolean }) => void
   ) => () => void
 
-  // Git
+  // Git - existing
   getRepoInfo: (path: string) => Promise<GitRepoInfo>
   extractRepoName: (gitUrl: string) => Promise<string>
   normalizeGitUrl: (gitUrl: string) => Promise<string>
   getCurrentBranch: (projectId: string) => Promise<string | null>
+
+  // Git - branch operations
+  listBranches: (projectId: string) => Promise<BranchInfo[]>
+  createBranch: (projectId: string, name: string, startPoint?: string) => Promise<void>
+  checkoutBranch: (projectId: string, name: string) => Promise<void>
+  deleteBranch: (projectId: string, name: string, force?: boolean) => Promise<void>
+
+  // Git - status & staging
+  getGitStatus: (projectId: string) => Promise<FileStatus[]>
+  stageFiles: (projectId: string, files: string[]) => Promise<void>
+  unstageFiles: (projectId: string, files: string[]) => Promise<void>
+  stageAll: (projectId: string) => Promise<void>
+  unstageAll: (projectId: string) => Promise<void>
+  discardChanges: (projectId: string, file: string) => Promise<void>
+  discardAllChanges: (projectId: string) => Promise<void>
+
+  // Git - diff operations
+  getDiff: (projectId: string, options?: { file?: string; staged?: boolean }) => Promise<string>
+  getFileDiff: (projectId: string, file: string, staged?: boolean) => Promise<FileDiff>
+
+  // Git - commit operations
+  gitCommit: (projectId: string, message: string) => Promise<CommitResult>
+  getRecentCommits: (projectId: string, count?: number) => Promise<CommitInfo[]>
+  generateCommitMessage: (projectId: string) => Promise<string>
+
+  // Git - remote operations
+  getRemoteStatus: (projectId: string) => Promise<RemoteStatus>
+  gitFetch: (projectId: string, remote?: string) => Promise<FetchResult>
+  gitPull: (projectId: string, remote?: string, branch?: string) => Promise<PullResult>
+  gitPush: (projectId: string, remote?: string, branch?: string, options?: PushOptions) => Promise<PushResult>
+
+  // Git - stash operations
+  stashList: (projectId: string) => Promise<StashEntry[]>
+  stashSave: (projectId: string, options?: StashSaveOptions) => Promise<StashSaveResult>
+  stashApply: (projectId: string, index?: number) => Promise<void>
+  stashPop: (projectId: string, index?: number) => Promise<void>
+  stashDrop: (projectId: string, index?: number) => Promise<void>
 
   // Agents
   listAgents: () => Promise<AgentInfo[]>
@@ -968,6 +1106,7 @@ export interface RendererApi {
   listAllPlanningSessions: () => Promise<PlanningSession[]>
   deletePlanningSession: (sessionId: string) => Promise<boolean>
   sendPlanningMessage: (data: SendPlanningMessageData) => Promise<void>
+  interruptAndSendPlanningMessage: (data: SendPlanningMessageData) => Promise<void>
   cancelPlanningResponse: (sessionId: string) => Promise<boolean>
   updatePlanItems: (sessionId: string, items: ExtractedPlanItem[]) => Promise<PlanningSession | null>
   convertPlanToTasks: (sessionId: string, itemIds: string[]) => Promise<TaskManifest[]>
@@ -997,6 +1136,18 @@ export interface RendererApi {
   linkNoteToPlanning: (noteId: string, planningId: string) => Promise<Note | null>
   unlinkNoteFromPlanning: (noteId: string, planningId: string) => Promise<Note | null>
   getAllNoteTags: () => Promise<string[]>
+  reorderNotes: (noteOrders: Array<{ id: string; order: number; groupId?: string | null }>) => Promise<void>
+  moveNoteToGroup: (noteId: string, groupId: string | null) => Promise<Note | null>
+  listNotesByGroup: (groupId: string | null) => Promise<Note[]>
+
+  // Note Groups
+  listNoteGroups: () => Promise<NoteGroup[]>
+  getNoteGroup: (id: string) => Promise<NoteGroup | null>
+  createNoteGroup: (data: CreateNoteGroupData) => Promise<NoteGroup>
+  updateNoteGroup: (id: string, updates: Partial<NoteGroup>) => Promise<NoteGroup | null>
+  deleteNoteGroup: (id: string) => Promise<boolean>
+  reorderNoteGroups: (groupOrders: Array<{ id: string; order: number }>) => Promise<void>
+  toggleNoteGroupCollapsed: (id: string) => Promise<NoteGroup | null>
 
   // Whisper
   getWhisperStatus: () => Promise<WhisperStatus>
@@ -1028,6 +1179,12 @@ export interface RendererApi {
   deleteClaudeCommand: (projectId: string, name: string) => Promise<void>
   updateClaudeMd: (projectId: string, content: string) => Promise<void>
   deleteClaudeMd: (projectId: string) => Promise<void>
+  analyzeClaudeMd: (projectId: string) => Promise<ClaudeMdAnalysis>
+  getClaudeMdSubFiles: (projectId: string) => Promise<ClaudeMdSubFile[]>
+  createClaudeMdSubFile: (projectId: string, name: string, content: string) => Promise<void>
+  updateClaudeMdSubFile: (projectId: string, name: string, content: string) => Promise<void>
+  deleteClaudeMdSubFile: (projectId: string, name: string) => Promise<void>
+  readClaudeMdSubFile: (projectId: string, name: string) => Promise<string>
 
   // Documentation
   createDocSession: (data: CreateDocSessionData) => Promise<DocSession>
@@ -1131,6 +1288,7 @@ export interface RendererApi {
   onAgentAuthStateChanged: (callback: (state: AgentAuthState) => void) => () => void
   onPlanningStreamStart: (callback: (data: { sessionId: string }) => void) => () => void
   onPlanningChunk: (callback: (data: { sessionId: string; content: string; fullContent: string }) => void) => () => void
+  onPlanningActivity: (callback: (data: { sessionId: string; tool: string; target: string }) => void) => () => void
   onPlanningComplete: (callback: (data: { sessionId: string; session: PlanningSession }) => void) => () => void
   onPlanningError: (callback: (data: { sessionId: string; error: string }) => void) => () => void
   onPlanningCancelled: (callback: (data: { sessionId: string }) => void) => () => void
