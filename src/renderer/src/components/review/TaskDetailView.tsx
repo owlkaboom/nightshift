@@ -42,6 +42,7 @@ import {
 import { useTaskStore } from '@/stores'
 import { useKeyboardShortcuts, type KeyboardShortcut } from '@/hooks'
 import type { TaskManifest } from '@shared/types'
+import { calculateTokenMetrics } from '@shared/types'
 import type { AgentInfo } from '@shared/ipc-types'
 
 interface TaskDetailViewProps {
@@ -219,8 +220,8 @@ export function TaskDetailView({
   const formatUsageStats = () => {
     if (!task.totalUsage) return null
 
+    const metrics = calculateTokenMetrics(task.totalUsage)
     const { inputTokens, outputTokens, cacheCreationInputTokens, cacheReadInputTokens, costUsd } = task.totalUsage
-    const totalTokens = inputTokens + outputTokens + cacheCreationInputTokens + cacheReadInputTokens
 
     // Format tokens with K/M suffix for readability
     const formatTokenCount = (count: number): string => {
@@ -236,13 +237,17 @@ export function TaskDetailView({
     const costDisplay = costUsd !== null ? ` ($${costUsd.toFixed(4)})` : ''
 
     return {
-      totalTokens: formatTokenCount(totalTokens),
+      // True tokens (what actually matters for usage)
+      trueTokens: formatTokenCount(metrics.trueTokens),
+      cachedTokens: formatTokenCount(metrics.cachedTokens),
+      totalTokens: formatTokenCount(metrics.totalTokens),
+      // Breakdown for tooltip
       inputTokens: formatTokenCount(inputTokens),
       outputTokens: formatTokenCount(outputTokens),
       cacheRead: formatTokenCount(cacheReadInputTokens),
       cacheCreation: formatTokenCount(cacheCreationInputTokens),
       cost: costDisplay,
-      hasCacheUsage: cacheReadInputTokens > 0 || cacheCreationInputTokens > 0
+      hasCacheUsage: metrics.hasCacheUsage
     }
   }
 
@@ -714,12 +719,20 @@ export function TaskDetailView({
           <div
             className="flex items-center gap-1.5 text-muted-foreground"
             title={usageStats.hasCacheUsage
-              ? `Total: ${usageStats.totalTokens} tokens${usageStats.cost}\nInput: ${usageStats.inputTokens} | Output: ${usageStats.outputTokens}\nCache Read: ${usageStats.cacheRead} | Cache Creation: ${usageStats.cacheCreation}`
-              : `Total: ${usageStats.totalTokens} tokens${usageStats.cost}\nInput: ${usageStats.inputTokens} | Output: ${usageStats.outputTokens}`
+              ? `True Usage: ${usageStats.trueTokens} tokens (Input: ${usageStats.inputTokens} | Output: ${usageStats.outputTokens} | Cache Creation: ${usageStats.cacheCreation})\nCached: ${usageStats.cachedTokens} tokens (90% discount)\nTotal: ${usageStats.totalTokens} tokens${usageStats.cost}`
+              : `Usage: ${usageStats.trueTokens} tokens (Input: ${usageStats.inputTokens} | Output: ${usageStats.outputTokens})${usageStats.cost}`
             }
           >
             <Coins className="h-3.5 w-3.5" />
-            <span>{usageStats.totalTokens} tokens{usageStats.cost}</span>
+            {usageStats.hasCacheUsage ? (
+              <span className="flex items-center gap-1">
+                <span>{usageStats.trueTokens} tokens</span>
+                <span className="text-xs opacity-60">+ {usageStats.cachedTokens} cached</span>
+                <span>{usageStats.cost}</span>
+              </span>
+            ) : (
+              <span>{usageStats.trueTokens} tokens{usageStats.cost}</span>
+            )}
           </div>
         )}
 

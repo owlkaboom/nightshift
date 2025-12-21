@@ -9,9 +9,10 @@ export type {
   TaskSource,
   TaskManifest,
   TaskSummary,
-  TaskIteration
+  TaskIteration,
+  TokenUsage
 } from './task'
-export { createTaskManifest } from './task'
+export { createTaskManifest, calculateTokenMetrics } from './task'
 
 // Project types
 export type {
