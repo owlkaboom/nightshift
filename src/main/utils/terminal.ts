@@ -162,7 +162,7 @@ async function launchInTerminalLinux(options: TerminalLaunchOptions): Promise<vo
         options.env
       )
       return
-    } catch (err) {
+    } catch {
       // Try next terminal
       continue
     }

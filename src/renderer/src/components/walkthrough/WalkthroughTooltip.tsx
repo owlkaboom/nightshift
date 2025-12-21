@@ -103,7 +103,7 @@ export const WalkthroughTooltip: React.FC<WalkthroughTooltipProps> = ({ spotligh
       }
 
       // Fallback to bottom, constrained to viewport
-      let finalPosition = positions.bottom
+      const finalPosition = positions.bottom
       finalPosition.top = Math.max(gap, Math.min(finalPosition.top, viewportHeight - tooltipRect.height - gap))
       finalPosition.left = Math.max(gap, Math.min(finalPosition.left, viewportWidth - tooltipRect.width - gap))
 

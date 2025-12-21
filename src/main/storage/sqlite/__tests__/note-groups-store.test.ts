@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { initializeDatabase, closeDatabase, getDatabase } from '@main/storage/database'
+import { initializeDatabase, closeDatabase } from '@main/storage/database'
 import * as noteGroupsStore from '../note-groups-store'
 import type { CreateNoteGroupData } from '@shared/types/note'
 

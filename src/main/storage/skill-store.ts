@@ -109,7 +109,8 @@ export async function updateSkill(
 
   // Don't allow modifying the prompt of built-in skills
   if (skill.isBuiltIn && updates.prompt !== undefined) {
-    const { prompt: _ignored, ...allowedUpdates } = updates
+    const { prompt, ...allowedUpdates } = updates
+    void prompt // Explicitly ignore
     registry.skills[index] = {
       ...skill,
       ...allowedUpdates,

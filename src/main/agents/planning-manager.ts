@@ -13,6 +13,7 @@ import { agentRegistry } from './registry'
 import type { ClaudeCodeAdapter } from './adapters/claude-code'
 import * as planningStore from '@main/storage/planning-store'
 import { formatContextAttachmentsForAgent, loadContextAttachmentContent } from '@main/utils/context-loader'
+import { processManager } from './process-manager'
 
 /**
  * Active chat session info
@@ -262,6 +263,16 @@ User: ${message}`
     }
     this.activeSessions.set(sessionId, activeSession)
 
+    // Register with process manager
+    processManager.registerChatSession(
+      sessionId,
+      session.projectId,
+      process,
+      AGENT_IDS.CLAUDE_CODE,
+      session.sessionType,
+      session.messages.length
+    )
+
     // Add empty assistant message for streaming
     const assistantMessage = await planningStore.addMessage(sessionId, 'assistant', '')
     if (!assistantMessage) {
@@ -278,6 +289,9 @@ User: ${message}`
       for await (const event of parseOutput()) {
         if (event.type === 'text' && event.content) {
           activeSession.streamingContent += event.content
+
+          // Update process manager with streaming length
+          processManager.updateChatStreamingLength(sessionId, activeSession.streamingContent.length)
 
           // Update message in storage
           await planningStore.updateLastMessage(
@@ -332,6 +346,9 @@ User: ${message}`
       // Wait for process to complete
       await process.wait()
 
+      // Mark as completed in process manager
+      processManager.completeChatSession(sessionId)
+
       // Broadcast completion
       const updatedSession = await planningStore.loadPlanningSession(sessionId)
       this.broadcastPlanningEvent('planning:complete', {
@@ -341,6 +358,9 @@ User: ${message}`
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
       console.error('[PlanningManager] Chat error:', errorMessage)
+
+      // Mark as failed in process manager
+      processManager.failChatSession(sessionId, errorMessage)
 
       // Update message with error indication
       await planningStore.updateLastMessage(
@@ -356,6 +376,7 @@ User: ${message}`
     } finally {
       // Clean up active session
       this.activeSessions.delete(sessionId)
+      // Note: We keep it in process manager for the "Recent" section
     }
   }
 
@@ -370,6 +391,9 @@ User: ${message}`
 
     // Kill the process
     activeSession.process.kill()
+
+    // Mark as cancelled in process manager
+    processManager.cancelChatSession(sessionId)
 
     // Finalize the message with what we have
     if (activeSession.streamingContent) {
@@ -404,6 +428,9 @@ User: ${message}`
     if (activeSession) {
       // Kill the process
       activeSession.process.kill()
+
+      // Mark as cancelled in process manager
+      processManager.cancelChatSession(sessionId)
 
       // Finalize the message with what we have so far
       if (activeSession.streamingContent) {

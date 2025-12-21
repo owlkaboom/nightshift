@@ -123,7 +123,7 @@ export function SetupIntegrationDialog({ open, onOpenChange }: SetupIntegrationD
       }
 
       handleClose()
-    } catch (err) {
+    } catch {
       // Error is handled by store
     } finally {
       setSaving(false)

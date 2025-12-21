@@ -34,6 +34,9 @@ interface PlanningInputProps {
 
   /** Project ID for context loading */
   projectId: string
+
+  /** Optional initial message to pre-populate the input field */
+  initialMessage?: string
 }
 
 export function PlanningInput({
@@ -43,9 +46,10 @@ export function PlanningInput({
   isAwaitingResponse,
   isStreaming,
   disabled,
-  projectId
+  projectId,
+  initialMessage
 }: PlanningInputProps) {
-  const [message, setMessage] = useState('')
+  const [message, setMessage] = useState(initialMessage || '')
   const [sending, setSending] = useState(false)
   const [contextAttachments, setContextAttachments] = useState<ContextAttachment[]>([])
   const [showContextDialog, setShowContextDialog] = useState(false)
@@ -107,11 +111,13 @@ export function PlanningInput({
     const trimmed = message.trim()
     if (!trimmed || sending || isBusy || disabled) return
 
+    // Clear input immediately before sending
+    setMessage('')
+    setContextAttachments([])
     setSending(true)
+
     try {
       await onSend(trimmed, contextAttachments.length > 0 ? contextAttachments : undefined)
-      setMessage('')
-      setContextAttachments([]) // Clear attachments after sending
     } finally {
       setSending(false)
     }
@@ -122,11 +128,13 @@ export function PlanningInput({
     const trimmed = message.trim()
     if (!trimmed || sending || disabled) return
 
+    // Clear input immediately before sending
+    setMessage('')
+    setContextAttachments([])
     setSending(true)
+
     try {
       await onInterruptAndSend(trimmed, contextAttachments.length > 0 ? contextAttachments : undefined)
-      setMessage('')
-      setContextAttachments([]) // Clear attachments after sending
     } finally {
       setSending(false)
     }

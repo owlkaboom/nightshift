@@ -9,6 +9,8 @@ npm install          # Install dependencies
 npm run dev          # Start development mode
 npm run build        # Build for production
 npm run typecheck    # Run TypeScript checks
+npm run lint         # Run ESLint
+npm run lint:fix     # Run ESLint with auto-fix
 npm test             # Run tests
 ```
 
@@ -32,6 +34,9 @@ src/
 - **Git Worktrees**: Each task runs isolated on `nightshift/task-{id}` branch
 - **Agents**: Claude Code, Gemini, OpenRouter via adapter pattern
 - **Storage**: SQLite in `~/.nightshift/`, API keys in OS keychain
+- **Integrations**: GitHub issues/PRs, JIRA issue import
+- **Notes**: Rich text notes with @mentions, vault storage
+- **Skills**: Customizable prompts that modify agent behavior
 
 ## Code Conventions
 
@@ -52,8 +57,19 @@ src/
 ## Development
 
 - Main process changes require app restart; renderer hot-reloads
-- Run `npm run typecheck` before committing
 - IPC fully typed via `src/shared/ipc-types.ts`
+
+### Before Completing Work
+
+Run these checks before finishing any task:
+
+```bash
+npm run typecheck    # Must pass with no errors
+npm run lint         # Must pass with no errors; fix any warnings you introduced
+```
+
+- **Errors**: All linting and type errors must be resolved before considering work complete
+- **Warnings**: Fix any new warnings introduced by your changes; pre-existing warnings can be left alone
 
 ## Detailed Documentation
 
@@ -61,13 +77,16 @@ See `.claude/docs/` for in-depth guides:
 
 | Topic | Document |
 |-------|----------|
+| **Features** | [features.md](.claude/docs/features.md) |
 | Architecture | [architecture.md](.claude/docs/architecture.md), [ARCHITECTURE_DIAGRAM.md](.claude/docs/ARCHITECTURE_DIAGRAM.md) |
 | Agents | [agent-system.md](.claude/docs/agent-system.md) |
 | Tasks | [task-management.md](.claude/docs/task-management.md) |
 | Planning | [planning-system.md](.claude/docs/planning-system.md) |
+| Notes | [notes-system.md](.claude/docs/notes-system.md) |
+| Integrations | [integrations.md](.claude/docs/integrations.md) |
 | Storage | [storage-layer.md](.claude/docs/storage-layer.md), [database-migrations.md](.claude/docs/database-migrations.md) |
 | IPC | [ipc-communication.md](.claude/docs/ipc-communication.md) |
-| UI | [ui-components.md](.claude/docs/ui-components.md) |
+| UI | [ui-components.md](.claude/docs/ui-components.md), [feature-spotlight-custom-content.md](.claude/docs/feature-spotlight-custom-content.md) |
 | Git | [git-integration.md](.claude/docs/git-integration.md) |
 | Testing | [testing.md](.claude/docs/testing.md) |
 

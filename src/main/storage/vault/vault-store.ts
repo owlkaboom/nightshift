@@ -44,7 +44,7 @@ export async function initializeVault(vaultPath: string): Promise<void> {
     if (!stat.isDirectory()) {
       throw new Error(`Vault path is not a directory: ${vaultPath}`)
     }
-  } catch (error) {
+  } catch {
     throw new Error(`Invalid vault path: ${vaultPath}`)
   }
 

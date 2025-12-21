@@ -436,7 +436,7 @@ export const useSourceControlStore = create<SourceControlState>((set, get) => ({
     try {
       const status = await window.api.getRemoteStatus(projectId)
       set({ remoteStatus: status })
-    } catch (error) {
+    } catch {
       // Don't set error for remote status failures (might not have a remote)
       set({ remoteStatus: null })
     }
@@ -509,7 +509,7 @@ export const useSourceControlStore = create<SourceControlState>((set, get) => ({
     try {
       const stashes = await window.api.stashList(projectId)
       set({ stashes })
-    } catch (error) {
+    } catch {
       // Don't set error for stash failures
       set({ stashes: [] })
     } finally {

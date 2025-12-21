@@ -25,7 +25,7 @@ export function markdownToHtml(markdown: string): string {
     return markdown
   }
 
-  let html = markdown
+  const html = markdown
 
   // Split into blocks (paragraphs separated by blank lines)
   const blocks = html.split(/\n\n+/)

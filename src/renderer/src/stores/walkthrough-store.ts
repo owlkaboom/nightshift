@@ -19,7 +19,8 @@ const loadPersistedState = (): WalkthroughState => {
     if (stored) {
       const parsed = JSON.parse(stored)
       // Migration: remove old lastSeenVersion field if it exists
-      const { lastSeenVersion, ...rest } = parsed as WalkthroughState & { lastSeenVersion?: string }
+      const { lastSeenVersion: _ignored, ...rest } = parsed as WalkthroughState & { lastSeenVersion?: string }
+      void _ignored // Explicitly ignore
       // Set default for spotlightsEnabled if not present
       return {
         ...rest,

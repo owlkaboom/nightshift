@@ -374,6 +374,7 @@ export interface AgentInfo {
 }
 
 export interface RunningTaskInfo {
+  processType: 'task'
   taskId: string
   projectId: string
   agentId: string
@@ -386,6 +387,28 @@ export interface RunningTaskInfo {
   /** Error message if failed or timed out */
   error?: string
 }
+
+export interface RunningChatInfo {
+  processType: 'chat'
+  sessionId: string
+  projectId: string
+  agentId: string
+  pid: number
+  state: 'running' | 'completed' | 'failed' | 'cancelled'
+  startedAt: string
+  /** Session type (general, init, claude-md) */
+  sessionType: string
+  /** Number of messages in the session */
+  messageCount: number
+  /** Length of currently streaming content */
+  streamingContentLength: number
+  /** Elapsed runtime in milliseconds */
+  elapsedMs: number
+  /** Error message if failed */
+  error?: string
+}
+
+export type RunningProcessInfo = RunningTaskInfo | RunningChatInfo
 
 export interface UsageLimitCheckResult {
   /** Whether we can proceed with the task */
@@ -405,7 +428,7 @@ export interface AgentHandlers {
   'agent:getDefaultModel': (agentId: string) => Promise<string | null>
   'agent:startTask': (projectId: string, taskId: string) => Promise<boolean>
   'agent:cancelTask': (taskId: string) => Promise<boolean>
-  'agent:getRunningTasks': () => Promise<RunningTaskInfo[]>
+  'agent:getRunningTasks': () => Promise<RunningProcessInfo[]>
   'agent:getTaskOutput': (taskId: string) => Promise<AgentOutputEvent[]>
   'agent:getUsageLimitState': () => Promise<UsageLimitState>
   'agent:clearUsageLimit': () => Promise<void>
@@ -1062,7 +1085,7 @@ export interface RendererApi {
   getAgentDefaultModel: (agentId: string) => Promise<string | null>
   startTask: (projectId: string, taskId: string) => Promise<boolean>
   cancelTask: (taskId: string) => Promise<boolean>
-  getRunningTasks: () => Promise<RunningTaskInfo[]>
+  getRunningTasks: () => Promise<RunningProcessInfo[]>
   getTaskOutput: (taskId: string) => Promise<AgentOutputEvent[]>
   getUsageLimitState: () => Promise<UsageLimitState>
   clearUsageLimit: () => Promise<void>

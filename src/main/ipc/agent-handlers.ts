@@ -2,7 +2,7 @@
  * IPC handlers for agent-related operations
  */
 
-import type { AgentInfo, RunningTaskInfo, UsageLimitState, UsagePercentageState, AgentAuthState } from '@shared/ipc-types'
+import type { AgentInfo, RunningTaskInfo, RunningChatInfo, RunningProcessInfo, UsageLimitState, UsagePercentageState, AgentAuthState } from '@shared/ipc-types'
 import type { AgentModelInfo, AgentOutputEvent } from '@shared/types'
 import { getAgentDefaultModel, getAgentModels as getDefaultModels } from '@shared/types'
 import { ipcMain } from 'electron'
@@ -682,10 +682,14 @@ export function registerAgentHandlers(): void {
   })
 
   // Get running tasks
-  ipcMain.handle('agent:getRunningTasks', async (): Promise<RunningTaskInfo[]> => {
+  ipcMain.handle('agent:getRunningTasks', async (): Promise<RunningProcessInfo[]> => {
     const processes = processManager.getAll()
+    const chatSessions = processManager.getAllChatSessions()
     const now = Date.now()
-    const result = processes.map((proc) => ({
+
+    // Map task processes
+    const taskInfos: RunningTaskInfo[] = processes.map((proc) => ({
+      processType: 'task' as const,
       taskId: proc.taskId,
       projectId: proc.projectId,
       agentId: proc.agentId,
@@ -696,7 +700,29 @@ export function registerAgentHandlers(): void {
       elapsedMs: now - proc.startedAt.getTime(),
       error: proc.error
     }))
-    logger.debug('[agent:getRunningTasks] Returning:', JSON.stringify(result.map(r => ({ taskId: r.taskId, state: r.state }))))
+
+    // Map chat sessions
+    const chatInfos: RunningChatInfo[] = chatSessions.map((session) => ({
+      processType: 'chat' as const,
+      sessionId: session.sessionId,
+      projectId: session.projectId,
+      agentId: session.agentId,
+      pid: session.process.pid,
+      state: session.state,
+      startedAt: session.startedAt.toISOString(),
+      sessionType: session.sessionType,
+      messageCount: session.messageCount,
+      streamingContentLength: session.streamingContentLength,
+      elapsedMs: now - session.startedAt.getTime(),
+      error: session.error
+    }))
+
+    const result: RunningProcessInfo[] = [...taskInfos, ...chatInfos]
+    logger.debug('[agent:getRunningTasks] Returning:', JSON.stringify(result.map(r =>
+      r.processType === 'task'
+        ? { type: 'task', taskId: r.taskId, state: r.state }
+        : { type: 'chat', sessionId: r.sessionId, state: r.state }
+    )))
     return result
   })
 

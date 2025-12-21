@@ -10,7 +10,7 @@ import { agentRegistry } from './registry'
 import { logger } from '@main/utils/logger'
 
 /**
- * State of a managed agent process
+ * State of a managed agent process for tasks
  */
 export interface ManagedProcess {
   /** Task ID this process is running for */
@@ -42,6 +42,41 @@ export interface ManagedProcess {
 }
 
 /**
+ * State of a managed chat session
+ */
+export interface ManagedChatSession {
+  /** Session ID this chat is for */
+  sessionId: string
+
+  /** Project ID */
+  projectId: string
+
+  /** Agent adapter ID */
+  agentId: string
+
+  /** The underlying agent process */
+  process: AgentProcess
+
+  /** Current state */
+  state: 'running' | 'completed' | 'failed' | 'cancelled'
+
+  /** When the chat started */
+  startedAt: Date
+
+  /** Session type (general, init, claude-md) */
+  sessionType: string
+
+  /** Number of messages in the session */
+  messageCount: number
+
+  /** Length of currently streaming content */
+  streamingContentLength: number
+
+  /** Error message if failed */
+  error?: string
+}
+
+/**
  * Events emitted by the process manager
  */
 export interface ProcessManagerEvents {
@@ -61,6 +96,7 @@ export interface ProcessManagerEvents {
  */
 class ProcessManagerImpl extends EventEmitter {
   private processes: Map<string, ManagedProcess> = new Map()
+  private chatSessions: Map<string, ManagedChatSession> = new Map()
   private maxConcurrent: number = 1
   private maxTaskDurationMinutes: number = 15
 
@@ -455,6 +491,112 @@ class ProcessManagerImpl extends EventEmitter {
    */
   getOutputLog(taskId: string): AgentOutputEvent[] {
     return this.processes.get(taskId)?.outputLog ?? []
+  }
+
+  /**
+   * Register a chat session
+   */
+  registerChatSession(
+    sessionId: string,
+    projectId: string,
+    process: AgentProcess,
+    agentId: string,
+    sessionType: string,
+    messageCount: number
+  ): ManagedChatSession {
+    logger.debug('[ProcessManager] Registering chat session:', sessionId)
+
+    const managed: ManagedChatSession = {
+      sessionId,
+      projectId,
+      agentId,
+      process,
+      state: 'running',
+      startedAt: new Date(),
+      sessionType,
+      messageCount,
+      streamingContentLength: 0
+    }
+
+    this.chatSessions.set(sessionId, managed)
+    logger.debug(`[ProcessManager] Registered chat session ${sessionId}, map now has ${this.chatSessions.size} entries`)
+    return managed
+  }
+
+  /**
+   * Update chat session streaming content length
+   */
+  updateChatStreamingLength(sessionId: string, length: number): void {
+    const session = this.chatSessions.get(sessionId)
+    if (session) {
+      session.streamingContentLength = length
+    }
+  }
+
+  /**
+   * Update chat session message count
+   */
+  updateChatMessageCount(sessionId: string, count: number): void {
+    const session = this.chatSessions.get(sessionId)
+    if (session) {
+      session.messageCount = count
+    }
+  }
+
+  /**
+   * Mark a chat session as completed
+   */
+  completeChatSession(sessionId: string): void {
+    const session = this.chatSessions.get(sessionId)
+    if (session && session.state === 'running') {
+      logger.debug('[ProcessManager] Completing chat session:', sessionId)
+      session.state = 'completed'
+    }
+  }
+
+  /**
+   * Mark a chat session as failed
+   */
+  failChatSession(sessionId: string, error: string): void {
+    const session = this.chatSessions.get(sessionId)
+    if (session && session.state === 'running') {
+      logger.debug('[ProcessManager] Failing chat session:', sessionId, error)
+      session.state = 'failed'
+      session.error = error
+    }
+  }
+
+  /**
+   * Mark a chat session as cancelled
+   */
+  cancelChatSession(sessionId: string): void {
+    const session = this.chatSessions.get(sessionId)
+    if (session && session.state === 'running') {
+      logger.debug('[ProcessManager] Cancelling chat session:', sessionId)
+      session.state = 'cancelled'
+    }
+  }
+
+  /**
+   * Get a chat session by session ID
+   */
+  getChatSession(sessionId: string): ManagedChatSession | undefined {
+    return this.chatSessions.get(sessionId)
+  }
+
+  /**
+   * Get all chat sessions
+   */
+  getAllChatSessions(): ManagedChatSession[] {
+    return Array.from(this.chatSessions.values())
+  }
+
+  /**
+   * Remove a chat session from tracking (cleanup)
+   */
+  removeChatSession(sessionId: string): boolean {
+    logger.debug('[ProcessManager] Removing chat session:', sessionId)
+    return this.chatSessions.delete(sessionId)
   }
 
   /**

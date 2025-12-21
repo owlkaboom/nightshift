@@ -16,7 +16,7 @@ import {
   Loader2,
   RefreshCw
 } from 'lucide-react'
-import type { RunningTaskInfo } from '@shared/ipc-types'
+import type { RunningProcessInfo } from '@shared/ipc-types'
 
 interface ProcessMonitorProps {
   open: boolean
@@ -37,7 +37,7 @@ function formatDuration(ms: number): string {
   return `${seconds}s`
 }
 
-function getStateColor(state: RunningTaskInfo['state']): string {
+function getStateColor(state: RunningProcessInfo['state']): string {
   switch (state) {
     case 'running':
       return 'bg-blue-500/10 text-blue-500 border-blue-500/30'
@@ -56,7 +56,7 @@ function getStateColor(state: RunningTaskInfo['state']): string {
 }
 
 export function ProcessMonitor({ open, onOpenChange }: ProcessMonitorProps) {
-  const [processes, setProcesses] = useState<RunningTaskInfo[]>([])
+  const [processes, setProcesses] = useState<RunningProcessInfo[]>([])
   const [loading, setLoading] = useState(false)
   const [cancellingTask, setCancellingTask] = useState<string | null>(null)
 
@@ -128,14 +128,17 @@ export function ProcessMonitor({ open, onOpenChange }: ProcessMonitorProps) {
                     Running ({runningProcesses.length})
                   </h3>
                   <div className="space-y-2">
-                    {runningProcesses.map((process) => (
-                      <ProcessCard
-                        key={process.taskId}
-                        process={process}
-                        onCancel={() => handleCancelTask(process.taskId)}
-                        isCancelling={cancellingTask === process.taskId}
-                      />
-                    ))}
+                    {runningProcesses.map((process) => {
+                      const processId = process.processType === 'task' ? process.taskId : process.sessionId
+                      return (
+                        <ProcessCard
+                          key={processId}
+                          process={process}
+                          onCancel={() => handleCancelTask(processId)}
+                          isCancelling={cancellingTask === processId}
+                        />
+                      )
+                    })}
                   </div>
                 </div>
               )}
@@ -146,14 +149,17 @@ export function ProcessMonitor({ open, onOpenChange }: ProcessMonitorProps) {
                     Recent ({otherProcesses.length})
                   </h3>
                   <div className="space-y-2">
-                    {otherProcesses.map((process) => (
-                      <ProcessCard
-                        key={process.taskId}
-                        process={process}
-                        onCancel={() => handleCancelTask(process.taskId)}
-                        isCancelling={cancellingTask === process.taskId}
-                      />
-                    ))}
+                    {otherProcesses.map((process) => {
+                      const processId = process.processType === 'task' ? process.taskId : process.sessionId
+                      return (
+                        <ProcessCard
+                          key={processId}
+                          process={process}
+                          onCancel={() => handleCancelTask(processId)}
+                          isCancelling={cancellingTask === processId}
+                        />
+                      )
+                    })}
                   </div>
                 </div>
               )}
@@ -176,7 +182,7 @@ export function ProcessMonitor({ open, onOpenChange }: ProcessMonitorProps) {
 }
 
 interface ProcessCardProps {
-  process: RunningTaskInfo
+  process: RunningProcessInfo
   onCancel: () => void
   isCancelling: boolean
 }
@@ -184,6 +190,10 @@ interface ProcessCardProps {
 function ProcessCard({ process, onCancel, isCancelling }: ProcessCardProps) {
   const isRunning = process.state === 'running'
   const canCancel = isRunning && !isCancelling
+
+  const isTask = process.processType === 'task'
+  const processId = isTask ? process.taskId : process.sessionId
+  const displayId = isTask ? `Task: ${process.taskId.slice(0, 8)}...` : `Chat: ${process.sessionId.slice(0, 8)}...`
 
   return (
     <div className="p-3 rounded-lg border bg-card">
@@ -196,10 +206,15 @@ function ProcessCard({ process, onCancel, isCancelling }: ProcessCardProps) {
             <span className="text-xs text-muted-foreground font-mono truncate">
               PID: {process.pid}
             </span>
+            {!isTask && (
+              <Badge variant="secondary" className="text-xs">
+                {process.sessionType}
+              </Badge>
+            )}
           </div>
 
-          <p className="text-sm font-medium truncate" title={process.taskId}>
-            Task: {process.taskId.slice(0, 8)}...
+          <p className="text-sm font-medium truncate" title={processId}>
+            {displayId}
           </p>
 
           <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
@@ -208,6 +223,9 @@ function ProcessCard({ process, onCancel, isCancelling }: ProcessCardProps) {
               {formatDuration(process.elapsedMs)}
             </span>
             <span>Agent: {process.agentId}</span>
+            {!isTask && (
+              <span>Messages: {process.messageCount}</span>
+            )}
           </div>
 
           {process.error && (

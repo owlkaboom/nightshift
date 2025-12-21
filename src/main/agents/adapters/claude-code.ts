@@ -340,7 +340,7 @@ export class ClaudeCodeAdapter extends BaseAgentAdapter {
           }
         }
       }
-    } catch (error) {
+    } catch {
       logger.debug('[ClaudeCode] Could not find claude in PATH, checking known locations')
     }
 
@@ -1027,7 +1027,7 @@ export class ClaudeCodeAdapter extends BaseAgentAdapter {
       }
 
       // Sort each tier group by version and mark latest
-      for (const [_tier, tierModels] of tierGroups) {
+      for (const tierModels of tierGroups.values()) {
         tierModels.sort((a, b) => {
           const versionA = this.extractVersion(a.id)
           const versionB = this.extractVersion(b.id)

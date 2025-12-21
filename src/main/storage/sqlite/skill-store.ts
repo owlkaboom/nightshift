@@ -231,7 +231,8 @@ export async function updateSkill(
   // Don't allow modifying the prompt of built-in skills
   let finalUpdates = updates
   if (existing.isBuiltIn && updates.prompt !== undefined) {
-    const { prompt: _ignored, ...allowedUpdates } = updates
+    const { prompt, ...allowedUpdates } = updates
+    void prompt // Explicitly ignore
     finalUpdates = allowedUpdates
   }
 

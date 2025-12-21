@@ -28,7 +28,7 @@ function parseGithubUrl(url: string): { owner: string; repo: string; branch?: st
       repo: pathParts[1],
       branch: pathParts[3] === 'tree' ? pathParts[4] : undefined
     }
-  } catch (error) {
+  } catch {
     throw new Error('Invalid GitHub URL format')
   }
 }

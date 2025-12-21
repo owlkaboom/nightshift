@@ -62,7 +62,7 @@ export function IntegrationsPanel() {
       await deleteConnection(connectionToDelete.id)
       setDeleteDialogOpen(false)
       setConnectionToDelete(null)
-    } catch (err) {
+    } catch {
       // Error is handled by store
     }
   }
@@ -89,7 +89,7 @@ export function IntegrationsPanel() {
           return newMap
         })
       }, 5000)
-    } catch (err) {
+    } catch {
       // Error is handled by store
     }
   }

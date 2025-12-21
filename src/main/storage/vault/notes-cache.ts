@@ -18,7 +18,7 @@ import { extractExcerpt, countWords } from '@shared/types/note'
 /**
  * Cache state
  */
-let notesCache: Map<string, Note> = new Map()
+const notesCache: Map<string, Note> = new Map()
 let cacheInitialized = false
 let fileWatcher: FSWatcher | null = null
 

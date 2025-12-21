@@ -7,9 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.0.0] - 2025-12-20
+### Added
 
-## [1.0.0-beta.1] - 2025-12-19
+- **Documentation**: Added comprehensive features.md with complete feature reference
+- **Documentation**: Added integrations.md documenting GitHub and JIRA integration
+- **Documentation**: Added notes-system.md documenting rich text notes, vault storage, and @mentions
+- **Documentation**: Updated CLAUDE.md with links to new documentation and additional key concepts
+
+## [0.2.0-beta] - 2025-12-20
+
+## [0.1.0-beta] - 2025-12-19
 
 ### Added
 
@@ -38,6 +45,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - simple-git for git operations
 - better-sqlite3 for database
 
-[Unreleased]: https://github.com/owlkaboom/nightshift/compare/v2.0.0...HEAD
-[2.0.0]: https://github.com/owlkaboom/nightshift/compare/v1.0.0-beta.1...v2.0.0
-[1.0.0-beta.1]: https://github.com/owlkaboom/nightshift/releases/tag/v1.0.0-beta.1
+[Unreleased]: https://github.com/owlkaboom/nightshift/compare/v0.2.0-beta...HEAD
+[0.2.0-beta]: https://github.com/owlkaboom/nightshift/compare/v0.1.0-beta...v0.2.0-beta
+[0.1.0-beta]: https://github.com/owlkaboom/nightshift/releases/tag/v0.1.0-beta

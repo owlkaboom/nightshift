@@ -182,7 +182,7 @@ export async function scanForRepos(
 
         await scanDirectory(subPath, depth + 1)
       }
-    } catch (error) {
+    } catch {
       // Silently skip directories we can't access
       // Common causes: permission errors, symlink loops, etc.
     }

@@ -1194,7 +1194,7 @@ export class GeminiAdapter extends BaseAgentAdapter {
       }
 
       // Sort each tier group by version
-      for (const [_tier, tierModels] of tierGroups) {
+      for (const tierModels of tierGroups.values()) {
         tierModels.sort((a, b) => {
           const versionA = this.extractVersion(a.id)
           const versionB = this.extractVersion(b.id)

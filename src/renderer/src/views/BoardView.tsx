@@ -326,9 +326,11 @@ export function BoardView() {
         const logData = await window.api.readIterationLog(projectId, taskId, iteration)
         setLogs(logData || 'No logs available yet...')
 
-        // Fetch process info
-        const runningTasks = await window.api.getRunningTasks()
-        const taskProcess = runningTasks.find((p) => p.taskId === taskId)
+        // Fetch process info (filter for task processes only)
+        const runningProcesses = await window.api.getRunningTasks()
+        const taskProcess = runningProcesses.find(
+          (p): p is RunningTaskInfo => p.processType === 'task' && p.taskId === taskId
+        )
         setProcessInfo(taskProcess || null)
       } catch {
         setLogs('Failed to fetch logs')

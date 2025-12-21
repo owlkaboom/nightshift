@@ -789,22 +789,20 @@ export function ProjectContextView() {
           {/* AI Assistant Tab */}
           <TabsContent value="ai-assistant" className="flex-1 mt-4 overflow-hidden flex flex-col">
             {analysis?.path && selectedProjectId ? (
-              <Card className="flex-1 flex flex-col overflow-hidden">
-                <CardContent className="flex-1 p-0 overflow-hidden">
-                  <ClaudeMdChatPanel
-                    projectId={selectedProjectId}
-                    claudeMdPath={analysis.path}
-                    claudeMdContent={claudeMdContent}
-                    initialPrompt={initialPrompt}
-                    onApplySuggestion={(content) => {
-                      setClaudeMdContent(content)
-                      setIsDirty(true)
-                      setActiveTab('edit')
-                    }}
-                    onPromptUsed={() => setInitialPrompt(undefined)}
-                  />
-                </CardContent>
-              </Card>
+              <div className="flex-1 overflow-hidden p-4">
+                <ClaudeMdChatPanel
+                  projectId={selectedProjectId}
+                  claudeMdPath={analysis.path}
+                  claudeMdContent={claudeMdContent}
+                  initialPrompt={initialPrompt}
+                  onApplySuggestion={(content) => {
+                    setClaudeMdContent(content)
+                    setIsDirty(true)
+                    setActiveTab('edit')
+                  }}
+                  onPromptUsed={() => setInitialPrompt(undefined)}
+                />
+              </div>
             ) : (
               <Card>
                 <CardContent className="p-8 text-center text-muted-foreground">

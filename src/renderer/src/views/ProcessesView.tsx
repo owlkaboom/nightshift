@@ -9,7 +9,7 @@ import {
   Loader2,
   RefreshCw
 } from 'lucide-react'
-import type { RunningTaskInfo } from '@shared/ipc-types'
+import type { RunningProcessInfo, RunningTaskInfo, RunningChatInfo } from '@shared/ipc-types'
 
 function formatDuration(ms: number): string {
   const seconds = Math.floor(ms / 1000)
@@ -25,7 +25,7 @@ function formatDuration(ms: number): string {
   return `${seconds}s`
 }
 
-function getStateColor(state: RunningTaskInfo['state']): string {
+function getStateColor(state: RunningTaskInfo['state'] | RunningChatInfo['state']): string {
   switch (state) {
     case 'running':
       return 'bg-blue-500/10 text-blue-500 border-blue-500/30'
@@ -44,7 +44,7 @@ function getStateColor(state: RunningTaskInfo['state']): string {
 }
 
 interface ProcessCardProps {
-  process: RunningTaskInfo
+  process: RunningProcessInfo
   onCancel: () => void
   isCancelling: boolean
 }
@@ -52,6 +52,10 @@ interface ProcessCardProps {
 function ProcessCard({ process, onCancel, isCancelling }: ProcessCardProps) {
   const isRunning = process.state === 'running'
   const canCancel = isRunning && !isCancelling
+
+  const isTask = process.processType === 'task'
+  const processId = isTask ? process.taskId : process.sessionId
+  const displayId = isTask ? `Task: ${process.taskId.slice(0, 8)}...` : `Chat: ${process.sessionId.slice(0, 8)}...`
 
   return (
     <div className="p-3 rounded-lg border bg-card">
@@ -64,10 +68,15 @@ function ProcessCard({ process, onCancel, isCancelling }: ProcessCardProps) {
             <span className="text-xs text-muted-foreground font-mono truncate">
               PID: {process.pid}
             </span>
+            {!isTask && (
+              <Badge variant="secondary" className="text-xs">
+                {process.sessionType}
+              </Badge>
+            )}
           </div>
 
-          <p className="text-sm font-medium truncate" title={process.taskId}>
-            Task: {process.taskId.slice(0, 8)}...
+          <p className="text-sm font-medium truncate" title={processId}>
+            {displayId}
           </p>
 
           <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
@@ -76,6 +85,14 @@ function ProcessCard({ process, onCancel, isCancelling }: ProcessCardProps) {
               {formatDuration(process.elapsedMs)}
             </span>
             <span>Agent: {process.agentId}</span>
+            {!isTask && (
+              <>
+                <span>Messages: {process.messageCount}</span>
+                {process.streamingContentLength > 0 && (
+                  <span>Streaming: {process.streamingContentLength} chars</span>
+                )}
+              </>
+            )}
           </div>
 
           {process.error && (
@@ -109,9 +126,9 @@ function ProcessCard({ process, onCancel, isCancelling }: ProcessCardProps) {
 }
 
 export function ProcessesView() {
-  const [processes, setProcesses] = useState<RunningTaskInfo[]>([])
+  const [processes, setProcesses] = useState<RunningProcessInfo[]>([])
   const [loading, setLoading] = useState(false)
-  const [cancellingTask, setCancellingTask] = useState<string | null>(null)
+  const [cancellingId, setCancellingId] = useState<string | null>(null)
 
   const fetchProcesses = useCallback(async () => {
     try {
@@ -131,16 +148,22 @@ export function ProcessesView() {
     return () => clearInterval(interval)
   }, [fetchProcesses])
 
-  const handleCancelTask = async (taskId: string) => {
-    setCancellingTask(taskId)
+  const handleCancelProcess = async (process: RunningProcessInfo) => {
+    const processId = process.processType === 'task' ? process.taskId : process.sessionId
+    setCancellingId(processId)
     try {
-      await window.api.cancelTask(taskId)
+      if (process.processType === 'task') {
+        await window.api.cancelTask(process.taskId)
+      } else {
+        // For chat sessions, use the planning cancel method
+        await window.api.cancelPlanningResponse(process.sessionId)
+      }
       // Refresh immediately after cancel
       await fetchProcesses()
     } catch (err) {
-      console.error('Failed to cancel task:', err)
+      console.error('Failed to cancel process:', err)
     } finally {
-      setCancellingTask(null)
+      setCancellingId(null)
     }
   }
 
@@ -191,14 +214,17 @@ export function ProcessesView() {
                   Running ({runningProcesses.length})
                 </h3>
                 <div className="space-y-2">
-                  {runningProcesses.map((process) => (
-                    <ProcessCard
-                      key={process.taskId}
-                      process={process}
-                      onCancel={() => handleCancelTask(process.taskId)}
-                      isCancelling={cancellingTask === process.taskId}
-                    />
-                  ))}
+                  {runningProcesses.map((process) => {
+                    const processId = process.processType === 'task' ? process.taskId : process.sessionId
+                    return (
+                      <ProcessCard
+                        key={processId}
+                        process={process}
+                        onCancel={() => handleCancelProcess(process)}
+                        isCancelling={cancellingId === processId}
+                      />
+                    )
+                  })}
                 </div>
               </div>
             )}
@@ -209,14 +235,17 @@ export function ProcessesView() {
                   Recent ({otherProcesses.length})
                 </h3>
                 <div className="space-y-2">
-                  {otherProcesses.map((process) => (
-                    <ProcessCard
-                      key={process.taskId}
-                      process={process}
-                      onCancel={() => handleCancelTask(process.taskId)}
-                      isCancelling={cancellingTask === process.taskId}
-                    />
-                  ))}
+                  {otherProcesses.map((process) => {
+                    const processId = process.processType === 'task' ? process.taskId : process.sessionId
+                    return (
+                      <ProcessCard
+                        key={processId}
+                        process={process}
+                        onCancel={() => handleCancelProcess(process)}
+                        isCancelling={cancellingId === processId}
+                      />
+                    )
+                  })}
                 </div>
               </div>
             )}

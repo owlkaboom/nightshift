@@ -240,7 +240,7 @@ export async function generateRetryContext(
   const lastContext = getLastAssistantContext(entries)
 
   // Determine failure reason from task or logs
-  let failureReason = task.errorMessage || 'Unknown error'
+  const failureReason = task.errorMessage || 'Unknown error'
 
   // Check if it looks like a timeout/interruption
   const isInterruption = failureReason.includes('timed out') ||

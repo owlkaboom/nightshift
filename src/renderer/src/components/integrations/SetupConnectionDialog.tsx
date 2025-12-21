@@ -164,7 +164,7 @@ export function SetupConnectionDialog({ open, onOpenChange }: SetupConnectionDia
       const connection = await createConnection(connectionData, token)
       setCreatedConnectionId(connection.id)
       setStep('test')
-    } catch (err) {
+    } catch {
       // Error handled by store
     } finally {
       setSaving(false)
@@ -244,7 +244,7 @@ export function SetupConnectionDialog({ open, onOpenChange }: SetupConnectionDia
 
       await createSource(sourceData)
       handleClose()
-    } catch (err) {
+    } catch {
       // Error handled by store
     } finally {
       setSaving(false)

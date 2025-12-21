@@ -155,7 +155,7 @@ export function DroppableNotesArea({
   emptyMessage = 'No notes yet. Create your first note!'
 }: DroppableNotesAreaProps) {
   const [activeNote, setActiveNote] = useState<Note | null>(null)
-  const [_activeGroup, setActiveGroup] = useState<NoteGroup | null>(null)
+  const [, setActiveGroup] = useState<NoteGroup | null>(null)
 
   // Organize notes by groups
   const { groupedNotes, ungroupedNotes } = useMemo(() => {
@@ -401,24 +401,6 @@ export function DroppableNotesArea({
     }
   }, [sortedGroups, groupedNotes, ungroupedNotes, onReorderGroups, onReorderNotes])
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <RefreshCw className="h-8 w-8 text-muted-foreground animate-spin mb-3" />
-        <p className="text-muted-foreground text-sm">Loading notes...</p>
-      </div>
-    )
-  }
-
-  if (notes.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <FileText className="h-12 w-12 text-muted-foreground/50 mb-4" />
-        <p className="text-muted-foreground text-center mb-4">{emptyMessage}</p>
-      </div>
-    )
-  }
-
   // Build a combined list of sortable items (groups and ungrouped notes)
   const sortableItems = useMemo(() => {
     const items: Array<{ id: string; order: number; type: 'group' | 'note' }> = []
@@ -438,6 +420,24 @@ export function DroppableNotesArea({
   }, [sortedGroups, ungroupedNotes])
 
   const sortableIds = sortableItems.map(item => item.id)
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <RefreshCw className="h-8 w-8 text-muted-foreground animate-spin mb-3" />
+        <p className="text-muted-foreground text-sm">Loading notes...</p>
+      </div>
+    )
+  }
+
+  if (notes.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <FileText className="h-12 w-12 text-muted-foreground/50 mb-4" />
+        <p className="text-muted-foreground text-center mb-4">{emptyMessage}</p>
+      </div>
+    )
+  }
 
   return (
     <DndContext
