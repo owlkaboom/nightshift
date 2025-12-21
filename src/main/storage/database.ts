@@ -42,21 +42,30 @@ export function isDatabaseInitialized(): boolean {
 /**
  * Initialize the database connection
  * Creates the database file if it doesn't exist
+ * @param pathOverride - Optional path override (e.g., ':memory:' for testing)
  */
-export function initializeDatabase(): Database.Database {
+export function initializeDatabase(pathOverride?: string): Database.Database {
   if (db) {
-    return db
+    // If a path override is provided and different from current connection,
+    // close the existing connection first
+    if (pathOverride) {
+      closeDatabase()
+    } else {
+      return db
+    }
   }
 
-  const dbPath = getDatabasePath()
+  const dbPath = pathOverride ?? getDatabasePath()
 
   db = new Database(dbPath, {
     // Verbose mode can be enabled for debugging
     // verbose: console.log
   })
 
-  // Enable WAL mode for better concurrent access
-  db.pragma('journal_mode = WAL')
+  // Enable WAL mode for better concurrent access (not supported for :memory:)
+  if (dbPath !== ':memory:') {
+    db.pragma('journal_mode = WAL')
+  }
 
   // Enable foreign keys
   db.pragma('foreign_keys = ON')

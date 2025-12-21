@@ -11,17 +11,20 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { initializeDatabase, closeDatabase } from '@main/storage/database'
+import { ensureSchema } from '@main/storage/migrations'
 import * as noteGroupsStore from '../note-groups-store'
 import type { CreateNoteGroupData } from '@shared/types/note'
 
 describe('Note Groups Store', () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     // Initialize in-memory database for testing
-    await initializeDatabase(':memory:')
+    const db = initializeDatabase(':memory:')
+    // Ensure schema is created
+    ensureSchema(db)
   })
 
-  afterEach(async () => {
-    await closeDatabase()
+  afterEach(() => {
+    closeDatabase()
   })
 
   describe('createNoteGroupRecord', () => {
@@ -114,6 +117,9 @@ describe('Note Groups Store', () => {
       const created = await noteGroupsStore.createNoteGroupRecord({
         name: 'Original Name'
       })
+
+      // Wait a moment to ensure timestamp changes
+      await new Promise((resolve) => setTimeout(resolve, 10))
 
       const updated = await noteGroupsStore.updateNoteGroup(created.id, {
         name: 'Updated Name'

@@ -1171,7 +1171,7 @@ export function ProjectDetailView() {
 
         {/* Source Control Tab */}
         <TabsContent value="source-control" className="flex-1 overflow-hidden">
-          <SourceControlTab projectId={project.id} />
+          <SourceControlTab />
         </TabsContent>
 
         {/* Context Tab */}

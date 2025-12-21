@@ -10,7 +10,6 @@
  * - Stash management
  */
 
-import { useEffect } from 'react'
 import { useSourceControlStore } from '@/stores'
 import { RemoteStatusBar } from './RemoteStatusBar'
 import { BranchSelector } from './BranchSelector'
@@ -22,23 +21,15 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertCircle, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
-interface SourceControlTabProps {
-  projectId: string
-}
-
-export function SourceControlTab({ projectId }: SourceControlTabProps) {
+export function SourceControlTab() {
   const {
-    setProjectId,
     loadingStatus,
     error,
     clearError
   } = useSourceControlStore()
 
-  // Initialize the store with this project
-  useEffect(() => {
-    setProjectId(projectId)
-    return () => setProjectId(null)
-  }, [projectId, setProjectId])
+  // No need to set projectId here - it's already set by the parent ProjectDetailView
+  // This prevents the issue where unmounting this tab clears the store data
 
   return (
     <div className="flex h-full">
