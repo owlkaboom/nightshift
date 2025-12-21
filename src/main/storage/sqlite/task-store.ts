@@ -52,6 +52,7 @@ interface TaskRow {
   current_iteration: number
   iterations: string
   session_id: string | null
+  total_usage: string | null
 }
 
 function rowToTask(row: TaskRow): TaskManifest {
@@ -84,7 +85,8 @@ function rowToTask(row: TaskRow): TaskManifest {
     runningSessionStartedAt: row.running_session_started_at,
     currentIteration: row.current_iteration,
     iterations: JSON.parse(row.iterations),
-    sessionId: row.session_id
+    sessionId: row.session_id,
+    totalUsage: row.total_usage ? JSON.parse(row.total_usage) : undefined
   }
 }
 
@@ -118,7 +120,8 @@ function taskToParams(task: TaskManifest): Record<string, unknown> {
     running_session_started_at: task.runningSessionStartedAt,
     current_iteration: task.currentIteration,
     iterations: JSON.stringify(task.iterations),
-    session_id: task.sessionId
+    session_id: task.sessionId,
+    total_usage: task.totalUsage ? JSON.stringify(task.totalUsage) : null
   }
 }
 
@@ -539,7 +542,14 @@ export async function completeIteration(
     details?: string
     suggestedNextSteps?: string[]
   },
-  sessionId?: string | null
+  sessionId?: string | null,
+  usage?: {
+    inputTokens: number
+    outputTokens: number
+    cacheCreationInputTokens: number
+    cacheReadInputTokens: number
+    costUsd: number | null
+  }
 ): Promise<TaskManifest | null> {
   const task = await loadTask(projectId, taskId)
   if (!task) return null
@@ -564,10 +574,36 @@ export async function completeIteration(
     runtimeMs: finalRuntimeMs,
     errorMessage: errorMessage || task.errorMessage || null,
     finalStatus,
-    sessionId: sessionId || null
+    sessionId: sessionId || null,
+    usage: usage
   }
 
   const iterations = [...(task.iterations || []), iteration]
+
+  // Calculate total usage across all iterations
+  let totalUsage: typeof usage | undefined
+  if (usage) {
+    // Start with current iteration's usage
+    totalUsage = { ...usage }
+
+    // Add usage from previous iterations
+    for (const prevIteration of task.iterations || []) {
+      if (prevIteration.usage) {
+        totalUsage.inputTokens += prevIteration.usage.inputTokens
+        totalUsage.outputTokens += prevIteration.usage.outputTokens
+        totalUsage.cacheCreationInputTokens += prevIteration.usage.cacheCreationInputTokens
+        totalUsage.cacheReadInputTokens += prevIteration.usage.cacheReadInputTokens
+        if (prevIteration.usage.costUsd !== null && totalUsage.costUsd !== null) {
+          totalUsage.costUsd += prevIteration.usage.costUsd
+        } else if (prevIteration.usage.costUsd !== null) {
+          totalUsage.costUsd = prevIteration.usage.costUsd
+        }
+      }
+    }
+  } else if (task.totalUsage) {
+    // No usage this iteration but we have previous usage
+    totalUsage = task.totalUsage
+  }
 
   // Prepare update object with incompletion detection results
   const updateData: Partial<TaskManifest> = {
@@ -578,7 +614,8 @@ export async function completeIteration(
     runningSessionStartedAt: null,
     errorMessage: errorMessage || null,
     iterations,
-    sessionId: sessionId || null
+    sessionId: sessionId || null,
+    totalUsage
   }
 
   // Add incomplete work detection results if task completed successfully

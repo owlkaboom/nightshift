@@ -102,6 +102,15 @@ export interface AgentOutputEvent {
 
   /** Session ID from Claude Code (for --resume) */
   sessionId?: string
+
+  /** Token usage data (populated on 'complete' events) */
+  usage?: {
+    inputTokens: number
+    outputTokens: number
+    cacheCreationInputTokens: number
+    cacheReadInputTokens: number
+    costUsd: number | null
+  }
 }
 
 /**

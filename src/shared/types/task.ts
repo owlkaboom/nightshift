@@ -33,6 +33,26 @@ export type TaskStatus =
   | 'failed'
 
 /**
+ * Token usage statistics for a task iteration
+ */
+export interface TokenUsage {
+  /** Total input tokens (excluding cache) */
+  inputTokens: number
+
+  /** Total output tokens */
+  outputTokens: number
+
+  /** Tokens used to create cache entries */
+  cacheCreationInputTokens: number
+
+  /** Tokens read from cache */
+  cacheReadInputTokens: number
+
+  /** Cost in USD (if available) */
+  costUsd: number | null
+}
+
+/**
  * Record of a single task iteration/run
  */
 export interface TaskIteration {
@@ -71,6 +91,9 @@ export interface TaskIteration {
 
   /** Whether this iteration was a reply (continued conversation) */
   isReply?: boolean
+
+  /** Token usage statistics for this iteration */
+  usage?: TokenUsage
 }
 
 /**
@@ -156,6 +179,9 @@ export interface TaskManifest {
 
   /** Accumulated runtime in milliseconds (survives pause/resume) */
   runtimeMs: number
+
+  /** Total token usage across all iterations */
+  totalUsage?: TokenUsage
 
   /** Timestamp when current running session started (for calculating live runtime) */
   runningSessionStartedAt: string | null

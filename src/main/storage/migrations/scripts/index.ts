@@ -27,6 +27,7 @@ import { migration as m017 } from './017_note_groups'
 import { migration as m018 } from './018_project_local_path'
 import { migration as m019 } from './019_rename_local_path'
 import { migration as m020 } from './020_task_session_id'
+import { migration as m021 } from './021_task_usage_tracking'
 
 /**
  * All migrations in order
@@ -53,5 +54,6 @@ export const migrations: Migration[] = [
   m017,
   m018,
   m019,
-  m020
+  m020,
+  m021
 ].sort((a, b) => a.version - b.version)

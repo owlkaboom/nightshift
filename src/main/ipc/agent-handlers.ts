@@ -335,14 +335,34 @@ export function registerAgentHandlers(): void {
                 }
               }
 
-              // Extract session ID from output log (find the last sessionId in the log)
+              // Extract session ID and usage data from output log
+              let usage: {
+                inputTokens: number
+                outputTokens: number
+                cacheCreationInputTokens: number
+                cacheReadInputTokens: number
+                costUsd: number | null
+              } | undefined
+
               if (outputLog.length > 0) {
+                // Find the last sessionId and usage in the log (from 'complete' event)
                 for (let i = outputLog.length - 1; i >= 0; i--) {
-                  if (outputLog[i].sessionId) {
-                    sessionId = outputLog[i].sessionId ?? null
+                  const event = outputLog[i]
+
+                  // Extract session ID if not found yet
+                  if (!sessionId && event.sessionId) {
+                    sessionId = event.sessionId ?? null
                     logger.debug(`[AgentHandlers] Extracted session ID for task ${taskId}:`, sessionId)
-                    break
                   }
+
+                  // Extract usage data from complete event
+                  if (!usage && event.type === 'complete' && event.usage) {
+                    usage = event.usage
+                    logger.debug(`[AgentHandlers] Extracted usage data for task ${taskId}:`, usage)
+                  }
+
+                  // Stop once we have both
+                  if (sessionId && usage) break
                 }
               }
 
@@ -353,7 +373,8 @@ export function registerAgentHandlers(): void {
                 exitCode,
                 undefined,
                 incompletionAnalysis,
-                sessionId
+                sessionId,
+                usage
               )
               if (updatedTask) {
                 broadcastTaskStatusChanged(updatedTask)

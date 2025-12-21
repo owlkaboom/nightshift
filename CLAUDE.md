@@ -70,6 +70,7 @@ npm run lint         # Must pass with no errors; fix any warnings you introduced
 
 - **Errors**: All linting and type errors must be resolved before considering work complete
 - **Warnings**: Fix any new warnings introduced by your changes; pre-existing warnings can be left alone
+- **Changelog**: When adding new features, update `CHANGELOG.md` under the `[Unreleased]` section following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format (Added/Changed/Deprecated/Removed/Fixed/Security)
 
 ## Detailed Documentation
 

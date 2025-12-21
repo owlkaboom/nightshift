@@ -471,17 +471,23 @@ export async function getRecentCommits(
   repoPath: string,
   count: number = 10
 ): Promise<CommitInfo[]> {
-  const git = getGit(repoPath)
-  const log = await git.log({ maxCount: count })
+  try {
+    const git = getGit(repoPath)
+    const log = await git.log({ maxCount: count })
 
-  return log.all.map((entry) => ({
-    hash: entry.hash,
-    shortHash: entry.hash.substring(0, 7),
-    message: entry.message,
-    author: entry.author_name,
-    email: entry.author_email,
-    date: entry.date
-  }))
+    return log.all.map((entry) => ({
+      hash: entry.hash,
+      shortHash: entry.hash.substring(0, 7),
+      message: entry.message,
+      author: entry.author_name,
+      email: entry.author_email,
+      date: entry.date
+    }))
+  } catch {
+    // Return empty array if there are no commits or git log fails
+    // This can happen for new repos with no history
+    return []
+  }
 }
 
 // ============ Remote Operations ============

@@ -437,7 +437,21 @@ export async function completeIteration(
   projectId: string,
   taskId: string,
   exitCode: number,
-  errorMessage?: string
+  errorMessage?: string,
+  incompletionAnalysis?: {
+    isIncomplete: boolean
+    reason?: 'multi-phase' | 'todo-items' | 'continuation-signal' | 'approval-needed' | 'token-limit'
+    details?: string
+    suggestedNextSteps?: string[]
+  },
+  sessionId?: string | null,
+  usage?: {
+    inputTokens: number
+    outputTokens: number
+    cacheCreationInputTokens: number
+    cacheReadInputTokens: number
+    costUsd: number | null
+  }
 ): Promise<TaskManifest | null> {
   const task = await loadTask(projectId, taskId)
   if (!task) return null
@@ -471,13 +485,40 @@ export async function completeIteration(
     errorMessage: errorMessage || task.errorMessage || null,
     finalStatus,
     isPlanMode: planModeInfo.isPlanMode,
-    planFilePath: planModeInfo.planFilePath
+    planFilePath: planModeInfo.planFilePath,
+    sessionId: sessionId || null,
+    usage: usage
   }
 
   // Add to iterations history
   const iterations = [...(task.iterations || []), iteration]
 
-  return updateTask(projectId, taskId, {
+  // Calculate total usage across all iterations
+  let totalUsage: typeof usage | undefined
+  if (usage) {
+    // Start with current iteration's usage
+    totalUsage = { ...usage }
+
+    // Add usage from previous iterations
+    for (const prevIteration of task.iterations || []) {
+      if (prevIteration.usage) {
+        totalUsage.inputTokens += prevIteration.usage.inputTokens
+        totalUsage.outputTokens += prevIteration.usage.outputTokens
+        totalUsage.cacheCreationInputTokens += prevIteration.usage.cacheCreationInputTokens
+        totalUsage.cacheReadInputTokens += prevIteration.usage.cacheReadInputTokens
+        if (prevIteration.usage.costUsd !== null && totalUsage.costUsd !== null) {
+          totalUsage.costUsd += prevIteration.usage.costUsd
+        } else if (prevIteration.usage.costUsd !== null) {
+          totalUsage.costUsd = prevIteration.usage.costUsd
+        }
+      }
+    }
+  } else if (task.totalUsage) {
+    // No usage this iteration but we have previous usage
+    totalUsage = task.totalUsage
+  }
+
+  const updateData: Partial<TaskManifest> = {
     status: finalStatus,
     exitCode,
     completedAt: now,
@@ -486,8 +527,26 @@ export async function completeIteration(
     errorMessage: errorMessage || null,
     iterations,
     isPlanMode: planModeInfo.isPlanMode,
-    planFilePath: planModeInfo.planFilePath
-  })
+    planFilePath: planModeInfo.planFilePath,
+    sessionId: sessionId || null,
+    totalUsage
+  }
+
+  // Add incomplete work detection results if task completed successfully
+  if (exitCode === 0 && incompletionAnalysis) {
+    updateData.needsContinuation = incompletionAnalysis.isIncomplete
+    updateData.continuationReason = incompletionAnalysis.reason
+    updateData.continuationDetails = incompletionAnalysis.details
+    updateData.suggestedNextSteps = incompletionAnalysis.suggestedNextSteps
+  } else {
+    // Clear continuation flags if task failed or no analysis provided
+    updateData.needsContinuation = false
+    updateData.continuationReason = undefined
+    updateData.continuationDetails = undefined
+    updateData.suggestedNextSteps = undefined
+  }
+
+  return updateTask(projectId, taskId, updateData)
 }
 
 /**

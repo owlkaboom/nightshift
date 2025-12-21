@@ -190,8 +190,15 @@ export const useSourceControlStore = create<SourceControlState>((set, get) => ({
       set({ stagedFiles: staged, unstagedFiles: unstaged })
 
       // Also load recent commits for reference
-      const commits = await window.api.getRecentCommits(projectId, 10)
-      set({ recentCommits: commits })
+      try {
+        const commits = await window.api.getRecentCommits(projectId, 10)
+        set({ recentCommits: commits })
+      } catch (commitError) {
+        // Don't fail the entire status load if commits fail
+        // Just set empty array and log the error
+        console.warn('[SourceControlStore] Failed to load recent commits:', commitError)
+        set({ recentCommits: [] })
+      }
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Failed to load status' })
     } finally {

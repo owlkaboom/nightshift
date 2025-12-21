@@ -579,11 +579,21 @@ export class ClaudeCodeAdapter extends BaseAgentAdapter {
           sessionId
         }
       } else if (json.type === 'result') {
+        // Extract usage data from result event
+        const usage = json.usage ? {
+          inputTokens: json.usage.input_tokens || 0,
+          outputTokens: json.usage.output_tokens || 0,
+          cacheCreationInputTokens: json.usage.cache_creation_input_tokens || 0,
+          cacheReadInputTokens: json.usage.cache_read_input_tokens || 0,
+          costUsd: json.total_cost_usd || null
+        } : undefined
+
         return {
           type: 'complete',
           message: line, // Keep raw JSON for log viewer
           timestamp,
-          sessionId
+          sessionId,
+          usage
         }
       }
 

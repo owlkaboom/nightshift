@@ -14,7 +14,7 @@ import type {
   RendererApi,
   ReorderTaskData,
   RetryContextResult,
-  RunningTaskInfo,
+  RunningProcessInfo,
   ScannedRepo,
   SecureStorageInfo,
   SendPlanningMessageData,
@@ -465,7 +465,7 @@ const api: RendererApi = {
 
   cancelTask: (taskId: string): Promise<boolean> => ipcRenderer.invoke('agent:cancelTask', taskId),
 
-  getRunningTasks: (): Promise<RunningTaskInfo[]> => ipcRenderer.invoke('agent:getRunningTasks'),
+  getRunningTasks: (): Promise<RunningProcessInfo[]> => ipcRenderer.invoke('agent:getRunningTasks'),
 
   getTaskOutput: (taskId: string): Promise<AgentOutputEvent[]> =>
     ipcRenderer.invoke('agent:getTaskOutput', taskId),

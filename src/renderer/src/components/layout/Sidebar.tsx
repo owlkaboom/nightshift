@@ -13,8 +13,7 @@ import {
   Activity,
   MessageSquare,
   FileText,
-  Calendar,
-  Zap
+  Calendar
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import appIcon from '@/assets/icon.png'
@@ -22,7 +21,7 @@ import { useState, useEffect } from 'react'
 import { IntegrationsSection } from './IntegrationsSection'
 
 interface NavItem {
-  to: '/board' | '/projects' | '/tags' | '/notes' | '/planning' | '/context' | '/schedule' | '/processes' | '/shortcuts'
+  to: '/board' | '/projects' | '/tags' | '/notes' | '/planning' | '/schedule' | '/processes' | '/shortcuts'
   label: string
   icon: React.ElementType
   shortcut: string
@@ -34,15 +33,13 @@ const navItems: NavItem[] = [
   { to: '/tags', label: 'Tags', icon: Tag, shortcut: 'T' },
   { to: '/notes', label: 'Notes', icon: FileText, shortcut: 'N' },
   { to: '/planning', label: 'Planning', icon: MessageSquare, shortcut: 'A' },
-  { to: '/context', label: 'Context', icon: Zap, shortcut: 'K' },
   { to: '/schedule', label: 'Schedule', icon: Calendar, shortcut: 'S' }
 ]
 
 const getTourId = (to: string): string | undefined => {
   const tourMap: Record<string, string> = {
     '/projects': 'projects',
-    '/planning': 'planning',
-    '/context': 'context'
+    '/planning': 'planning'
   }
   return tourMap[to]
 }

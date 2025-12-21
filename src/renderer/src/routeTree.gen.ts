@@ -18,7 +18,6 @@ import { Route as ProjectsRouteImport } from './routes/projects'
 import { Route as ProcessesRouteImport } from './routes/processes'
 import { Route as PlanningRouteImport } from './routes/planning'
 import { Route as NotesRouteImport } from './routes/notes'
-import { Route as ContextRouteImport } from './routes/context'
 import { Route as BoardRouteImport } from './routes/board'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProjectsIndexRouteImport } from './routes/projects.index'
@@ -72,11 +71,6 @@ const NotesRoute = NotesRouteImport.update({
   path: '/notes',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ContextRoute = ContextRouteImport.update({
-  id: '/context',
-  path: '/context',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const BoardRoute = BoardRouteImport.update({
   id: '/board',
   path: '/board',
@@ -117,7 +111,6 @@ const BoardAddTaskRoute = BoardAddTaskRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/board': typeof BoardRouteWithChildren
-  '/context': typeof ContextRoute
   '/notes': typeof NotesRoute
   '/planning': typeof PlanningRoute
   '/processes': typeof ProcessesRoute
@@ -136,7 +129,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/board': typeof BoardRouteWithChildren
-  '/context': typeof ContextRoute
   '/notes': typeof NotesRoute
   '/planning': typeof PlanningRoute
   '/processes': typeof ProcessesRoute
@@ -155,7 +147,6 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/board': typeof BoardRouteWithChildren
-  '/context': typeof ContextRoute
   '/notes': typeof NotesRoute
   '/planning': typeof PlanningRoute
   '/processes': typeof ProcessesRoute
@@ -176,7 +167,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/board'
-    | '/context'
     | '/notes'
     | '/planning'
     | '/processes'
@@ -195,7 +185,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/board'
-    | '/context'
     | '/notes'
     | '/planning'
     | '/processes'
@@ -213,7 +202,6 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/board'
-    | '/context'
     | '/notes'
     | '/planning'
     | '/processes'
@@ -233,7 +221,6 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BoardRoute: typeof BoardRouteWithChildren
-  ContextRoute: typeof ContextRoute
   NotesRoute: typeof NotesRoute
   PlanningRoute: typeof PlanningRoute
   ProcessesRoute: typeof ProcessesRoute
@@ -309,13 +296,6 @@ declare module '@tanstack/react-router' {
       path: '/notes'
       fullPath: '/notes'
       preLoaderRoute: typeof NotesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/context': {
-      id: '/context'
-      path: '/context'
-      fullPath: '/context'
-      preLoaderRoute: typeof ContextRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/board': {
@@ -399,7 +379,6 @@ const ProjectsRouteWithChildren = ProjectsRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BoardRoute: BoardRouteWithChildren,
-  ContextRoute: ContextRoute,
   NotesRoute: NotesRoute,
   PlanningRoute: PlanningRoute,
   ProcessesRoute: ProcessesRoute,

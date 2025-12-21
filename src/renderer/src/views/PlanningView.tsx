@@ -27,8 +27,11 @@ import {
   CreateTaskFromPlanningDialog,
   PlanFileViewer
 } from '@/components/planning'
+import { Route } from '@/routes/planning'
 
 export function PlanningView() {
+  const { sessionId: urlSessionId, projectId: urlProjectId, sessionType: urlSessionType, initialPrompt: urlInitialPrompt } = Route.useSearch()
+
   const {
     sessions,
     currentSession,
@@ -62,6 +65,7 @@ export function PlanningView() {
   const [planFilePath, setPlanFilePath] = useState<string | undefined>(undefined)
   const [showPlanFileViewer, setShowPlanFileViewer] = useState(false)
   const [selectedPlanFile, setSelectedPlanFile] = useState<string | null>(null)
+  const [hasHandledUrlParams, setHasHandledUrlParams] = useState(false)
 
   // Initial data fetch
   useEffect(() => {
@@ -258,17 +262,39 @@ export function PlanningView() {
     return currentProject?.name || ''
   }, [currentProject])
 
-  // Filter out claude-md sessions (they're only for context page)
-  const planningSessions = useMemo(() => {
-    return sessions.filter((s) => s.sessionType !== 'claude-md')
-  }, [sessions])
-
-  // Clear current session if it's a claude-md session (shouldn't be shown on planning page)
+  // Handle URL parameters for session selection/creation
   useEffect(() => {
-    if (currentSession && currentSession.sessionType === 'claude-md') {
-      setCurrentSession(null)
+    if (hasHandledUrlParams || sessions.length === 0 || projects.length === 0) return
+
+    const handleUrlParams = async () => {
+      // If sessionId is provided, load that session
+      if (urlSessionId) {
+        await loadSession(urlSessionId)
+        setHasHandledUrlParams(true)
+        return
+      }
+
+      // If projectId + sessionType + initialPrompt are provided, create a new session
+      if (urlProjectId && urlSessionType) {
+        try {
+          const session = await createSession({
+            projectId: urlProjectId,
+            sessionType: urlSessionType,
+            initialMessage: urlInitialPrompt
+          })
+          setCurrentSession(session.id)
+          setHasHandledUrlParams(true)
+        } catch (err) {
+          console.error('[PlanningView] Failed to create session from URL params:', err)
+        }
+      }
     }
-  }, [currentSession, setCurrentSession])
+
+    handleUrlParams()
+  }, [urlSessionId, urlProjectId, urlSessionType, urlInitialPrompt, sessions, projects, hasHandledUrlParams, loadSession, createSession, setCurrentSession])
+
+  // All sessions (including claude-md) are now shown
+  const planningSessions = sessions
 
   return (
     <div className="h-full flex flex-col" data-feature="planning-sessions">

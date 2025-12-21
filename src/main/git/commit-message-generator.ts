@@ -35,19 +35,23 @@ function buildCommitPrompt(diff: string, recentCommits: CommitInfo[]): string {
     ? `Here are recent commits for style reference:\n${recentCommits.map((c) => `- ${c.message}`).join('\n')}`
     : ''
 
-  return `Generate a concise git commit message for the following changes.
+  return `Analyze the code changes in the diff below and generate a concise git commit message.
 
 ${recentCommitsContext}
 
-Guidelines:
-1. Start with a type prefix if the repo uses conventional commits (feat:, fix:, docs:, style:, refactor:, test:, chore:)
-2. Keep the subject line under 72 characters
-3. Use imperative mood ("Add feature" not "Added feature")
-4. Explain WHAT changed and WHY (not HOW)
-5. Match the style of recent commits if applicable
-${wasTruncated ? '6. Note: The diff was truncated due to size; focus on the visible changes' : ''}
+Instructions:
+1. READ THE DIFF CAREFULLY - Understand what code was added, removed, or modified
+2. IDENTIFY THE PURPOSE - Determine the intent behind these changes (new feature, bug fix, refactor, etc.)
+3. ANALYZE THE IMPACT - Consider what functionality is affected and why this change matters
+4. CRAFT THE MESSAGE:
+   - Start with a type prefix if the repo uses conventional commits (feat:, fix:, docs:, style:, refactor:, test:, chore:)
+   - Keep the subject line under 72 characters
+   - Use imperative mood ("Add feature" not "Added feature")
+   - Focus on WHAT changed and WHY (not implementation details)
+   - Match the style of recent commits if applicable
+${wasTruncated ? '   - Note: The diff was truncated due to size; focus on the visible changes' : ''}
 
-Changes:
+Code changes:
 \`\`\`diff
 ${truncatedDiff}
 \`\`\`
@@ -186,17 +190,22 @@ export async function generateCommitMessageWithContext(
   }
 
   // Build custom prompt with additional context
-  const prompt = `Generate a concise git commit message for these changes.
+  const prompt = `Analyze the code changes in the diff below and generate a concise git commit message.
 
 Additional context from the user:
 ${additionalContext}
 
-Guidelines:
-1. Use conventional commits format if appropriate (feat:, fix:, docs:, etc.)
-2. Keep the subject line under 72 characters
-3. Use imperative mood ("Add feature" not "Added feature")
+Instructions:
+1. READ THE DIFF CAREFULLY - Understand what code was added, removed, or modified
+2. CONSIDER THE USER'S CONTEXT - Use the additional context to understand the purpose
+3. ANALYZE THE IMPACT - Consider what functionality is affected and why this change matters
+4. CRAFT THE MESSAGE:
+   - Use conventional commits format if appropriate (feat:, fix:, docs:, style:, refactor:, test:, chore:)
+   - Keep the subject line under 72 characters
+   - Use imperative mood ("Add feature" not "Added feature")
+   - Focus on WHAT changed and WHY (not implementation details)
 
-Changes:
+Code changes:
 \`\`\`diff
 ${diff.substring(0, MAX_DIFF_SIZE)}
 \`\`\`
