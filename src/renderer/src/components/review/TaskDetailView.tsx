@@ -36,7 +36,8 @@ import {
   AlertTriangle,
   ChevronDown,
   ChevronRight,
-  MessageSquare
+  MessageSquare,
+  Coins
 } from 'lucide-react'
 import { useTaskStore } from '@/stores'
 import { useKeyboardShortcuts, type KeyboardShortcut } from '@/hooks'
@@ -213,6 +214,39 @@ export function TaskDetailView({
 
   const agentName = getAgentName(task.agentId)
   const modelDisplay = formatModelName(task.model)
+
+  // Format usage stats for display
+  const formatUsageStats = () => {
+    if (!task.totalUsage) return null
+
+    const { inputTokens, outputTokens, cacheCreationInputTokens, cacheReadInputTokens, costUsd } = task.totalUsage
+    const totalTokens = inputTokens + outputTokens + cacheCreationInputTokens + cacheReadInputTokens
+
+    // Format tokens with K/M suffix for readability
+    const formatTokenCount = (count: number): string => {
+      if (count >= 1_000_000) {
+        return `${(count / 1_000_000).toFixed(1)}M`
+      } else if (count >= 1_000) {
+        return `${(count / 1_000).toFixed(1)}K`
+      }
+      return count.toString()
+    }
+
+    // Format cost if available
+    const costDisplay = costUsd !== null ? ` ($${costUsd.toFixed(4)})` : ''
+
+    return {
+      totalTokens: formatTokenCount(totalTokens),
+      inputTokens: formatTokenCount(inputTokens),
+      outputTokens: formatTokenCount(outputTokens),
+      cacheRead: formatTokenCount(cacheReadInputTokens),
+      cacheCreation: formatTokenCount(cacheCreationInputTokens),
+      cost: costDisplay,
+      hasCacheUsage: cacheReadInputTokens > 0 || cacheCreationInputTokens > 0
+    }
+  }
+
+  const usageStats = formatUsageStats()
 
   const handleAccept = async () => {
     setIsSubmitting(true)
@@ -672,6 +706,20 @@ export function TaskDetailView({
                 <span>{modelDisplay}</span>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Usage Stats Display */}
+        {usageStats && (
+          <div
+            className="flex items-center gap-1.5 text-muted-foreground"
+            title={usageStats.hasCacheUsage
+              ? `Total: ${usageStats.totalTokens} tokens${usageStats.cost}\nInput: ${usageStats.inputTokens} | Output: ${usageStats.outputTokens}\nCache Read: ${usageStats.cacheRead} | Cache Creation: ${usageStats.cacheCreation}`
+              : `Total: ${usageStats.totalTokens} tokens${usageStats.cost}\nInput: ${usageStats.inputTokens} | Output: ${usageStats.outputTokens}`
+            }
+          >
+            <Coins className="h-3.5 w-3.5" />
+            <span>{usageStats.totalTokens} tokens{usageStats.cost}</span>
           </div>
         )}
 

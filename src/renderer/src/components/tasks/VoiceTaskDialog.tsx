@@ -5,6 +5,7 @@ import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
 import { useSessionStore } from '@/stores/session-store'
 import { useSkillStore } from '@/stores/skill-store'
 import { suggestSkills } from '@/lib/skill-suggestions'
+import { markdownToHtml, isMarkdown } from '@/lib/markdown-to-html'
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
 import {
@@ -185,8 +186,9 @@ export function VoiceTaskDialog({
     if (!transcript) return
 
     if (step === 'prompt') {
-      // Set markdown content directly - RichTextEditor will handle it
-      setPrompt(transcript)
+      // Convert markdown to HTML if the transcript contains markdown
+      const htmlContent = isMarkdown(transcript) ? markdownToHtml(transcript) : transcript
+      setPrompt(htmlContent)
       setPromptText(transcript) // Keep original plain text for skill detection
     } else if (step === 'project') {
       // Try to match project from voice input

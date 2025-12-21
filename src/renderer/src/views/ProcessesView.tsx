@@ -54,8 +54,10 @@ function ProcessCard({ process, onCancel, isCancelling }: ProcessCardProps) {
   const canCancel = isRunning && !isCancelling
 
   const isTask = process.processType === 'task'
-  const processId = isTask ? process.taskId : process.sessionId
-  const displayId = isTask ? `Task: ${process.taskId.slice(0, 8)}...` : `Chat: ${process.sessionId.slice(0, 8)}...`
+  const processId = process.processType === 'task' ? process.taskId : process.sessionId
+  const displayId = process.processType === 'task'
+    ? `Task: ${process.taskId.slice(0, 8)}...`
+    : `Chat: ${process.sessionId.slice(0, 8)}...`
 
   return (
     <div className="p-3 rounded-lg border bg-card">
@@ -209,7 +211,7 @@ export function ProcessesView() {
         ) : (
           <div className="space-y-6 max-w-4xl mx-auto">
             {runningProcesses.length > 0 && (
-              <div>
+              <div key="running-processes">
                 <h3 className="text-sm font-medium text-muted-foreground mb-3">
                   Running ({runningProcesses.length})
                 </h3>
@@ -230,7 +232,7 @@ export function ProcessesView() {
             )}
 
             {otherProcesses.length > 0 && (
-              <div>
+              <div key="other-processes">
                 <h3 className="text-sm font-medium text-muted-foreground mb-3">
                   Recent ({otherProcesses.length})
                 </h3>

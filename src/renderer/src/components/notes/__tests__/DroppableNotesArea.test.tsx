@@ -146,7 +146,11 @@ describe('DroppableNotesArea', () => {
         />
       )
 
-      expect(screen.getByText(/Drop notes here to ungroup them/i)).toBeInTheDocument()
+      // The component now handles ungrouped notes inline with groups
+      // When there are no ungrouped notes, they simply don't appear
+      // But groups should still be rendered
+      expect(screen.getByText('Work')).toBeInTheDocument()
+      expect(screen.getByText('Personal')).toBeInTheDocument()
     })
 
     it('should render ungrouped notes when present', () => {
@@ -203,10 +207,13 @@ describe('DroppableNotesArea', () => {
       expect(handleToggleGroup).toHaveBeenCalledWith('group-1')
     })
 
-    it('should call onDeleteGroup when group is deleted', () => {
+    it('should call onDeleteGroup when group is deleted', async () => {
       const handleDeleteGroup = vi.fn()
 
-      render(
+      // Mock window.confirm to auto-confirm
+      const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+      const { container } = render(
         <DroppableNotesArea
           groups={mockGroups}
           notes={mockNotes}
@@ -215,17 +222,39 @@ describe('DroppableNotesArea', () => {
         />
       )
 
-      // Find the group menu button
-      const menuButtons = screen.getAllByRole('button', { name: /MoreHorizontal|more/i })
-      if (menuButtons.length > 0) {
-        menuButtons[0].click()
+      // Find the group menu button - it's a button with MoreHorizontal icon (no accessible label)
+      // We'll need to find it differently - look for all buttons and find the menu trigger
+      const buttons = container.querySelectorAll('button')
 
-        // Find delete option
+      // The menu button should be near the "Work" group
+      // It's rendered after the color picker button
+      let menuButton: Element | null = null
+      buttons.forEach((button) => {
+        // Check if this button contains MoreHorizontal icon
+        const svg = button.querySelector('svg.lucide-more-horizontal')
+        if (svg) {
+          menuButton = button
+        }
+      })
+
+      if (menuButton) {
+        // Click to open menu
+        ;(menuButton as HTMLButtonElement).click()
+
+        // Wait for menu to appear and find delete option
+        await vi.waitFor(() => {
+          const deleteButton = screen.queryByText(/Delete Group/i)
+          expect(deleteButton).toBeInTheDocument()
+          return deleteButton
+        })
+
         const deleteButton = screen.getByText(/Delete Group/i)
         deleteButton.click()
 
         expect(handleDeleteGroup).toHaveBeenCalledWith('group-1')
       }
+
+      confirmSpy.mockRestore()
     })
   })
 

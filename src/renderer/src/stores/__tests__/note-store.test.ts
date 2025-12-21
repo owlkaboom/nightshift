@@ -24,6 +24,9 @@ global.window = {
   api: mockApi
 }
 
+// Mock console.error to suppress error logs in tests
+const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
 describe('Note Store - Optimistic Updates', () => {
   const mockNote: Note = {
     id: 'note-1',
@@ -66,6 +69,7 @@ describe('Note Store - Optimistic Updates', () => {
 
     // Clear all mocks
     vi.clearAllMocks()
+    consoleErrorSpy.mockClear()
   })
 
   describe('updateNote - Optimistic Updates', () => {
