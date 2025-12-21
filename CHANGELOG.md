@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Documentation**: Added notes-system.md documenting rich text notes, vault storage, and @mentions
 - **Documentation**: Updated CLAUDE.md with links to new documentation and additional key concepts
 
+### Fixed
+
+- **Testing**: Fixed note groups store tests failing in CI by setting correct Node.js test environment and ensuring sequential execution
+
 ## [0.2.0-beta] - 2025-12-20
 
 ## [0.1.0-beta] - 2025-12-19

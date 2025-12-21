@@ -7,23 +7,36 @@
  * - Deleting note groups
  * - Reordering note groups
  * - Toggling collapsed state
+ *
+ * @vitest-environment node
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { initializeDatabase, closeDatabase } from '@main/storage/database'
+import { initializeDatabase, closeDatabase, getDatabase } from '@main/storage/database'
 import { ensureSchema } from '@main/storage/migrations'
 import * as noteGroupsStore from '../note-groups-store'
 import type { CreateNoteGroupData } from '@shared/types/note'
 
-describe('Note Groups Store', () => {
+describe.sequential('Note Groups Store', () => {
   beforeEach(() => {
-    // Initialize in-memory database for testing
+    // Close any existing database connection first to ensure clean state
+    closeDatabase()
+
+    // Initialize fresh in-memory database for this test
     const db = initializeDatabase(':memory:')
+
     // Ensure schema is created
     ensureSchema(db)
+
+    // Verify database is properly initialized
+    const testDb = getDatabase()
+    if (!testDb) {
+      throw new Error('Database not initialized properly')
+    }
   })
 
   afterEach(() => {
+    // Clean up database connection after each test
     closeDatabase()
   })
 
