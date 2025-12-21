@@ -82,7 +82,7 @@ export async function generateCommitMessage(repoPath: string): Promise<string> {
       '-p',
       '--output-format', 'json',
       '--dangerously-skip-permissions',
-      '--model', 'claude-haiku-3-5-sonnet-latest', // Fast model for commit messages
+      '--model', 'haiku', // Fast model for commit messages
       prompt
     ]
 
@@ -119,7 +119,8 @@ export async function generateCommitMessage(repoPath: string): Promise<string> {
       clearTimeout(timeout)
 
       if (code !== 0) {
-        reject(new Error(`Commit message generation failed: ${stderr || 'Unknown error'}`))
+        const errorMsg = stderr || stdout || 'Unknown error'
+        reject(new Error(`Commit message generation failed: ${errorMsg}`))
         return
       }
 
@@ -207,7 +208,7 @@ Return ONLY the commit message text.`
       '-p',
       '--output-format', 'json',
       '--dangerously-skip-permissions',
-      '--model', 'claude-haiku-3-5-sonnet-latest',
+      '--model', 'haiku',
       prompt
     ]
 
@@ -243,7 +244,8 @@ Return ONLY the commit message text.`
       clearTimeout(timeout)
 
       if (code !== 0) {
-        reject(new Error(`Commit message generation failed: ${stderr || 'Unknown error'}`))
+        const errorMsg = stderr || stdout || 'Unknown error'
+        reject(new Error(`Commit message generation failed: ${errorMsg}`))
         return
       }
 
