@@ -1,6 +1,6 @@
 {
   "name": "nightshift",
-  "version": "0.2.0-beta",
+  "version": "0.2.0-beta.1",
   "description": "AI Task Orchestrator for Claude Code - Queue, orchestrate, and review AI-assisted coding tasks",
   "main": "./out/main/index.js",
   "author": "Nick",
