@@ -51,3 +51,6 @@ pids
 # Nightshift app data (local development only)
 # Don't commit user data
 .nightshift/
+
+# Ignore local claude files
+.claude/*.local.*
