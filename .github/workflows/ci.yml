@@ -23,7 +23,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Rebuild native modules
+      - name: Rebuild native modules for Node
         run: npm rebuild better-sqlite3
 
       - name: Verify better-sqlite3 installation
