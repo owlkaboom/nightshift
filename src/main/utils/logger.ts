@@ -77,6 +77,14 @@ class FileLogger {
   }
 
   /**
+   * Log an info message (always shown)
+   */
+  info(...args: unknown[]): void {
+    this.originalConsoleLog('[INFO]', ...args)
+    this.writeToFile('info', ...args)
+  }
+
+  /**
    * Initialize the logger - creates directory and opens file stream
    */
   initialize(): void {

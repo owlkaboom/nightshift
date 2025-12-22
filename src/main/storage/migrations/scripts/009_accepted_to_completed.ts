@@ -6,6 +6,7 @@
 
 import type { Database } from 'better-sqlite3'
 import type { Migration } from '../types'
+import { logger } from '../../../utils/logger'
 
 export const migration: Migration = {
   version: 9,
@@ -24,7 +25,7 @@ export const migration: Migration = {
       .run()
 
     if (result.changes > 0) {
-      console.log(`[Migration] Converted ${result.changes} tasks from 'accepted' to 'completed'`)
+      logger.info(`[Migration] Converted ${result.changes} tasks from 'accepted' to 'completed'`)
     }
   },
 
@@ -43,7 +44,7 @@ export const migration: Migration = {
       .run()
 
     if (result.changes > 0) {
-      console.log(`[Migration] Converted ${result.changes} tasks from 'completed' to 'accepted'`)
+      logger.info(`[Migration] Converted ${result.changes} tasks from 'completed' to 'accepted'`)
     }
   }
 }

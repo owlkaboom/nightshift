@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Brain, Trash2, RefreshCw, Database, Clock, FileText } from 'lucide-react'
 import type { MemoryStats } from '@shared/ipc-types'
+import { logger } from '@/lib/logger'
 
 interface ProjectMemoryCardProps {
   projectId: string
@@ -64,7 +65,7 @@ export function ProjectMemoryCard({ projectId, projectName }: ProjectMemoryCardP
       await fetchStats()
       if (removed > 0) {
         // Show a brief notification
-        console.log(`Compacted memory: removed ${removed} stale entries`)
+        logger.debug(`Compacted memory: removed ${removed} stale entries`)
       }
     } catch (err) {
       console.error('Failed to compact memory:', err)

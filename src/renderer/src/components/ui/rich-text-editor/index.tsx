@@ -21,6 +21,7 @@ import { EditorContent, useEditor } from '@tiptap/react'
 import { Clipboard, Copy, Redo, Scissors, Type, Undo } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, memo } from 'react'
 import { Toolbar } from './toolbar'
+import { logger } from '@/lib/logger'
 
 /**
  * Variant presets for different use cases
@@ -200,7 +201,7 @@ export const RichTextEditor = memo(function RichTextEditor({
     onUpdate: ({ editor }) => {
       // Don't trigger onChange if we're loading content programmatically
       if (isLoadingContentRef.current) {
-        console.log('[RichTextEditor] Skipping onChange during content load')
+        logger.debug('[RichTextEditor] Skipping onChange during content load')
         return
       }
       // Get markdown directly from the editor using the Markdown extension
@@ -277,7 +278,7 @@ export const RichTextEditor = memo(function RichTextEditor({
     const normalizedContent = normalizeMarkdown(newContent)
     const normalizedCurrent = normalizeMarkdown(currentMarkdown || '')
 
-    console.log('[RichTextEditor] Content sync check:', {
+    logger.debug('[RichTextEditor] Content sync check:', {
       propContent: newContent.substring(0, 100),
       currentMarkdown: currentMarkdown?.substring(0, 100),
       willUpdate: normalizedContent !== normalizedCurrent
@@ -285,7 +286,7 @@ export const RichTextEditor = memo(function RichTextEditor({
 
     // Only update if content actually differs from what's in the editor
     if (normalizedContent !== normalizedCurrent) {
-      console.log('[RichTextEditor] Updating editor content')
+      logger.debug('[RichTextEditor] Updating editor content')
       // Set flag to prevent onChange from firing during programmatic update
       isLoadingContentRef.current = true
 

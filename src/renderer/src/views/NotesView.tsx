@@ -27,6 +27,7 @@ import {
 import { RichTextEditor } from '@/components/ui/rich-text-editor'
 import type { Note } from '@shared/types'
 import { extractExcerpt, countWords, extractTitleFromContent } from '@shared/types'
+import { logger } from '@/lib/logger'
 
 type FilterTab = 'all' | 'pinned' | 'recent' | 'archived'
 
@@ -125,7 +126,7 @@ export function NotesView() {
   // Update editor state when selected note changes
   useEffect(() => {
     if (selectedNote) {
-      console.log('[NotesView] Selected note changed:', {
+      logger.debug('[NotesView] Selected note changed:', {
         noteId: selectedNote.id,
         contentLength: selectedNote.content?.length || 0,
         contentPreview: selectedNote.content?.substring(0, 100)
@@ -261,7 +262,7 @@ export function NotesView() {
       setHasUnsavedChanges(false)
 
       if (!isAutoSave) {
-        console.log('Note saved manually')
+        logger.debug('Note saved manually')
       }
     } catch (error) {
       console.error('Failed to save note:', error)

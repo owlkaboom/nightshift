@@ -12,7 +12,8 @@
       "Bash(grep:*)",
       "Bash(done)",
       "Bash(for dir in analysis docs git integrations migration notifications skills utils whisper)",
-      "Bash(do echo '=== $dir ===' find src/main/$dir -name *.ts -exec grep -l \"from ''''\\\\.\\\\.\\\\/\" {})"
+      "Bash(do echo '=== $dir ===' find src/main/$dir -name *.ts -exec grep -l \"from ''''\\\\.\\\\.\\\\/\" {})",
+      "Bash(npm run lint:*)"
     ]
   }
 }

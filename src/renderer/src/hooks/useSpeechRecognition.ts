@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { logger } from '../lib/logger'
 
 export type SpeechRecognitionStatus = 'idle' | 'listening' | 'processing' | 'error' | 'loading_model'
 
@@ -110,7 +111,7 @@ export function useSpeechRecognition(
           setStatus('loading_model')
         }
       } catch (err) {
-        console.error('Failed to check Whisper status:', err)
+        logger.error('Failed to check Whisper status:', err)
       }
     }
 
@@ -163,13 +164,13 @@ export function useSpeechRecognition(
 
     // Decode the audio blob
     const arrayBuffer = await audioBlob.arrayBuffer()
-    console.log(`[SpeechRecognition] Decoding ${arrayBuffer.byteLength} bytes of WebM audio`)
+    logger.debug(`[SpeechRecognition] Decoding ${arrayBuffer.byteLength} bytes of WebM audio`)
     const audioBuffer = await audioContext.decodeAudioData(arrayBuffer)
 
     // Get mono audio data
     const audioData = audioBuffer.getChannelData(0)
     const audioDurationSeconds = audioData.length / SAMPLE_RATE
-    console.log(`[SpeechRecognition] Decoded audio: ${audioDurationSeconds.toFixed(2)}s (${audioData.length} samples at ${SAMPLE_RATE}Hz)`)
+    logger.debug(`[SpeechRecognition] Decoded audio: ${audioDurationSeconds.toFixed(2)}s (${audioData.length} samples at ${SAMPLE_RATE}Hz)`)
 
     // Create WAV file
     const wavBuffer = createWavBuffer(audioData, SAMPLE_RATE)
@@ -238,12 +239,12 @@ export function useSpeechRecognition(
       // Combine audio chunks
       const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
       const recordingDurationMs = Date.now() - recordingStartTimeRef.current
-      console.log(`[SpeechRecognition] Processing ${audioChunksRef.current.length} chunks, total blob size: ${audioBlob.size} bytes, recording duration: ${(recordingDurationMs / 1000).toFixed(2)}s`)
+      logger.debug(`[SpeechRecognition] Processing ${audioChunksRef.current.length} chunks, total blob size: ${audioBlob.size} bytes, recording duration: ${(recordingDurationMs / 1000).toFixed(2)}s`)
       audioChunksRef.current = []
 
       // Convert to WAV base64
       const audioBase64 = await convertToWavBase64(audioBlob)
-      console.log(`[SpeechRecognition] Converted to WAV, base64 length: ${audioBase64.length}`)
+      logger.debug(`[SpeechRecognition] Converted to WAV, base64 length: ${audioBase64.length}`)
 
       // Send to main process for transcription
       const result = await window.api.transcribeAudio(audioBase64)
@@ -253,7 +254,7 @@ export function useSpeechRecognition(
       }
 
       const transcribedText = result.result?.text || ''
-      console.log(`[SpeechRecognition] Transcription result: ${transcribedText.length} characters`)
+      logger.debug(`[SpeechRecognition] Transcription result: ${transcribedText.length} characters`)
       setTranscript(transcribedText)
       onResultRef.current?.(transcribedText)
       setStatus('idle')
@@ -301,7 +302,7 @@ export function useSpeechRecognition(
         const timeSinceLastSound = Date.now() - lastSoundTimeRef.current
         if (timeSinceLastSound > SILENCE_DURATION_MS) {
           // Already silent for long enough
-          console.log('[SpeechRecognition] Auto-stopping due to silence')
+          logger.debug('[SpeechRecognition] Auto-stopping due to silence')
           stopListening()
           return
         } else {
@@ -309,7 +310,7 @@ export function useSpeechRecognition(
           const remainingTime = SILENCE_DURATION_MS - timeSinceLastSound
           silenceTimerRef.current = window.setTimeout(() => {
             if (isRecordingRef.current) {
-              console.log('[SpeechRecognition] Auto-stopping due to silence')
+              logger.debug('[SpeechRecognition] Auto-stopping due to silence')
               stopListening()
             }
           }, remainingTime)
@@ -334,7 +335,7 @@ export function useSpeechRecognition(
 
     // Check if max duration reached
     if (elapsed >= MAX_RECORDING_DURATION_MS) {
-      console.log('[SpeechRecognition] Max recording duration reached')
+      logger.debug('[SpeechRecognition] Max recording duration reached')
       stopListening()
       return
     }
@@ -410,7 +411,7 @@ export function useSpeechRecognition(
 
       mediaRecorder.onerror = (event) => {
         const errorMessage = 'Recording error occurred'
-        console.error('MediaRecorder error:', event)
+        logger.error('MediaRecorder error:', event)
         setError(errorMessage)
         setStatus('error')
         onErrorRef.current?.(errorMessage)

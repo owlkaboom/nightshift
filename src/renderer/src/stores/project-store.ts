@@ -5,6 +5,7 @@
 import { create } from 'zustand'
 import type { Project } from '@shared/types'
 import type { AddProjectData } from '@shared/ipc-types'
+import { logger } from '@/lib/logger'
 
 interface ProjectState {
   projects: Project[]
@@ -45,30 +46,30 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   loadSelectedProject: async () => {
     try {
       const selectedProjectId = await window.api.getSelectedProjectId()
-      console.log('[ProjectStore] Loading selected project:', selectedProjectId)
+      logger.debug('[ProjectStore] Loading selected project:', selectedProjectId)
       // Only set if the project exists in the list
       if (selectedProjectId) {
         const projects = get().projects
-        console.log('[ProjectStore] Current projects count:', projects.length)
+        logger.debug('[ProjectStore] Current projects count:', projects.length)
         // Only validate if projects have been loaded (avoid clearing during initial load)
         if (projects.length > 0) {
           const project = projects.find((p) => p.id === selectedProjectId)
           if (project) {
-            console.log('[ProjectStore] Found project, setting selection:', project.name)
+            logger.debug('[ProjectStore] Found project, setting selection:', project.name)
             set({ selectedProjectId })
           } else {
             // Project no longer exists, clear the selection
-            console.log('[ProjectStore] Project not found in list, clearing selection')
+            logger.debug('[ProjectStore] Project not found in list, clearing selection')
             set({ selectedProjectId: null })
             await window.api.setSelectedProjectId(null)
           }
         } else {
           // Projects not loaded yet, just set the ID optimistically
-          console.log('[ProjectStore] Projects not loaded yet, setting optimistically')
+          logger.debug('[ProjectStore] Projects not loaded yet, setting optimistically')
           set({ selectedProjectId })
         }
       } else {
-        console.log('[ProjectStore] No selected project ID in config')
+        logger.debug('[ProjectStore] No selected project ID in config')
       }
     } catch (error) {
       console.error('[ProjectStore] Failed to load selected project:', error)

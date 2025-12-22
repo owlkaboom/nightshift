@@ -54,6 +54,13 @@ src/
 
 **Errors**: Validate at boundaries (IPC, user input), discriminated unions for error states
 
+**Logging**: Use `logger` utilities instead of `console.log`:
+- Main process: `import { logger } from './utils/logger'`
+- Renderer process: `import { logger } from '../lib/logger'`
+- Use `logger.debug()` for development/debugging output (only shown when debug mode enabled)
+- Use `logger.info()`, `logger.warn()`, `logger.error()` for production-relevant logs
+- Never use raw `console.log` in production code
+
 ## Development
 
 - Main process changes require app restart; renderer hot-reloads

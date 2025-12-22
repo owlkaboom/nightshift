@@ -6,6 +6,7 @@
 
 import type { Database } from 'better-sqlite3'
 import type { Migration } from '../types'
+import { logger } from '../../../utils/logger'
 
 export const migration: Migration = {
   version: 11,
@@ -26,7 +27,7 @@ export const migration: Migration = {
     const result = updateStmt.run()
 
     if (result.changes > 0) {
-      console.log(`[Migration] Migrated ${result.changes} tasks from group_id to tag_ids`)
+      logger.info(`[Migration] Migrated ${result.changes} tasks from group_id to tag_ids`)
     }
   },
 

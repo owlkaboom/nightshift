@@ -15,7 +15,7 @@ import { initializeNotificationService } from './notifications/notification-serv
 app.whenReady().then(async () => {
   // Initialize file logger early to capture all startup logs
   initializeLogger()
-  console.log('Nightshift starting...')
+  logger.info('Nightshift starting...')
 
   // Set app user model id for Windows
   electronApp.setAppUserModelId('com.nightshift.app')
@@ -155,7 +155,7 @@ app.on('window-all-closed', () => {
 
 // Clean up logger on quit
 app.on('will-quit', () => {
-  console.log('Nightshift shutting down...')
+  logger.info('Nightshift shutting down...')
   closeLogger()
 })
 

@@ -15,6 +15,7 @@ import { useWalkthroughStore } from '@/stores/walkthrough-store'
 import { Button } from '@/components/ui/button'
 import { X, Sparkles } from 'lucide-react'
 import { MarkdownRenderer } from '@/components/ui/markdown-renderer'
+import { logger } from '@/lib/logger'
 
 /**
  * Auto-showing feature spotlight that activates when unseen features are on the current route
@@ -45,9 +46,7 @@ export const AutoFeatureSpotlight: React.FC = () => {
     }
 
     if (!targetElement) {
-      if (import.meta.env.DEV) {
-        console.warn(`[AutoFeatureSpotlight] Target element not found: ${feature.targetSelector}`)
-      }
+      logger.debug(`[AutoFeatureSpotlight] Target element not found: ${feature.targetSelector}`)
       return null
     }
 
@@ -100,17 +99,15 @@ export const AutoFeatureSpotlight: React.FC = () => {
     // 2. User hasn't completed or skipped the walkthrough yet
     // 3. Currently dismissing a feature
     if (isActive || (!walkthroughCompleted && !walkthroughSkipped) || isDismissingRef.current) {
-      if (import.meta.env.DEV) {
-        console.log('[AutoFeatureSpotlight] Spotlight blocked:', {
-          isActive,
-          walkthroughCompleted,
-          walkthroughSkipped,
-          isDismissing: isDismissingRef.current,
-          reason: isActive ? 'walkthrough active' :
-                  (!walkthroughCompleted && !walkthroughSkipped) ? 'walkthrough not completed/skipped' :
-                  'dismissing feature'
-        })
-      }
+      logger.debug('[AutoFeatureSpotlight] Spotlight blocked:', {
+        isActive,
+        walkthroughCompleted,
+        walkthroughSkipped,
+        isDismissing: isDismissingRef.current,
+        reason: isActive ? 'walkthrough active' :
+                (!walkthroughCompleted && !walkthroughSkipped) ? 'walkthrough not completed/skipped' :
+                'dismissing feature'
+      })
       setCurrentFeature(null)
       setIsVisible(false)
       targetElementRef.current = null
@@ -122,17 +119,13 @@ export const AutoFeatureSpotlight: React.FC = () => {
       // Double-check we're not dismissing
       if (isDismissingRef.current) return
 
-      if (import.meta.env.DEV) {
-        console.log('[AutoFeatureSpotlight] Checking for features on route:', location.pathname)
-      }
+      logger.debug('[AutoFeatureSpotlight] Checking for features on route:', location.pathname)
 
       const unseenFeatures = getUnseenFeaturesForRoute(location.pathname)
 
-      if (import.meta.env.DEV) {
-        console.log('[AutoFeatureSpotlight] Route changed:', location.pathname)
-        console.log('[AutoFeatureSpotlight] Unseen features:', unseenFeatures.length)
-        console.log('[AutoFeatureSpotlight] Unseen feature IDs:', unseenFeatures.map(f => f.id))
-      }
+      logger.debug('[AutoFeatureSpotlight] Route changed:', location.pathname)
+      logger.debug('[AutoFeatureSpotlight] Unseen features:', unseenFeatures.length)
+      logger.debug('[AutoFeatureSpotlight] Unseen feature IDs:', unseenFeatures.map(f => f.id))
 
       if (unseenFeatures.length > 0) {
         // Show the first unseen feature (already sorted by priority)
@@ -140,19 +133,15 @@ export const AutoFeatureSpotlight: React.FC = () => {
         targetElementRef.current = null // Reset cache
         setCurrentFeature(firstFeature)
 
-        if (import.meta.env.DEV) {
-          console.log('[AutoFeatureSpotlight] Attempting to show feature:', firstFeature.id)
-          console.log('[AutoFeatureSpotlight] Target selector:', firstFeature.targetSelector)
-        }
+        logger.debug('[AutoFeatureSpotlight] Attempting to show feature:', firstFeature.id)
+        logger.debug('[AutoFeatureSpotlight] Target selector:', firstFeature.targetSelector)
 
         // Use double RAF for better frame timing
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
             const bounds = calculateSpotlightBounds(firstFeature)
             if (bounds) {
-              if (import.meta.env.DEV) {
-                console.log('[AutoFeatureSpotlight] Bounds calculated successfully:', bounds)
-              }
+              logger.debug('[AutoFeatureSpotlight] Bounds calculated successfully:', bounds)
               // Scroll to target
               scrollToTarget()
 
@@ -161,9 +150,9 @@ export const AutoFeatureSpotlight: React.FC = () => {
                 setSpotlightBounds(bounds)
                 setIsVisible(true)
               }, 150) // Reduced from 300ms
-            } else if (import.meta.env.DEV) {
-              console.warn('[AutoFeatureSpotlight] Could not calculate bounds for feature:', firstFeature.id)
-              console.warn('[AutoFeatureSpotlight] Element exists?', document.querySelector(firstFeature.targetSelector) !== null)
+            } else {
+              logger.debug('[AutoFeatureSpotlight] Could not calculate bounds for feature:', firstFeature.id)
+              logger.debug('[AutoFeatureSpotlight] Element exists?', document.querySelector(firstFeature.targetSelector) !== null)
             }
           })
         })

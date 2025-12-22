@@ -6,6 +6,7 @@
 
 import type { Database } from 'better-sqlite3'
 import type { Migration } from '../types'
+import { logger } from '../../../utils/logger'
 
 export const migration: Migration = {
   version: 18,
@@ -40,7 +41,7 @@ export const migration: Migration = {
       }
 
       if (migratedCount > 0) {
-        console.log(
+        logger.info(
           `[Migration] Migrated ${migratedCount} project paths from local_state to projects table`
         )
       }
@@ -66,7 +67,7 @@ export const migration: Migration = {
         JSON.stringify(projectPaths)
       )
 
-      console.log(`[Migration] Migrated ${projects.length} project paths back to local_state`)
+      logger.info(`[Migration] Migrated ${projects.length} project paths back to local_state`)
     }
 
     // Recreate projects table without local_path

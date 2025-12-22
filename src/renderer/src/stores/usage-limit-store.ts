@@ -9,6 +9,7 @@
 
 import { create } from 'zustand'
 import type { UsageLimitState, UsagePercentageState } from '@shared/ipc-types'
+import { logger } from '@/lib/logger'
 
 // Track if we've set up the IPC listener
 let ipcListenerSetup = false
@@ -129,7 +130,7 @@ export const useUsageLimitStore = create<UsageLimitStore>((set, get) => ({
       // If we haven't exceeded max retries and it looks like an auth issue, retry with backoff
       if (retryCount < MAX_RETRIES) {
         const delay = RETRY_DELAY_MS * Math.pow(2, retryCount) // Exponential backoff
-        console.log(
+        logger.debug(
           `[UsageLimit] Retrying fetch in ${delay}ms (attempt ${retryCount + 1}/${MAX_RETRIES})`
         )
 

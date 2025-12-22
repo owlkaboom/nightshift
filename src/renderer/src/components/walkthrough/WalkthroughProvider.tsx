@@ -11,6 +11,7 @@ import type { WalkthroughContextValue, FeatureHighlight } from '@shared/types/wa
 import { useWalkthroughStore } from '@/stores/walkthrough-store'
 import { walkthroughSteps } from './steps'
 import { getUnseenFeaturesForRoute } from './features'
+import { logger } from '@/lib/logger'
 
 const WalkthroughContext = createContext<WalkthroughContextValue | null>(null)
 
@@ -56,19 +57,19 @@ export const WalkthroughProvider: React.FC<WalkthroughProviderProps> = ({
    * Start the walkthrough from the beginning
    */
   const startWalkthrough = useCallback(() => {
-    console.log('[Walkthrough] Starting walkthrough tour')
+    logger.debug('[Walkthrough] Starting walkthrough tour')
     setCurrentStepIndex(0)
     setIsActive(true)
 
     // Navigate to the first step's route if specified
     const firstStep = walkthroughSteps[0]
-    console.log('[Walkthrough] First step:', {
+    logger.debug('[Walkthrough] First step:', {
       id: firstStep.id,
       title: firstStep.title,
       route: firstStep.route
     })
     if (firstStep?.route) {
-      console.log('[Walkthrough] Navigating to first step route:', firstStep.route)
+      logger.debug('[Walkthrough] Navigating to first step route:', firstStep.route)
       navigate({ to: firstStep.route })
     }
   }, [navigate])
@@ -97,7 +98,7 @@ export const WalkthroughProvider: React.FC<WalkthroughProviderProps> = ({
   const nextStep = useCallback(async () => {
     const nextIndex = currentStepIndex + 1
 
-    console.log('[Walkthrough] Moving to next step:', {
+    logger.debug('[Walkthrough] Moving to next step:', {
       currentIndex: currentStepIndex,
       nextIndex,
       totalSteps: walkthroughSteps.length
@@ -105,13 +106,13 @@ export const WalkthroughProvider: React.FC<WalkthroughProviderProps> = ({
 
     if (nextIndex >= walkthroughSteps.length) {
       // Reached the end - complete the walkthrough
-      console.log('[Walkthrough] Tour complete')
+      logger.debug('[Walkthrough] Tour complete')
       completeWalkthrough()
       return
     }
 
     const nextStepData = walkthroughSteps[nextIndex]
-    console.log('[Walkthrough] Next step:', {
+    logger.debug('[Walkthrough] Next step:', {
       id: nextStepData.id,
       title: nextStepData.title,
       route: nextStepData.route,
@@ -125,15 +126,15 @@ export const WalkthroughProvider: React.FC<WalkthroughProviderProps> = ({
 
     // Navigate to the next step's route if specified and different from current
     if (nextStepData.route && location.pathname !== nextStepData.route) {
-      console.log('[Walkthrough] Navigating to:', nextStepData.route)
+      logger.debug('[Walkthrough] Navigating to:', nextStepData.route)
       navigate({ to: nextStepData.route })
       // Wait for navigation to complete before showing the step
       setTimeout(() => {
-        console.log('[Walkthrough] Setting step index to:', nextIndex)
+        logger.debug('[Walkthrough] Setting step index to:', nextIndex)
         setCurrentStepIndex(nextIndex)
       }, 100)
     } else {
-      console.log('[Walkthrough] Updating step index to:', nextIndex)
+      logger.debug('[Walkthrough] Updating step index to:', nextIndex)
       setCurrentStepIndex(nextIndex)
     }
   }, [currentStepIndex, completeWalkthrough, navigate, location.pathname])
@@ -147,7 +148,7 @@ export const WalkthroughProvider: React.FC<WalkthroughProviderProps> = ({
     const prevIndex = currentStepIndex - 1
     const prevStepData = walkthroughSteps[prevIndex]
 
-    console.log('[Walkthrough] Moving to previous step:', {
+    logger.debug('[Walkthrough] Moving to previous step:', {
       currentIndex: currentStepIndex,
       prevIndex,
       stepId: prevStepData.id
@@ -160,15 +161,15 @@ export const WalkthroughProvider: React.FC<WalkthroughProviderProps> = ({
 
     // Navigate to the previous step's route if specified and different from current
     if (prevStepData.route && location.pathname !== prevStepData.route) {
-      console.log('[Walkthrough] Navigating to:', prevStepData.route)
+      logger.debug('[Walkthrough] Navigating to:', prevStepData.route)
       navigate({ to: prevStepData.route })
       // Wait for navigation to complete before showing the step
       setTimeout(() => {
-        console.log('[Walkthrough] Setting step index to:', prevIndex)
+        logger.debug('[Walkthrough] Setting step index to:', prevIndex)
         setCurrentStepIndex(prevIndex)
       }, 100)
     } else {
-      console.log('[Walkthrough] Updating step index to:', prevIndex)
+      logger.debug('[Walkthrough] Updating step index to:', prevIndex)
       setCurrentStepIndex(prevIndex)
     }
   }, [currentStepIndex, navigate, location.pathname])

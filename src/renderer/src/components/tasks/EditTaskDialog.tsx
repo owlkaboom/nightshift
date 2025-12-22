@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { suggestSkills } from '@/lib/skill-suggestions'
 import { useSkillStore } from '@/stores/skill-store'
 import { useAgentCacheStore } from '@/stores/agent-cache-store'
+import { logger } from '@/lib/logger'
 import { SkillSelector } from '@/components/skills/SkillSelector'
 import { Button } from '@/components/ui/button'
 import {
@@ -83,7 +84,7 @@ export function EditTaskDialog({
   // Initialize form with task data when dialog opens or task changes
   useEffect(() => {
     if (open && task && !initializedRef.current) {
-      console.log('[EditTaskDialog] Initializing with task:', {
+      logger.debug('[EditTaskDialog] Initializing with task:', {
         agentId: task.agentId,
         model: task.model,
         promptLength: task.prompt?.length
@@ -149,7 +150,7 @@ export function EditTaskDialog({
     setError(null)
 
     try {
-      console.log('[EditTaskDialog] Saving task with:', {
+      logger.debug('[EditTaskDialog] Saving task with:', {
         agentId: selectedAgentId,
         model: selectedModel,
         thinkingMode

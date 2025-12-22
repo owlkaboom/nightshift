@@ -3,6 +3,7 @@ import { rm } from 'fs/promises'
 import { join } from 'path'
 import { getDatabase } from './database'
 import { getTasksDir } from '../utils/paths'
+import { logger } from '../utils/logger'
 
 interface CleanupResult {
   deletedCount: number
@@ -52,7 +53,7 @@ export async function cleanupOrphanedTaskLogs(): Promise<CleanupResult> {
             try {
               await rm(taskDirPath, { recursive: true, force: true })
               result.deletedCount++
-              console.log(
+              logger.debug(
                 `[OrphanedLogsCleanup] Removed orphaned logs for task ${taskId} in project ${projectId}`
               )
             } catch (error) {
@@ -74,7 +75,7 @@ export async function cleanupOrphanedTaskLogs(): Promise<CleanupResult> {
         const remainingTaskDirs = await readdir(projectPath)
         if (remainingTaskDirs.length === 0) {
           await rm(projectPath, { recursive: true, force: true })
-          console.log(
+          logger.debug(
             `[OrphanedLogsCleanup] Removed empty project directory: ${projectId}`
           )
         }
@@ -87,7 +88,7 @@ export async function cleanupOrphanedTaskLogs(): Promise<CleanupResult> {
       }
     }
 
-    console.log(
+    logger.debug(
       `[OrphanedLogsCleanup] Cleanup complete. Deleted ${result.deletedCount} orphaned task log directories`
     )
   } catch (error) {

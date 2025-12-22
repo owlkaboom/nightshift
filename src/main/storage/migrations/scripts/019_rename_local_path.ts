@@ -6,6 +6,7 @@
 
 import type { Database } from 'better-sqlite3'
 import type { Migration } from '../types'
+import { logger } from '../../../utils/logger'
 
 export const migration: Migration = {
   version: 19,
@@ -59,7 +60,7 @@ export const migration: Migration = {
       db.exec(`CREATE INDEX IF NOT EXISTS idx_projects_git_url ON projects(git_url)`)
     } else if (projectColumnNames.includes('path')) {
       // Path column already exists, no action needed
-      console.log('[Migration] path column already exists, skipping rename')
+      logger.debug('[Migration] path column already exists, skipping rename')
     } else {
       // Neither column exists, add path
       db.exec(`ALTER TABLE projects ADD COLUMN path TEXT`)
