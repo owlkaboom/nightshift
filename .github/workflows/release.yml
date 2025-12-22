@@ -123,33 +123,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: v${{ needs.prepare.outputs.version }}
-
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
           merge-multiple: true
 
-      - name: Extract changelog for release
-        id: changelog
-        run: |
-          # Extract the changelog section for this version
-          VERSION="${{ needs.prepare.outputs.version }}"
-          CHANGELOG=$(awk "/^## \[${VERSION}\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md)
-          echo "body<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGELOG" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.prepare.outputs.version }}
           name: v${{ needs.prepare.outputs.version }}
-          body: ${{ steps.changelog.outputs.body }}
+          generate_release_notes: true
           files: artifacts/*
           draft: false
           prerelease: ${{ needs.prepare.outputs.is_prerelease == 'true' }}
