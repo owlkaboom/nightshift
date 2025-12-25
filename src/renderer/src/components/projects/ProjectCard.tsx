@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { TagChip } from '@/components/tags/TagChip'
 import { QualityIndicator } from '@/components/context'
 import * as LucideIcons from 'lucide-react'
-import { FolderGit2, Folder, ExternalLink, Trash2, GitBranch, Edit2, Search, Download, RefreshCw, ChevronRight } from 'lucide-react'
+import { FolderGit2, Folder, ExternalLink, Trash2, GitBranch, Edit2, Search, RefreshCw, ChevronRight } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { GitConversionCheck } from '@shared/ipc-types'
 
@@ -19,11 +19,10 @@ interface ProjectCardProps {
   onOpenFolder: (path: string) => void
   onViewDetails?: (project: Project) => void
   onAnalyze?: (project: Project) => void
-  onImportIssues?: (project: Project) => void
   onConvertToGit?: (project: Project) => void
 }
 
-export function ProjectCard({ project, path, currentBranch, tags, onRemove, onEdit, onOpenFolder, onViewDetails, onAnalyze, onImportIssues, onConvertToGit }: ProjectCardProps) {
+export function ProjectCard({ project, path, currentBranch, tags, onRemove, onEdit, onOpenFolder, onViewDetails, onAnalyze, onConvertToGit }: ProjectCardProps) {
   const isGitProject = !!project.gitUrl
   const [analysis, setAnalysis] = useState<ClaudeMdAnalysis | null>(null)
   const [conversionCheck, setConversionCheck] = useState<GitConversionCheck | null>(null)
@@ -174,17 +173,6 @@ export function ProjectCard({ project, path, currentBranch, tags, onRemove, onEd
                 <RefreshCw className={`h-4 w-4 ${checkingConversion ? 'animate-spin' : ''}`} />
               </Button>
             )}
-            {onImportIssues && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => onImportIssues(project)}
-                title="Import Issues from Integrations"
-              >
-                <Download className="h-4 w-4" />
-              </Button>
-            )}
             {onAnalyze && (
               <Button
                 variant="ghost"
@@ -266,17 +254,6 @@ export function ProjectCard({ project, path, currentBranch, tags, onRemove, onEd
             >
               <RefreshCw className={`h-4 w-4 mr-1 ${checkingConversion ? 'animate-spin' : ''}`} />
               Convert
-            </Button>
-          )}
-          {onImportIssues && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="flex-1"
-              onClick={() => onImportIssues(project)}
-            >
-              <Download className="h-4 w-4 mr-1" />
-              Import
             </Button>
           )}
           {onAnalyze && (

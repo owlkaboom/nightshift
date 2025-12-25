@@ -16,7 +16,8 @@ import type {
   JiraBoard,
   JiraSprint,
   JiraFilter,
-  JiraProject
+  JiraProject,
+  JiraStatus
 } from '@shared/types'
 
 /**
@@ -27,6 +28,7 @@ interface JiraDiscoveryCache {
   sprints: Map<string, Map<number, JiraSprint[]>> // connectionId -> boardId -> sprints
   filters: Map<string, JiraFilter[]> // connectionId -> filters
   projects: Map<string, JiraProject[]> // connectionId -> projects
+  statuses: Map<string, JiraStatus[]> // connectionId -> statuses
 }
 
 interface IntegrationState {
@@ -78,9 +80,11 @@ interface IntegrationState {
   discoverSprints: (connectionId: string, boardId: number) => Promise<JiraSprint[]>
   discoverFilters: (connectionId: string) => Promise<JiraFilter[]>
   discoverProjects: (connectionId: string) => Promise<JiraProject[]>
+  discoverStatuses: (connectionId: string) => Promise<JiraStatus[]>
   getCachedBoards: (connectionId: string) => JiraBoard[] | undefined
   getCachedFilters: (connectionId: string) => JiraFilter[] | undefined
   getCachedProjects: (connectionId: string) => JiraProject[] | undefined
+  getCachedStatuses: (connectionId: string) => JiraStatus[] | undefined
 
   // Legacy integration actions (backward compatibility)
   fetchIntegrations: () => Promise<void>
@@ -106,7 +110,8 @@ export const useIntegrationStore = create<IntegrationState>((set, get) => ({
     boards: new Map(),
     sprints: new Map(),
     filters: new Map(),
-    projects: new Map()
+    projects: new Map(),
+    statuses: new Map()
   },
   integrations: [],
   issues: new Map(),
@@ -334,16 +339,16 @@ export const useIntegrationStore = create<IntegrationState>((set, get) => ({
   fetchSourceIssues: async (sourceId: string, options?: FetchIssuesOptions) => {
     set({ fetchingIssues: sourceId, error: null })
     try {
-      const issues = await window.api.fetchSourceIssues(sourceId, options)
+      const result = await window.api.fetchSourceIssues(sourceId, options)
       set((state) => {
         const newIssues = new Map(state.issues)
-        newIssues.set(sourceId, issues)
+        newIssues.set(sourceId, result.issues)
         return {
           issues: newIssues,
           fetchingIssues: null
         }
       })
-      return issues
+      return result.issues
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'Failed to fetch issues',
@@ -449,6 +454,27 @@ export const useIntegrationStore = create<IntegrationState>((set, get) => ({
 
   getCachedProjects: (connectionId: string) => {
     return get().discoveryCache.projects.get(connectionId)
+  },
+
+  discoverStatuses: async (connectionId: string) => {
+    try {
+      const statuses = await window.api.listJiraStatuses(connectionId)
+      set((state) => {
+        const newCache = { ...state.discoveryCache }
+        newCache.statuses.set(connectionId, statuses)
+        return { discoveryCache: newCache }
+      })
+      return statuses
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : 'Failed to discover statuses'
+      })
+      throw error
+    }
+  },
+
+  getCachedStatuses: (connectionId: string) => {
+    return get().discoveryCache.statuses.get(connectionId)
   },
 
   // Legacy integration actions (backward compatibility)

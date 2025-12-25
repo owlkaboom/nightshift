@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Task Board Project Selector**: Added dropdown selector for changing the currently selected project directly from the task board
+  - Shows project name with folder icon in the board controls area
+  - Appears alongside agent/model selector for better context awareness
+  - Click to change project without leaving the board view
+- **JIRA Source Management UI**: Added comprehensive UI for managing JIRA integration sources
+  - New `ManageSourcesDialog` component for discovering and adding boards, filters, projects, and custom JQL queries
+  - Source list display in integrations panel showing all configured sources per connection
+  - Support for searching and multi-selecting boards, filters, and projects
+  - Custom JQL query builder for advanced filtering
+  - Visual source type indicators (board, filter, project, JQL) with enabled/disabled badges
+- **JIRA Pagination**: Added proper pagination support for JIRA issue loading
+  - Issues are now loaded 25 at a time with Previous/Next navigation
+  - Shows current page, total pages, and issue count
+  - Pagination controls automatically update based on available results
+- **JIRA Status Discovery**: Added API endpoint to dynamically fetch available JIRA statuses from connections
+  - New `jira:listStatuses` IPC handler
+  - Cached status discovery in integration store
+  - Foundation for dynamic status filter UI (to be implemented)
+
+### Fixed
+
+- **JIRA Integration Filtering**: Fixed "assigned to me" filter to correctly apply server-side using JQL queries
+  - Previously used client-side filtering which missed results beyond the first page
+  - Now uses `assignee = "{email}"` in JQL for board, sprint, backlog, filter, project, and custom JQL sources
+  - Filters are applied server-side for accurate pagination and results
+- **JIRA Status Filtering**: Fixed "open" and "closed" status filters to use JIRA status categories (Done, To Do, In Progress) for better compatibility across different JIRA workflows
+- **JIRA Board/Sprint/Backlog Filtering**: Converted board, sprint, and backlog sources to use JQL queries instead of Agile API endpoints to enable proper server-side filtering
+
 ## [0.2.3] - 2025-12-22
 
 ## [0.2.2] - 2025-12-22

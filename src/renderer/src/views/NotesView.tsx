@@ -5,7 +5,7 @@
  * Auto-selects the first note on load. Similar to Obsidian's layout.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Plus, RefreshCw, Pin, FileText, Archive, X, Save, Trash2, FolderPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -76,6 +76,9 @@ export function NotesView() {
   const [wordCount, setWordCount] = useState(0)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [userHasEdited, setUserHasEdited] = useState(false)
+  // Track when we're loading content to prevent editor init from triggering onChange
+  // Using ref instead of state to avoid stale closure issues in callbacks
+  const isLoadingContentRef = useRef(false)
 
   // Initial data fetch with minimum loading duration
   useEffect(() => {
@@ -125,24 +128,38 @@ export function NotesView() {
 
   // Update editor state when selected note changes
   useEffect(() => {
-    if (selectedNote) {
-      logger.debug('[NotesView] Selected note changed:', {
-        noteId: selectedNote.id,
-        contentLength: selectedNote.content?.length || 0,
-        contentPreview: selectedNote.content?.substring(0, 100)
-      })
+    if (!selectedNote) return
 
-      // Auto-save timeout will be cleaned up by the useEffect's cleanup function
+    logger.debug('[NotesView] Selected note changed:', {
+      noteId: selectedNote.id,
+      contentLength: selectedNote.content?.length || 0,
+      contentPreview: selectedNote.content?.substring(0, 100)
+    })
 
-      // Reset user edit flag when switching notes
-      setUserHasEdited(false)
-      setHasUnsavedChanges(false)
+    // Set loading flag BEFORE any state updates to prevent race conditions
+    // Using ref ensures the callback always reads the current value
+    isLoadingContentRef.current = true
 
-      // Load markdown content directly
-      setMarkdownContent(selectedNote.content || '')
-      setPrimaryProjectId(selectedNote.primaryProjectId)
-      setTags(selectedNote.tags)
-      setWordCount(selectedNote.wordCount)
+    // Reset user edit flag when switching notes
+    setUserHasEdited(false)
+    setHasUnsavedChanges(false)
+
+    // Load markdown content directly
+    setMarkdownContent(selectedNote.content || '')
+    setPrimaryProjectId(selectedNote.primaryProjectId)
+    setTags(selectedNote.tags)
+    setWordCount(selectedNote.wordCount)
+
+    // Reset loading flag after a delay to allow editor to sync
+    // This needs to be long enough for the editor to process the content update
+    const timer = setTimeout(() => {
+      isLoadingContentRef.current = false
+    }, 300) // Increased delay to ensure editor fully syncs
+
+    return () => {
+      clearTimeout(timer)
+      // Also reset on cleanup to handle rapid note switching
+      isLoadingContentRef.current = false
     }
   }, [selectedNote])
 
@@ -175,6 +192,8 @@ export function NotesView() {
         content: 'Untitled',
         tags: []
       })
+      // Set loading flag before selecting the new note
+      isLoadingContentRef.current = true
       setSelectedNote(newNote)
     } catch (error) {
       console.error('Failed to create note:', error)
@@ -189,6 +208,9 @@ export function NotesView() {
           return
         }
       }
+      // Set loading flag IMMEDIATELY before state update to prevent any
+      // onChange events from being processed during the transition
+      isLoadingContentRef.current = true
       setSelectedNote(note)
     },
     [hasUnsavedChanges]
@@ -210,6 +232,14 @@ export function NotesView() {
 
   // Editor handlers
   const handleContentChange = useCallback((newMarkdown: string, _newText: string) => {
+    // Ignore onChange events during content loading (prevents race condition
+    // where editor initializes with empty content before real content loads)
+    // Using ref.current to always get the latest value, avoiding stale closure issues
+    if (isLoadingContentRef.current) {
+      logger.debug('[NotesView] Ignoring onChange during content load')
+      return
+    }
+
     setMarkdownContent(newMarkdown)
     // Mark that user has actually edited the content
     setUserHasEdited(true)
@@ -338,6 +368,8 @@ export function NotesView() {
           return
         }
       }
+      // Set loading flag before selecting the note
+      isLoadingContentRef.current = true
       setSelectedNote(note)
     },
     [hasUnsavedChanges]

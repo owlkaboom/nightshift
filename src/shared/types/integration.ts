@@ -154,6 +154,19 @@ export interface JiraProject {
   name: string
 }
 
+/**
+ * JIRA status
+ */
+export interface JiraStatus {
+  id: string
+  name: string
+  statusCategory: {
+    id: number
+    key: string
+    name: string
+  }
+}
+
 // ============================================================================
 // LEGACY MODEL (for migration)
 // ============================================================================
@@ -209,8 +222,10 @@ export interface ExternalIssue {
   description: string
   url: string
   status: string
+  statusCategory?: string // JIRA status category (To Do, In Progress, Done)
   labels: string[]
   assignee?: string
+  assigneeEmail?: string // Email of the assignee (for filtering)
   createdAt: string
   updatedAt: string
 }
@@ -224,6 +239,18 @@ export interface FetchIssuesOptions {
   state?: 'open' | 'closed' | 'all'
   assignedToMe?: boolean // Filter for issues assigned to the current user
   limit?: number
+  startAt?: number // JIRA: pagination offset
+}
+
+/**
+ * Result from fetching issues with pagination metadata
+ */
+export interface FetchIssuesResult {
+  issues: ExternalIssue[]
+  total: number // Total number of issues matching the query
+  startAt: number // Starting index for this page
+  maxResults: number // Maximum results per page
+  hasMore: boolean // Whether there are more results available
 }
 
 /**

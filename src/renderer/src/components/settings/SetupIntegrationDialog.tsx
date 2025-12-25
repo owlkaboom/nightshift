@@ -17,7 +17,6 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Switch } from '@/components/ui/switch'
 import { Github, Loader2, CheckCircle2, XCircle, ExternalLink } from 'lucide-react'
 import { useIntegrationStore } from '@/stores/integration-store'
 import type { IntegrationType, GitHubConnectionConfig, JiraConnectionConfig } from '@shared/types'
@@ -31,18 +30,16 @@ interface SetupIntegrationDialogProps {
 export function SetupIntegrationDialog({ open, onOpenChange }: SetupIntegrationDialogProps) {
   const { createConnection, testConnection } = useIntegrationStore()
 
-  const [integrationType, setIntegrationType] = useState<IntegrationType>('github')
+  const [integrationType, setIntegrationType] = useState<IntegrationType>('jira')
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<{ success: boolean; message?: string } | null>(null)
 
-  // GitHub fields
+  // GitHub fields (kept for potential future use)
   const [githubName, setGithubName] = useState('')
   const [githubOwner, setGithubOwner] = useState('')
   const [githubRepo, setGithubRepo] = useState('')
   const [githubToken, setGithubToken] = useState('')
-  const [githubAutoCreatePR, setGithubAutoCreatePR] = useState(false)
-  const [githubDefaultLabels, setGithubDefaultLabels] = useState('')
 
   // JIRA fields
   const [jiraName, setJiraName] = useState('')
@@ -55,8 +52,6 @@ export function SetupIntegrationDialog({ open, onOpenChange }: SetupIntegrationD
     setGithubOwner('')
     setGithubRepo('')
     setGithubToken('')
-    setGithubAutoCreatePR(false)
-    setGithubDefaultLabels('')
     setJiraName('')
     setJiraBaseUrl('')
     setJiraEmail('')
@@ -194,100 +189,25 @@ export function SetupIntegrationDialog({ open, onOpenChange }: SetupIntegrationD
 
         <Tabs value={integrationType} onValueChange={(v) => setIntegrationType(v as IntegrationType)}>
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="github">
-              <Github className="mr-2 h-4 w-4" />
-              GitHub
-            </TabsTrigger>
             <TabsTrigger value="jira">
               <Settings className="mr-2 h-4 w-4" />
               JIRA
             </TabsTrigger>
+            <TabsTrigger value="github">
+              <Github className="mr-2 h-4 w-4" />
+              GitHub
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="github" className="space-y-4">
-            <div className="space-y-3">
-              <div>
-                <Label htmlFor="github-name">Integration Name</Label>
-                <Input
-                  id="github-name"
-                  placeholder="My GitHub Repo"
-                  value={githubName}
-                  onChange={(e) => setGithubName(e.target.value)}
-                />
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="mb-6 text-8xl">
+                🚀
               </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor="github-owner">Owner/Organization</Label>
-                  <Input
-                    id="github-owner"
-                    placeholder="octocat"
-                    value={githubOwner}
-                    onChange={(e) => setGithubOwner(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="github-repo">Repository</Label>
-                  <Input
-                    id="github-repo"
-                    placeholder="hello-world"
-                    value={githubRepo}
-                    onChange={(e) => setGithubRepo(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <Label htmlFor="github-token">Personal Access Token</Label>
-                  <a
-                    href="https://github.com/settings/tokens"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
-                  >
-                    Create token
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
-                </div>
-                <Input
-                  id="github-token"
-                  type="password"
-                  placeholder="ghp_..."
-                  value={githubToken}
-                  onChange={(e) => setGithubToken(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Required scopes: repo, read:org
-                </p>
-              </div>
-
-              <div>
-                <Label htmlFor="github-labels">Default Labels (optional)</Label>
-                <Input
-                  id="github-labels"
-                  placeholder="bug, feature, enhancement"
-                  value={githubDefaultLabels}
-                  onChange={(e) => setGithubDefaultLabels(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Comma-separated list of labels to filter issues
-                </p>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="github-auto-pr">Auto-create Pull Requests</Label>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Automatically create PR when task is accepted
-                  </p>
-                </div>
-                <Switch
-                  id="github-auto-pr"
-                  checked={githubAutoCreatePR}
-                  onCheckedChange={setGithubAutoCreatePR}
-                />
-              </div>
+              <h3 className="mb-2 text-xl font-semibold">Coming Soon!</h3>
+              <p className="text-sm text-muted-foreground max-w-md">
+                GitHub integration is currently in development. Stay tuned for automatic issue syncing, PR creation, and more.
+              </p>
             </div>
           </TabsContent>
 
@@ -387,30 +307,34 @@ export function SetupIntegrationDialog({ open, onOpenChange }: SetupIntegrationD
           <Button variant="outline" onClick={handleClose}>
             Cancel
           </Button>
-          <Button
-            variant="outline"
-            onClick={handleTest}
-            disabled={!isValid || testing || saving}
-          >
-            {testing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Testing...
-              </>
-            ) : (
-              'Test Connection'
-            )}
-          </Button>
-          <Button onClick={handleSave} disabled={!isValid || saving || testing}>
-            {saving ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              'Save Integration'
-            )}
-          </Button>
+          {integrationType !== 'github' && (
+            <>
+              <Button
+                variant="outline"
+                onClick={handleTest}
+                disabled={!isValid || testing || saving}
+              >
+                {testing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Testing...
+                  </>
+                ) : (
+                  'Test Connection'
+                )}
+              </Button>
+              <Button onClick={handleSave} disabled={!isValid || saving || testing}>
+                {saving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Integration'
+                )}
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

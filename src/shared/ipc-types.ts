@@ -59,6 +59,8 @@ import type {
   JiraSprint,
   JiraFilter,
   JiraProject,
+  JiraStatus,
+  FetchIssuesResult,
   // Git types
   BranchInfo,
   FileStatus,
@@ -776,7 +778,7 @@ export interface SourceHandlers {
   'source:fetchIssues': (
     sourceId: string,
     options?: FetchIssuesOptions
-  ) => Promise<ExternalIssue[]>
+  ) => Promise<FetchIssuesResult>
 
   /** Import an issue from a source as a task */
   'source:importAsTask': (
@@ -806,6 +808,9 @@ export interface JiraDiscoveryHandlers {
 
   /** List projects for a Jira connection */
   'jira:listProjects': (connectionId: string) => Promise<JiraProject[]>
+
+  /** List statuses for a Jira connection */
+  'jira:listStatuses': (connectionId: string) => Promise<JiraStatus[]>
 }
 
 // Legacy Integration Handlers (for backward compatibility)
@@ -1263,7 +1268,7 @@ export interface RendererApi {
     updates: Partial<Omit<IntegrationSource, 'id' | 'createdAt' | 'connectionId'>>
   ) => Promise<IntegrationSource | null>
   deleteSource: (id: string) => Promise<boolean>
-  fetchSourceIssues: (sourceId: string, options?: FetchIssuesOptions) => Promise<ExternalIssue[]>
+  fetchSourceIssues: (sourceId: string, options?: FetchIssuesOptions) => Promise<FetchIssuesResult>
   importSourceIssueAsTask: (sourceId: string, issueId: string, projectId: string) => Promise<TaskManifest>
   createSourcePR: (sourceId: string, taskId: string, options: CreatePROptions) => Promise<CreatePRResult>
 
@@ -1272,6 +1277,7 @@ export interface RendererApi {
   listJiraSprints: (connectionId: string, boardId: number) => Promise<JiraSprint[]>
   listJiraFilters: (connectionId: string) => Promise<JiraFilter[]>
   listJiraProjects: (connectionId: string) => Promise<JiraProject[]>
+  listJiraStatuses: (connectionId: string) => Promise<JiraStatus[]>
 
   // Integrations (legacy - deprecated)
   listIntegrations: () => Promise<Integration[]>

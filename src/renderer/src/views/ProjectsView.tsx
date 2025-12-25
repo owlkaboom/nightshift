@@ -4,7 +4,6 @@ import { useProjectStore } from '@/stores'
 import { useTagStore } from '@/stores/tag-store'
 import { ProjectCard, AddProjectDialog, EditProjectDialog, ScanProjectsDialog } from '@/components/projects'
 import { ProjectAnalysisDialog } from '@/components/analysis'
-import { ImportIssuesDialog } from '@/components/integrations'
 import { Button } from '@/components/ui/button'
 import { useKeyboardShortcuts, formatKbd, type KeyboardShortcut } from '@/hooks'
 import type { Project } from '@shared/types'
@@ -18,7 +17,6 @@ export function ProjectsView() {
   const [scanDialogOpen, setScanDialogOpen] = useState(false)
   const [editingProject, setEditingProject] = useState<Project | null>(null)
   const [analyzingProject, setAnalyzingProject] = useState<Project | null>(null)
-  const [importingProject, setImportingProject] = useState<Project | null>(null)
   const [projectPaths, setProjectPaths] = useState<Record<string, string>>({})
   const [projectBranches, setProjectBranches] = useState<Record<string, string>>({})
 
@@ -76,10 +74,6 @@ export function ProjectsView() {
 
   const handleAnalyzeProject = (project: Project) => {
     setAnalyzingProject(project)
-  }
-
-  const handleImportIssues = (project: Project) => {
-    setImportingProject(project)
   }
 
   const handleConvertToGit = async (project: Project) => {
@@ -199,7 +193,6 @@ export function ProjectsView() {
               onOpenFolder={handleOpenFolder}
               onViewDetails={handleViewDetails}
               onAnalyze={handleAnalyzeProject}
-              onImportIssues={handleImportIssues}
               onConvertToGit={handleConvertToGit}
             />
           ))}
@@ -231,14 +224,6 @@ export function ProjectsView() {
           projectPath={projectPaths[analyzingProject.id]}
           open={!!analyzingProject}
           onOpenChange={(open) => !open && setAnalyzingProject(null)}
-        />
-      )}
-
-      {importingProject && (
-        <ImportIssuesDialog
-          open={!!importingProject}
-          onOpenChange={(open) => !open && setImportingProject(null)}
-          projectId={importingProject.id}
         />
       )}
     </div>

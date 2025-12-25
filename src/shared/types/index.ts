@@ -266,6 +266,7 @@ export type {
   JiraSprint,
   JiraFilter,
   JiraProject,
+  JiraStatus,
   // Legacy types
   Integration,
   GitHubConfig,
@@ -273,6 +274,7 @@ export type {
   // Common types
   ExternalIssue,
   FetchIssuesOptions,
+  FetchIssuesResult,
   CreatePROptions,
   CreateIntegrationData,
   IntegrationTestResult,

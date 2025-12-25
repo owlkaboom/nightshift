@@ -27,6 +27,7 @@ import {
   AlertTriangle,
   Bot,
   Clock,
+  Folder,
   Gauge,
   ListTodo,
   Mic,
@@ -761,6 +762,28 @@ export function BoardView() {
         <div className="flex flex-col sm:flex-row gap-3">
           {/* Top section: Agent/Model and Usage */}
           <div className="flex items-center gap-2 flex-wrap">
+            {/* Current Project Selector */}
+            {projects.length > 0 && (
+              <div className="flex items-center gap-1 px-2 py-1.5 border border-input rounded-md bg-background text-xs sm:text-sm">
+                <Folder className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />
+                <Select
+                  value={sessionProjectId || undefined}
+                  onValueChange={(value) => setSessionProject(value)}
+                >
+                  <SelectTrigger className="w-[120px] sm:w-[160px] h-7 border-0 bg-transparent text-xs sm:text-sm">
+                    <SelectValue placeholder="Select Project" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {projects.map((project) => (
+                      <SelectItem key={project.id} value={project.id}>
+                        {project.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             {/* Agent/Model selector */}
             <div className="flex items-center gap-1 px-2 py-1.5 border border-input rounded-md bg-background text-xs sm:text-sm">
               <Bot className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0" />

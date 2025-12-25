@@ -92,13 +92,15 @@ import type {
   CreateSourceData,
   ExternalIssue,
   FetchIssuesOptions,
+  FetchIssuesResult,
   CreatePROptions,
   IntegrationTestResult,
   CreatePRResult,
   JiraBoard,
   JiraSprint,
   JiraFilter,
-  JiraProject
+  JiraProject,
+  JiraStatus
 } from '@shared/types';
 import { contextBridge, ipcRenderer } from 'electron';
 
@@ -967,7 +969,7 @@ const api: RendererApi = {
   deleteSource: (id: string): Promise<boolean> =>
     ipcRenderer.invoke('source:delete', id),
 
-  fetchSourceIssues: (sourceId: string, options?: FetchIssuesOptions): Promise<ExternalIssue[]> =>
+  fetchSourceIssues: (sourceId: string, options?: FetchIssuesOptions): Promise<FetchIssuesResult> =>
     ipcRenderer.invoke('source:fetchIssues', sourceId, options),
 
   importSourceIssueAsTask: (
@@ -992,6 +994,9 @@ const api: RendererApi = {
 
   listJiraProjects: (connectionId: string): Promise<JiraProject[]> =>
     ipcRenderer.invoke('jira:listProjects', connectionId),
+
+  listJiraStatuses: (connectionId: string): Promise<JiraStatus[]> =>
+    ipcRenderer.invoke('jira:listStatuses', connectionId),
 
   // ============ Legacy Integrations (Backward Compatibility) ============
   listIntegrations: (): Promise<Integration[]> =>

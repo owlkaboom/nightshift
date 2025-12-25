@@ -51,7 +51,8 @@ import {
   listJiraBoards,
   listJiraSprints,
   listJiraFilters,
-  listJiraProjects
+  listJiraProjects,
+  listJiraStatuses
 } from '@main/integrations'
 import { setCredential, deleteCredential } from '@main/storage/secure-store'
 
@@ -210,6 +211,11 @@ export function registerIntegrationHandlers(): void {
   // List projects for a Jira connection
   ipcMain.handle('jira:listProjects', async (_event, connectionId: string) => {
     return await listJiraProjects(connectionId)
+  })
+
+  // List statuses for a Jira connection
+  ipcMain.handle('jira:listStatuses', async (_event, connectionId: string) => {
+    return await listJiraStatuses(connectionId)
   })
 
   // ============================================================================

@@ -9,11 +9,13 @@ import type {
   JiraConnectionConfig,
   ExternalIssue,
   FetchIssuesOptions,
+  FetchIssuesResult,
   IntegrationTestResult,
   JiraBoard,
   JiraSprint,
   JiraFilter,
   JiraProject,
+  JiraStatus,
   JiraSourceConfig
 } from '@shared/types'
 
@@ -117,34 +119,55 @@ export class JiraClient {
       // For legacy JiraConfig, use jql or projectKey from config
       // For JiraConnectionConfig, require JQL from options
       const legacyConfig = this.config as JiraConfig
-      let jql = options?.jql || legacyConfig.jql || (legacyConfig.projectKey ? `project = ${legacyConfig.projectKey}` : '')
+      const baseJql = options?.jql || legacyConfig.jql || (legacyConfig.projectKey ? `project = ${legacyConfig.projectKey}` : '')
+
+      // Build filter clauses
+      const filters: string[] = []
 
       // Add assignee filter if provided
       if (options?.assignedToMe) {
         // Use email-based assignee filter for better reliability with API authentication
         // currentUser() may not work reliably when authenticating via API token
-        jql = `${jql} AND assignee = "${this.config.email}"`
+        filters.push(`assignee = "${this.config.email}"`)
       }
 
       // Add status filter if provided
-      if (options?.state) {
+      if (options?.state && options.state !== 'all') {
+        // Use status categories instead of specific status names for better compatibility
+        // JIRA has three status categories: "To Do", "In Progress", "Done"
         const statusFilter = options.state === 'open'
-          ? 'status NOT IN (Done, Closed, Resolved)'
+          ? 'statusCategory != Done'
           : options.state === 'closed'
-          ? 'status IN (Done, Closed, Resolved)'
+          ? 'statusCategory = Done'
           : ''
 
         if (statusFilter) {
-          jql = `${jql} AND ${statusFilter}`
+          filters.push(statusFilter)
+        }
+      }
+
+      // Combine base JQL with filters
+      let jql = baseJql
+      if (filters.length > 0) {
+        const filterClause = filters.join(' AND ')
+        if (jql.trim()) {
+          jql = `${jql} AND ${filterClause}`
+        } else {
+          jql = filterClause
         }
       }
 
       // Add ordering
-      jql = `${jql} ORDER BY created DESC`
+      if (jql.trim()) {
+        jql = `${jql} ORDER BY created DESC`
+      } else {
+        jql = 'ORDER BY created DESC'
+      }
 
-      const maxResults = options?.limit || 100
+      const maxResults = options?.limit || 500
+      const startAt = options?.startAt || 0
 
-      logger.debug('[JiraClient] Executing JQL query:', jql)
+      logger.debug('[JiraClient] Executing JQL query:', jql, { maxResults, startAt })
 
       // Use the new /rest/api/3/search/jql POST endpoint
       const data = await this.request<any>(
@@ -154,6 +177,7 @@ export class JiraClient {
           body: JSON.stringify({
             jql,
             maxResults,
+            startAt,
             fields: [
               'summary',
               'description',
@@ -167,9 +191,16 @@ export class JiraClient {
         }
       )
 
+      // Log pagination info if there are more results
+      if (data.total > data.startAt + data.issues.length) {
+        logger.debug(
+          `[JiraClient] Retrieved ${data.issues.length} issues (${data.startAt + 1}-${data.startAt + data.issues.length} of ${data.total} total)`
+        )
+      }
+
       return data.issues.map((issue: any) => this.mapIssueToExternalIssue(issue))
     } catch (error) {
-      console.error('[JiraClient] Failed to fetch issues:', error)
+      logger.log('error', '[JiraClient] Failed to fetch issues:', error)
       throw error
     }
   }
@@ -185,7 +216,7 @@ export class JiraClient {
 
       return this.mapIssueToExternalIssue(data)
     } catch (error) {
-      console.error('[JiraClient] Failed to get issue:', error)
+      logger.log('error', '[JiraClient] Failed to get issue:', error)
       return null
     }
   }
@@ -204,7 +235,7 @@ export class JiraClient {
         name: t.name
       }))
     } catch (error) {
-      console.error('[JiraClient] Failed to get transitions:', error)
+      logger.log('error', '[JiraClient] Failed to get transitions:', error)
       return []
     }
   }
@@ -225,7 +256,7 @@ export class JiraClient {
       )
       return true
     } catch (error) {
-      console.error('[JiraClient] Failed to transition issue:', error)
+      logger.log('error', '[JiraClient] Failed to transition issue:', error)
       return false
     }
   }
@@ -260,7 +291,7 @@ export class JiraClient {
       )
       return true
     } catch (error) {
-      console.error('[JiraClient] Failed to add comment:', error)
+      logger.log('error', '[JiraClient] Failed to add comment:', error)
       return false
     }
   }
@@ -280,8 +311,10 @@ export class JiraClient {
       description: fields.description?.content?.[0]?.content?.[0]?.text || '',
       url: `${this.baseUrl}/browse/${issue.key}`,
       status: fields.status.name,
+      statusCategory: fields.status.statusCategory?.name,
       labels: fields.labels || [],
       assignee: fields.assignee?.displayName,
+      assigneeEmail: fields.assignee?.emailAddress,
       createdAt: fields.created,
       updatedAt: fields.updated
     }
@@ -304,7 +337,7 @@ export class JiraClient {
         type: board.type.toLowerCase() as 'scrum' | 'kanban' | 'simple'
       }))
     } catch (error) {
-      console.error('[JiraClient] Failed to list boards:', error)
+      logger.log('error', '[JiraClient] Failed to list boards:', error)
       throw error
     }
   }
@@ -324,7 +357,7 @@ export class JiraClient {
         endDate: sprint.endDate
       }))
     } catch (error) {
-      console.error('[JiraClient] Failed to list sprints:', error)
+      logger.log('error', '[JiraClient] Failed to list sprints:', error)
       throw error
     }
   }
@@ -343,7 +376,7 @@ export class JiraClient {
         owner: filter.owner?.displayName
       }))
     } catch (error) {
-      console.error('[JiraClient] Failed to list filters:', error)
+      logger.log('error', '[JiraClient] Failed to list filters:', error)
       throw error
     }
   }
@@ -361,7 +394,29 @@ export class JiraClient {
         name: project.name
       }))
     } catch (error) {
-      console.error('[JiraClient] Failed to list projects:', error)
+      logger.log('error', '[JiraClient] Failed to list projects:', error)
+      throw error
+    }
+  }
+
+  /**
+   * List all available statuses
+   */
+  async listStatuses(): Promise<JiraStatus[]> {
+    try {
+      const data = await this.request<any>('/rest/api/3/status')
+
+      return data.map((status: any) => ({
+        id: status.id,
+        name: status.name,
+        statusCategory: {
+          id: status.statusCategory.id,
+          key: status.statusCategory.key,
+          name: status.statusCategory.name
+        }
+      }))
+    } catch (error) {
+      logger.log('error', '[JiraClient] Failed to list statuses:', error)
       throw error
     }
   }
@@ -373,15 +428,22 @@ export class JiraClient {
   /**
    * Fetch issues from a board
    */
-  async fetchBoardIssues(boardId: number, maxResults = 100): Promise<ExternalIssue[]> {
+  async fetchBoardIssues(boardId: number, maxResults = 500, startAt = 0): Promise<ExternalIssue[]> {
     try {
       const data = await this.request<any>(
-        `/rest/agile/1.0/board/${boardId}/issue?maxResults=${maxResults}`
+        `/rest/agile/1.0/board/${boardId}/issue?maxResults=${maxResults}&startAt=${startAt}`
       )
+
+      // Log pagination info if there are more results
+      if (data.total > data.startAt + data.issues.length) {
+        logger.debug(
+          `[JiraClient] Retrieved ${data.issues.length} board issues (${data.startAt + 1}-${data.startAt + data.issues.length} of ${data.total} total)`
+        )
+      }
 
       return data.issues.map((issue: any) => this.mapIssueToExternalIssue(issue))
     } catch (error) {
-      console.error('[JiraClient] Failed to fetch board issues:', error)
+      logger.log('error', '[JiraClient] Failed to fetch board issues:', error)
       throw error
     }
   }
@@ -389,15 +451,22 @@ export class JiraClient {
   /**
    * Fetch issues from a sprint
    */
-  async fetchSprintIssues(sprintId: number, maxResults = 100): Promise<ExternalIssue[]> {
+  async fetchSprintIssues(sprintId: number, maxResults = 500, startAt = 0): Promise<ExternalIssue[]> {
     try {
       const data = await this.request<any>(
-        `/rest/agile/1.0/sprint/${sprintId}/issue?maxResults=${maxResults}`
+        `/rest/agile/1.0/sprint/${sprintId}/issue?maxResults=${maxResults}&startAt=${startAt}`
       )
+
+      // Log pagination info if there are more results
+      if (data.total > data.startAt + data.issues.length) {
+        logger.debug(
+          `[JiraClient] Retrieved ${data.issues.length} sprint issues (${data.startAt + 1}-${data.startAt + data.issues.length} of ${data.total} total)`
+        )
+      }
 
       return data.issues.map((issue: any) => this.mapIssueToExternalIssue(issue))
     } catch (error) {
-      console.error('[JiraClient] Failed to fetch sprint issues:', error)
+      logger.log('error', '[JiraClient] Failed to fetch sprint issues:', error)
       throw error
     }
   }
@@ -405,15 +474,22 @@ export class JiraClient {
   /**
    * Fetch backlog issues for a board
    */
-  async fetchBacklogIssues(boardId: number, maxResults = 100): Promise<ExternalIssue[]> {
+  async fetchBacklogIssues(boardId: number, maxResults = 500, startAt = 0): Promise<ExternalIssue[]> {
     try {
       const data = await this.request<any>(
-        `/rest/agile/1.0/board/${boardId}/backlog?maxResults=${maxResults}`
+        `/rest/agile/1.0/board/${boardId}/backlog?maxResults=${maxResults}&startAt=${startAt}`
       )
+
+      // Log pagination info if there are more results
+      if (data.total > data.startAt + data.issues.length) {
+        logger.debug(
+          `[JiraClient] Retrieved ${data.issues.length} backlog issues (${data.startAt + 1}-${data.startAt + data.issues.length} of ${data.total} total)`
+        )
+      }
 
       return data.issues.map((issue: any) => this.mapIssueToExternalIssue(issue))
     } catch (error) {
-      console.error('[JiraClient] Failed to fetch backlog issues:', error)
+      logger.log('error', '[JiraClient] Failed to fetch backlog issues:', error)
       throw error
     }
   }
@@ -421,7 +497,7 @@ export class JiraClient {
   /**
    * Fetch issues from a saved filter
    */
-  async fetchFilterIssues(filterId: number, maxResults = 100): Promise<ExternalIssue[]> {
+  async fetchFilterIssues(filterId: number, maxResults = 500, startAt = 0): Promise<ExternalIssue[]> {
     try {
       // Get filter details first to get the JQL
       const filter = await this.request<any>(`/rest/api/3/filter/${filterId}`)
@@ -434,6 +510,7 @@ export class JiraClient {
           body: JSON.stringify({
             jql: filter.jql,
             maxResults,
+            startAt,
             fields: [
               'summary',
               'description',
@@ -447,9 +524,16 @@ export class JiraClient {
         }
       )
 
+      // Log pagination info if there are more results
+      if (data.total > data.startAt + data.issues.length) {
+        logger.debug(
+          `[JiraClient] Retrieved ${data.issues.length} issues (${data.startAt + 1}-${data.startAt + data.issues.length} of ${data.total} total)`
+        )
+      }
+
       return data.issues.map((issue: any) => this.mapIssueToExternalIssue(issue))
     } catch (error) {
-      console.error('[JiraClient] Failed to fetch filter issues:', error)
+      logger.log('error', '[JiraClient] Failed to fetch filter issues:', error)
       throw error
     }
   }
@@ -457,7 +541,7 @@ export class JiraClient {
   /**
    * Fetch issues using custom JQL
    */
-  async fetchJQLIssues(jql: string, maxResults = 100): Promise<ExternalIssue[]> {
+  async fetchJQLIssues(jql: string, maxResults = 500, startAt = 0): Promise<ExternalIssue[]> {
     try {
       const data = await this.request<any>(
         `/rest/api/3/search/jql`,
@@ -466,6 +550,7 @@ export class JiraClient {
           body: JSON.stringify({
             jql,
             maxResults,
+            startAt,
             fields: [
               'summary',
               'description',
@@ -479,9 +564,16 @@ export class JiraClient {
         }
       )
 
+      // Log pagination info if there are more results
+      if (data.total > data.startAt + data.issues.length) {
+        logger.debug(
+          `[JiraClient] Retrieved ${data.issues.length} issues (${data.startAt + 1}-${data.startAt + data.issues.length} of ${data.total} total)`
+        )
+      }
+
       return data.issues.map((issue: any) => this.mapIssueToExternalIssue(issue))
     } catch (error) {
-      console.error('[JiraClient] Failed to fetch JQL issues:', error)
+      logger.log('error', '[JiraClient] Failed to fetch JQL issues:', error)
       throw error
     }
   }
@@ -489,42 +581,374 @@ export class JiraClient {
   /**
    * Fetch issues from a project
    */
-  async fetchProjectIssues(projectKey: string, maxResults = 100): Promise<ExternalIssue[]> {
-    return this.fetchJQLIssues(`project = ${projectKey} ORDER BY created DESC`, maxResults)
+  async fetchProjectIssues(projectKey: string, maxResults = 500, startAt = 0): Promise<ExternalIssue[]> {
+    return this.fetchJQLIssues(`project = ${projectKey} ORDER BY created DESC`, maxResults, startAt)
   }
 
   /**
    * Fetch issues from a source configuration
    */
-  async fetchFromSource(sourceConfig: JiraSourceConfig, maxResults = 100): Promise<ExternalIssue[]> {
+  async fetchFromSource(
+    sourceConfig: JiraSourceConfig,
+    options?: FetchIssuesOptions
+  ): Promise<FetchIssuesResult> {
+    const maxResults = options?.limit || 25
+
     switch (sourceConfig.sourceType) {
       case 'board':
-        return this.fetchBoardIssues(sourceConfig.boardId, maxResults)
+        return await this.fetchBoardIssuesWithFilters(sourceConfig.boardId, options)
 
       case 'sprint':
         // For sprint sources, we need to find the appropriate sprint first
         const sprints = await this.listSprints(sourceConfig.boardId)
         const sprint = sprints.find((s) => s.state === sourceConfig.sprintState)
         if (!sprint) {
-          console.warn(`[JiraClient] No ${sourceConfig.sprintState} sprint found for board ${sourceConfig.boardId}`)
-          return []
+          logger.debug(`[JiraClient] No ${sourceConfig.sprintState} sprint found for board ${sourceConfig.boardId}`)
+          return { issues: [], total: 0, startAt: 0, maxResults, hasMore: false }
         }
-        return this.fetchSprintIssues(sprint.id, maxResults)
+        return await this.fetchSprintIssuesWithFilters(sprint.id, options)
 
       case 'backlog':
-        return this.fetchBacklogIssues(sourceConfig.boardId, maxResults)
+        return await this.fetchBacklogIssuesWithFilters(sourceConfig.boardId, options)
 
       case 'filter':
-        return this.fetchFilterIssues(sourceConfig.filterId, maxResults)
+        // For filters, modify the filter's JQL with additional filters (server-side)
+        return await this.fetchFilterIssuesWithOptionsResult(sourceConfig.filterId, options)
 
       case 'jql':
-        return this.fetchJQLIssues(sourceConfig.jql, maxResults)
+        // For custom JQL, apply filters to the JQL (server-side)
+        return await this.fetchJQLIssuesWithOptionsResult(sourceConfig.jql, options)
 
       case 'project':
-        return this.fetchProjectIssues(sourceConfig.projectKey, maxResults)
+        // For projects, apply filters to the project JQL (server-side)
+        return await this.fetchProjectIssuesWithOptionsResult(sourceConfig.projectKey, options)
 
       default:
         throw new Error(`Unknown source type: ${(sourceConfig as any).sourceType}`)
     }
+  }
+
+
+  // ============================================================================
+  // PAGINATION-AWARE FETCH METHODS
+  // ============================================================================
+
+  /**
+   * Fetch board issues with filters and pagination metadata
+   */
+  private async fetchBoardIssuesWithFilters(
+    boardId: number,
+    options?: FetchIssuesOptions
+  ): Promise<FetchIssuesResult> {
+    const maxResults = options?.limit || 25
+    const startAt = options?.startAt || 0
+
+    try {
+      // For board issues, we need to use JQL to apply filters server-side
+      // Build JQL query for the board
+      let jql = `board = ${boardId} ORDER BY created DESC`
+
+      // Build filter clauses
+      const filters: string[] = []
+
+      if (options?.assignedToMe) {
+        filters.push(`assignee = "${this.email}"`)
+      }
+
+      if (options?.state && options.state !== 'all') {
+        const statusFilter =
+          options.state === 'open'
+            ? 'statusCategory != Done'
+            : options.state === 'closed'
+            ? 'statusCategory = Done'
+            : ''
+        if (statusFilter) {
+          filters.push(statusFilter)
+        }
+      }
+
+      if (filters.length > 0) {
+        const filterClause = filters.join(' AND ')
+        jql = `${jql} AND ${filterClause}`
+      }
+
+      const data = await this.request<any>('/rest/api/3/search/jql', {
+        method: 'POST',
+        body: JSON.stringify({
+          jql,
+          maxResults,
+          startAt,
+          fields: [
+            'summary',
+            'description',
+            'status',
+            'labels',
+            'assignee',
+            'created',
+            'updated'
+          ]
+        })
+      })
+
+      const issues = (data.issues || []).map((issue: any) => this.mapIssueToExternalIssue(issue))
+
+      return {
+        issues,
+        total: data.total || 0,
+        startAt: data.startAt || 0,
+        maxResults: data.maxResults || maxResults,
+        hasMore: (data.startAt || 0) + issues.length < (data.total || 0)
+      }
+    } catch (error) {
+      logger.log('error', '[JiraClient] Failed to fetch board issues with filters:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Fetch sprint issues with filters and pagination metadata
+   */
+  private async fetchSprintIssuesWithFilters(
+    sprintId: number,
+    options?: FetchIssuesOptions
+  ): Promise<FetchIssuesResult> {
+    const maxResults = options?.limit || 25
+    const startAt = options?.startAt || 0
+
+    try {
+      // For sprint issues, we need to use JQL to apply filters server-side
+      let jql = `sprint = ${sprintId} ORDER BY created DESC`
+
+      // Build filter clauses
+      const filters: string[] = []
+
+      if (options?.assignedToMe) {
+        filters.push(`assignee = "${this.email}"`)
+      }
+
+      if (options?.state && options.state !== 'all') {
+        const statusFilter =
+          options.state === 'open'
+            ? 'statusCategory != Done'
+            : options.state === 'closed'
+            ? 'statusCategory = Done'
+            : ''
+        if (statusFilter) {
+          filters.push(statusFilter)
+        }
+      }
+
+      if (filters.length > 0) {
+        const filterClause = filters.join(' AND ')
+        jql = `${jql} AND ${filterClause}`
+      }
+
+      const data = await this.request<any>('/rest/api/3/search/jql', {
+        method: 'POST',
+        body: JSON.stringify({
+          jql,
+          maxResults,
+          startAt,
+          fields: [
+            'summary',
+            'description',
+            'status',
+            'labels',
+            'assignee',
+            'created',
+            'updated'
+          ]
+        })
+      })
+
+      const issues = (data.issues || []).map((issue: any) => this.mapIssueToExternalIssue(issue))
+
+      return {
+        issues,
+        total: data.total || 0,
+        startAt: data.startAt || 0,
+        maxResults: data.maxResults || maxResults,
+        hasMore: (data.startAt || 0) + issues.length < (data.total || 0)
+      }
+    } catch (error) {
+      logger.log('error', '[JiraClient] Failed to fetch sprint issues with filters:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Fetch backlog issues with filters and pagination metadata
+   */
+  private async fetchBacklogIssuesWithFilters(
+    boardId: number,
+    options?: FetchIssuesOptions
+  ): Promise<FetchIssuesResult> {
+    const maxResults = options?.limit || 25
+    const startAt = options?.startAt || 0
+
+    try {
+      // For backlog issues, we need to use JQL to apply filters server-side
+      let jql = `sprint is EMPTY AND board = ${boardId} ORDER BY created DESC`
+
+      // Build filter clauses
+      const filters: string[] = []
+
+      if (options?.assignedToMe) {
+        filters.push(`assignee = "${this.email}"`)
+      }
+
+      if (options?.state && options.state !== 'all') {
+        const statusFilter =
+          options.state === 'open'
+            ? 'statusCategory != Done'
+            : options.state === 'closed'
+            ? 'statusCategory = Done'
+            : ''
+        if (statusFilter) {
+          filters.push(statusFilter)
+        }
+      }
+
+      if (filters.length > 0) {
+        const filterClause = filters.join(' AND ')
+        jql = `${jql} AND ${filterClause}`
+      }
+
+      const data = await this.request<any>('/rest/api/3/search/jql', {
+        method: 'POST',
+        body: JSON.stringify({
+          jql,
+          maxResults,
+          startAt,
+          fields: [
+            'summary',
+            'description',
+            'status',
+            'labels',
+            'assignee',
+            'created',
+            'updated'
+          ]
+        })
+      })
+
+      const issues = (data.issues || []).map((issue: any) => this.mapIssueToExternalIssue(issue))
+
+      return {
+        issues,
+        total: data.total || 0,
+        startAt: data.startAt || 0,
+        maxResults: data.maxResults || maxResults,
+        hasMore: (data.startAt || 0) + issues.length < (data.total || 0)
+      }
+    } catch (error) {
+      logger.log('error', '[JiraClient] Failed to fetch backlog issues with filters:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Fetch filter issues with options and return result with pagination
+   */
+  private async fetchFilterIssuesWithOptionsResult(
+    filterId: number,
+    options?: FetchIssuesOptions
+  ): Promise<FetchIssuesResult> {
+    try {
+      // Get filter details first to get the JQL
+      const filter = await this.request<any>(`/rest/api/3/filter/${filterId}`)
+
+      // Use the filter's JQL with options
+      return await this.fetchJQLIssuesWithOptionsResult(filter.jql, options)
+    } catch (error) {
+      logger.log('error', '[JiraClient] Failed to fetch filter issues:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Fetch issues using JQL with options and return result with pagination
+   */
+  private async fetchJQLIssuesWithOptionsResult(
+    baseJql: string,
+    options?: FetchIssuesOptions
+  ): Promise<FetchIssuesResult> {
+    try {
+      // Build filter clauses
+      const filters: string[] = []
+
+      // Add assignee filter if provided
+      if (options?.assignedToMe) {
+        filters.push(`assignee = "${this.email}"`)
+      }
+
+      // Add status filter if provided
+      if (options?.state && options.state !== 'all') {
+        const statusFilter =
+          options.state === 'open'
+            ? 'statusCategory != Done'
+            : options.state === 'closed'
+            ? 'statusCategory = Done'
+            : ''
+
+        if (statusFilter) {
+          filters.push(statusFilter)
+        }
+      }
+
+      // Combine base JQL with filters
+      let jql = baseJql
+      if (filters.length > 0) {
+        const filterClause = filters.join(' AND ')
+        jql = `${jql} AND ${filterClause}`
+      }
+
+      const maxResults = options?.limit || 25
+      const startAt = options?.startAt || 0
+
+      logger.debug('[JiraClient] Executing JQL query with options:', jql, { maxResults, startAt })
+
+      const data = await this.request<any>('/rest/api/3/search/jql', {
+        method: 'POST',
+        body: JSON.stringify({
+          jql,
+          maxResults,
+          startAt,
+          fields: [
+            'summary',
+            'description',
+            'status',
+            'labels',
+            'assignee',
+            'created',
+            'updated'
+          ]
+        })
+      })
+
+      const issues = (data.issues || []).map((issue: any) => this.mapIssueToExternalIssue(issue))
+
+      return {
+        issues,
+        total: data.total || 0,
+        startAt: data.startAt || 0,
+        maxResults: data.maxResults || maxResults,
+        hasMore: (data.startAt || 0) + issues.length < (data.total || 0)
+      }
+    } catch (error) {
+      logger.log('error', '[JiraClient] Failed to fetch JQL issues with options:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Fetch issues from a project with options and return result with pagination
+   */
+  private async fetchProjectIssuesWithOptionsResult(
+    projectKey: string,
+    options?: FetchIssuesOptions
+  ): Promise<FetchIssuesResult> {
+    const jql = `project = ${projectKey} ORDER BY created DESC`
+    return this.fetchJQLIssuesWithOptionsResult(jql, options)
   }
 }

@@ -23,7 +23,7 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Loader2, Search, Github, ExternalLink, CheckSquare, Square, ArrowLeft, Plug } from 'lucide-react'
+import { Loader2, Search, Github, ExternalLink, CheckSquare, Square, ArrowLeft, Plug, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useIntegrationStore } from '@/stores/integration-store'
 import { useTaskStore } from '@/stores/task-store'
 import { useProjectStore } from '@/stores/project-store'
@@ -46,7 +46,6 @@ export function IntegrationView() {
     connections,
     fetchSources,
     fetchConnections,
-    fetchSourceIssues,
     fetchingIssues,
     error: integrationError
   } = useIntegrationStore()
@@ -62,6 +61,12 @@ export function IntegrationView() {
   const [importing, setImporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedProjectId, setSelectedProjectId] = useState<string>('')
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalIssues, setTotalIssues] = useState(0)
+  const [hasMore, setHasMore] = useState(false)
+  const pageSize = 25
 
   // Get current source and connection
   // Handle both source IDs and legacy integration IDs
@@ -82,12 +87,17 @@ export function IntegrationView() {
     fetchConnections()
   }, [fetchSources, fetchConnections])
 
-  // Fetch issues when source or filters change
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [filterState, filterAssignedToMe])
+
+  // Fetch issues when source, filters, or page changes
   useEffect(() => {
     if (source) {
       loadIssues()
     }
-  }, [source, filterState, filterAssignedToMe])
+  }, [source, filterState, filterAssignedToMe, currentPage])
 
   // Filter issues based on search query (assignee filter is now handled at API level)
   useEffect(() => {
@@ -115,11 +125,14 @@ export function IntegrationView() {
       const options: FetchIssuesOptions = {
         state: filterState,
         assignedToMe: filterAssignedToMe,
-        limit: 100
+        limit: pageSize,
+        startAt: (currentPage - 1) * pageSize
       }
 
-      const fetchedIssues = await fetchSourceIssues(source.id, options)
-      setIssues(fetchedIssues)
+      const result = await window.api.fetchSourceIssues(source.id, options)
+      setIssues(result.issues || [])
+      setTotalIssues(result.total || 0)
+      setHasMore(result.hasMore || false)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch issues')
     }
@@ -360,6 +373,39 @@ export function IntegrationView() {
               })}
             </div>
           </ScrollArea>
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {!isLoading && totalIssues > 0 && (
+        <div className="flex items-center justify-between pt-4 border-t mt-4">
+          <div className="text-sm text-muted-foreground">
+            Showing {Math.min((currentPage - 1) * pageSize + 1, totalIssues)}-
+            {Math.min(currentPage * pageSize, totalIssues)} of {totalIssues} issues
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1 || isLoading}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </Button>
+            <div className="text-sm font-medium px-2">
+              Page {currentPage} of {Math.ceil(totalIssues / pageSize)}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => p + 1)}
+              disabled={!hasMore || isLoading}
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       )}
 

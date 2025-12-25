@@ -21,9 +21,11 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog'
-import { Loader2, Plus, Github, Settings, Trash2, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react'
+import { Loader2, Plus, Github, Settings, Trash2, CheckCircle2, XCircle, AlertTriangle, Layout } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SetupIntegrationDialog } from './SetupIntegrationDialog'
+import { ManageSourcesDialog } from './ManageSourcesDialog'
+import type { IntegrationConnection } from '@shared/types'
 
 export function IntegrationsPanel() {
   const {
@@ -44,6 +46,8 @@ export function IntegrationsPanel() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [connectionToDelete, setConnectionToDelete] = useState<{ id: string; name: string } | null>(null)
   const [testResults, setTestResults] = useState<Map<string, { success: boolean; message?: string }>>(new Map())
+  const [manageSourcesDialogOpen, setManageSourcesDialogOpen] = useState(false)
+  const [selectedConnection, setSelectedConnection] = useState<IntegrationConnection | null>(null)
 
   useEffect(() => {
     fetchConnections()
@@ -103,6 +107,11 @@ export function IntegrationsPanel() {
       default:
         return <Settings className="h-5 w-5" />
     }
+  }
+
+  const handleManageSourcesClick = (connection: IntegrationConnection) => {
+    setSelectedConnection(connection)
+    setManageSourcesDialogOpen(true)
   }
 
   const getConnectionDisplayName = (connectionId: string, _connectionType: string) => {
@@ -193,48 +202,90 @@ export function IntegrationsPanel() {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="flex items-center justify-between pb-3">
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleTestConnection(connection.id)}
-                      disabled={isTesting || !connection.enabled}
-                    >
-                      {isTesting ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : null}
-                      Test Connection
-                    </Button>
-                    {testResult && (
-                      <div className={cn(
-                        "flex items-center gap-1 text-sm",
-                        testResult.success ? "text-green-600" : "text-destructive"
-                      )}>
-                        {testResult.success ? (
-                          <CheckCircle2 className="h-4 w-4" />
-                        ) : (
-                          <XCircle className="h-4 w-4" />
-                        )}
-                        <span>{testResult.message || (testResult.success ? 'Connected' : 'Failed')}</span>
+                <CardContent className="space-y-3 pb-3">
+                  {/* Sources List */}
+                  {connection.type === 'jira' && (() => {
+                    const connectionSources = getSourcesForConnection(connection.id)
+                    return connectionSources.length > 0 ? (
+                      <div className="space-y-2">
+                        <div className="text-xs font-medium text-muted-foreground">Sources:</div>
+                        <div className="space-y-1">
+                          {connectionSources.map((source) => (
+                            <div
+                              key={source.id}
+                              className="flex items-center gap-2 text-sm rounded-md bg-muted/50 px-2 py-1"
+                            >
+                              <Layout className="h-3 w-3 text-muted-foreground" />
+                              <span className="flex-1">{source.name}</span>
+                              <Badge variant="outline" className="text-xs capitalize">
+                                {source.config.type === 'jira' ? source.config.sourceType : ''}
+                              </Badge>
+                              {!source.enabled && (
+                                <Badge variant="secondary" className="text-xs">
+                                  Disabled
+                                </Badge>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleToggleEnabled(connection.id, connection.enabled)}
-                    >
-                      {connection.enabled ? 'Disable' : 'Enable'}
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDeleteClick(connection.id, connection.name)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    ) : null
+                  })()}
+
+                  {/* Action Buttons */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleTestConnection(connection.id)}
+                        disabled={isTesting || !connection.enabled}
+                      >
+                        {isTesting ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : null}
+                        Test Connection
+                      </Button>
+                      {testResult && (
+                        <div className={cn(
+                          "flex items-center gap-1 text-sm",
+                          testResult.success ? "text-green-600" : "text-destructive"
+                        )}>
+                          {testResult.success ? (
+                            <CheckCircle2 className="h-4 w-4" />
+                          ) : (
+                            <XCircle className="h-4 w-4" />
+                          )}
+                          <span>{testResult.message || (testResult.success ? 'Connected' : 'Failed')}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {connection.type === 'jira' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleManageSourcesClick(connection)}
+                        >
+                          <Layout className="mr-2 h-4 w-4" />
+                          Manage Sources
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleToggleEnabled(connection.id, connection.enabled)}
+                      >
+                        {connection.enabled ? 'Disable' : 'Enable'}
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDeleteClick(connection.id, connection.name)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -247,6 +298,13 @@ export function IntegrationsPanel() {
       <SetupIntegrationDialog
         open={setupDialogOpen}
         onOpenChange={setSetupDialogOpen}
+      />
+
+      {/* Manage Sources Dialog */}
+      <ManageSourcesDialog
+        open={manageSourcesDialogOpen}
+        onOpenChange={setManageSourcesDialogOpen}
+        connection={selectedConnection}
       />
 
       {/* Delete Confirmation Dialog */}

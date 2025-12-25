@@ -21,6 +21,8 @@ import type {
   JiraSprint,
   JiraFilter,
   JiraProject,
+  JiraStatus,
+  FetchIssuesResult,
   TaskManifest
 } from '@shared/types'
 import { getIntegration, getConnection, getSource } from '@main/storage/integration-store'
@@ -271,6 +273,19 @@ export async function listJiraProjects(connectionId: string): Promise<JiraProjec
   return await client.listProjects()
 }
 
+/**
+ * List statuses for a Jira connection
+ */
+export async function listJiraStatuses(connectionId: string): Promise<JiraStatus[]> {
+  const connection = await getConnection(connectionId)
+  if (!connection || connection.type !== 'jira') {
+    throw new Error('Invalid Jira connection')
+  }
+
+  const client = await createJiraClientForConnection(connection)
+  return await client.listStatuses()
+}
+
 // ============================================================================
 // SOURCE OPERATIONS
 // ============================================================================
@@ -281,7 +296,7 @@ export async function listJiraProjects(connectionId: string): Promise<JiraProjec
 export async function fetchIssuesFromSource(
   sourceId: string,
   options?: FetchIssuesOptions
-): Promise<ExternalIssue[]> {
+): Promise<FetchIssuesResult> {
   const source = await getSource(sourceId)
   if (!source) {
     throw new Error('Source not found')
@@ -291,24 +306,31 @@ export async function fetchIssuesFromSource(
     throw new Error('Source is disabled')
   }
 
-  let issues: ExternalIssue[]
-
   if (source.config.type === 'github') {
     const client = await createGitHubClientForSource(source)
-    issues = await client.fetchIssues(options)
+    const issues = await client.fetchIssues(options)
+
+    // GitHub client returns ExternalIssue[], wrap in FetchIssuesResult
+    // GitHub API doesn't provide total count easily, so we assume no pagination for now
+    return {
+      issues: issues.map((issue) => ({ ...issue, sourceId })),
+      total: issues.length,
+      startAt: 0,
+      maxResults: issues.length,
+      hasMore: false
+    }
   } else if (source.config.type === 'jira') {
     const client = await createJiraClientForSource(source)
-    const maxResults = options?.limit || 100
-    issues = await client.fetchFromSource(source.config as JiraSourceConfig, maxResults)
+    const result = await client.fetchFromSource(source.config as JiraSourceConfig, options)
+
+    // Set sourceId on all issues
+    return {
+      ...result,
+      issues: result.issues.map((issue) => ({ ...issue, sourceId }))
+    }
   } else {
     throw new Error('Unknown source type')
   }
-
-  // Set sourceId on all issues
-  return issues.map((issue) => ({
-    ...issue,
-    sourceId
-  }))
 }
 
 // ============================================================================
