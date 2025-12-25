@@ -211,119 +211,34 @@ export const useClaudeConfigStore = create<ClaudeConfigState>((set, get) => ({
   },
 
   // ============ Skill Actions ============
+  // Skills feature has been removed from the codebase
 
-  createSkill: async (projectId: string, data: CreateClaudeSkillData) => {
-    set({ isCreating: true, error: null })
-
-    try {
-      const skill = await window.api.createClaudeSkill(projectId, data)
-
-      // Update config with new skill
-      const { config } = get()
-      if (config) {
-        set({
-          config: {
-            ...config,
-            skills: [...config.skills, skill]
-          },
-          isCreating: false
-        })
-      } else {
-        set({ isCreating: false })
-      }
-
-      return skill
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create skill'
-      set({ error: errorMessage, isCreating: false })
-      throw new Error(errorMessage)
-    }
+  createSkill: async (_projectId: string, _data: CreateClaudeSkillData) => {
+    const errorMessage = 'Skills feature has been removed from the codebase'
+    set({ error: errorMessage, isCreating: false })
+    throw new Error(errorMessage)
   },
 
   updateSkill: async (
-    projectId: string,
-    name: string,
-    updates: Partial<CreateClaudeSkillData>
+    _projectId: string,
+    _name: string,
+    _updates: Partial<CreateClaudeSkillData>
   ) => {
-    set({ isUpdating: true, error: null })
-
-    try {
-      const skill = await window.api.updateClaudeSkill(projectId, name, updates)
-
-      // Update config with modified skill
-      const { config } = get()
-      if (config) {
-        set({
-          config: {
-            ...config,
-            skills: config.skills.map((s) => (s.name === name ? skill : s))
-          },
-          isUpdating: false
-        })
-      } else {
-        set({ isUpdating: false })
-      }
-
-      return skill
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update skill'
-      set({ error: errorMessage, isUpdating: false })
-      throw new Error(errorMessage)
-    }
+    const errorMessage = 'Skills feature has been removed from the codebase'
+    set({ error: errorMessage, isUpdating: false })
+    throw new Error(errorMessage)
   },
 
-  deleteSkill: async (projectId: string, name: string) => {
-    set({ isDeleting: true, error: null })
-
-    try {
-      await window.api.deleteClaudeSkill(projectId, name)
-
-      // Remove skill from config
-      const { config } = get()
-      if (config) {
-        set({
-          config: {
-            ...config,
-            skills: config.skills.filter((s) => s.name !== name)
-          },
-          isDeleting: false
-        })
-      } else {
-        set({ isDeleting: false })
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to delete skill'
-      set({ error: errorMessage, isDeleting: false })
-      throw new Error(errorMessage)
-    }
+  deleteSkill: async (_projectId: string, _name: string) => {
+    const errorMessage = 'Skills feature has been removed from the codebase'
+    set({ error: errorMessage, isDeleting: false })
+    throw new Error(errorMessage)
   },
 
-  toggleSkill: async (projectId: string, name: string, enabled: boolean) => {
-    set({ isUpdating: true, error: null })
-
-    try {
-      const skill = await window.api.toggleClaudeSkill(projectId, name, enabled)
-
-      // Update config with modified skill
-      const { config } = get()
-      if (config) {
-        set({
-          config: {
-            ...config,
-            skills: config.skills.map((s) => (s.name === name ? skill : s))
-          },
-          isUpdating: false
-        })
-      } else {
-        set({ isUpdating: false })
-      }
-
-      return skill
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to toggle skill'
-      set({ error: errorMessage, isUpdating: false })
-      throw new Error(errorMessage)
-    }
+  toggleSkill: async (_projectId: string, _name: string, _enabled: boolean) => {
+    const errorMessage = 'Skills feature has been removed from the codebase'
+    set({ error: errorMessage, isUpdating: false })
+    throw new Error(errorMessage)
   },
 
   // ============ Command Actions ============

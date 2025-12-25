@@ -1,11 +1,8 @@
 import type { TaskManifest } from '@shared/types'
-import { Brain, Loader2, Wand2 } from 'lucide-react'
+import { Brain, Loader2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { suggestSkills } from '@/lib/skill-suggestions'
-import { useSkillStore } from '@/stores/skill-store'
 import { useAgentCacheStore } from '@/stores/agent-cache-store'
 import { logger } from '@/lib/logger'
-import { SkillSelector } from '@/components/skills/SkillSelector'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -35,7 +32,6 @@ interface EditTaskDialogProps {
     projectId: string,
     updates: {
       prompt: string
-      enabledSkills?: string[]
       agentId?: string
       model?: string
       thinkingMode?: boolean | null
@@ -51,12 +47,10 @@ export function EditTaskDialog({
   onSave
 }: EditTaskDialogProps) {
   const [prompt, setPrompt] = useState('') // HTML content
-  const [promptText, setPromptText] = useState('') // Plain text for skill suggestions
-  const [selectedSkills, setSelectedSkills] = useState<string[]>([])
+  const [promptText, setPromptText] = useState('') // Plain text for validation
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const { skills, fetchSkills } = useSkillStore()
   const initializedRef = useRef(false)
 
   // Use cached agent data
@@ -71,13 +65,6 @@ export function EditTaskDialog({
 
   // Thinking mode (null = use global default, true/false = override)
   const [thinkingMode, setThinkingMode] = useState<boolean | null>(null)
-
-  // Fetch skills when dialog opens
-  useEffect(() => {
-    if (open && skills.length === 0) {
-      fetchSkills()
-    }
-  }, [open, skills.length, fetchSkills])
 
   // Models are now loaded from cache automatically via getModelsForAgent
 
@@ -94,7 +81,6 @@ export function EditTaskDialog({
       // The RichTextEditor will call onChange with both html and text,
       // but we need to initialize promptText immediately for validation
       setPromptText(task.prompt || '')
-      setSelectedSkills(task.enabledSkills || [])
 
       const agentId = task.agentId || undefined
       setSelectedAgentId(agentId)
@@ -120,13 +106,6 @@ export function EditTaskDialog({
       initializedRef.current = false
     }
   }, [open])
-
-  // Auto-suggest skills based on current prompt
-  const handleAutoSuggestSkills = () => {
-    const enabledSkills = skills.filter((s) => s.enabled)
-    const suggested = suggestSkills('', promptText, enabledSkills)
-    setSelectedSkills(suggested)
-  }
 
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
@@ -157,7 +136,6 @@ export function EditTaskDialog({
       })
       await onSave(task.id, task.projectId, {
         prompt: prompt, // Send HTML content
-        enabledSkills: selectedSkills,
         agentId: selectedAgentId,
         model: selectedModel,
         thinkingMode
@@ -274,31 +252,6 @@ export function EditTaskDialog({
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Skills</Label>
-              <div className="col-span-3">
-                <div className="flex items-center gap-2">
-                  <div className="flex-1">
-                    <SkillSelector
-                      selectedSkillIds={selectedSkills}
-                      onSelectionChange={setSelectedSkills}
-                      hideLabel
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={handleAutoSuggestSkills}
-                    title="Auto-suggest skills based on prompt"
-                    className="shrink-0"
-                  >
-                    <Wand2 className="h-4 w-4" />
-                  </Button>
-                </div>
               </div>
             </div>
 

@@ -1,12 +1,9 @@
 import type { Project } from '@shared/types'
-import { Brain, Download, Loader2, Mic, Square, Wand2 } from 'lucide-react'
+import { Brain, Download, Loader2, Mic, Square } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
-import { suggestSkills } from '@/lib/skill-suggestions'
-import { useSkillStore } from '@/stores/skill-store'
 import { useSessionStore } from '@/stores/session-store'
 import { useAgentCacheStore } from '@/stores/agent-cache-store'
-import { SkillSelector } from '@/components/skills/SkillSelector'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -33,7 +30,6 @@ interface AddTaskDialogProps {
   onAdd: (data: {
     prompt: string
     projectId: string
-    enabledSkills?: string[]
     agentId?: string | null
     model?: string | null
     thinkingMode?: boolean | null
@@ -56,9 +52,8 @@ export function AddTaskDialog({
   defaultModel: _defaultModel
 }: AddTaskDialogProps) {
   const [prompt, setPrompt] = useState('') // HTML content
-  const [promptText, setPromptText] = useState('') // Plain text for skill suggestions
+  const [promptText, setPromptText] = useState('') // Plain text for validation
   const [projectId, setProjectId] = useState(defaultProjectId || '')
-  const [selectedSkills, setSelectedSkills] = useState<string[]>([])
   const [isAdding, setIsAdding] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -77,8 +72,6 @@ export function AddTaskDialog({
 
   // Thinking mode (null = use global default, true/false = override)
   const [thinkingMode, setThinkingMode] = useState<boolean | null>(null)
-
-  const { skills, fetchSkills } = useSkillStore()
 
   // Speech recognition for voice input
   const {
@@ -127,45 +120,13 @@ export function AddTaskDialog({
     }
   }, [open, sessionProjectId])
 
-  // Fetch skills when dialog opens
-  useEffect(() => {
-    if (open && skills.length === 0) {
-      fetchSkills()
-    }
-  }, [open, skills.length, fetchSkills])
-
   // Models are now loaded from cache automatically via getModelsForAgent
-
-  // Auto-suggest skills when prompt changes (debounced)
-  useEffect(() => {
-    if (!promptText.trim()) {
-      setSelectedSkills([])
-      return
-    }
-
-    // Debounce the skill suggestion
-    const timeoutId = setTimeout(() => {
-      const enabledSkills = skills.filter((s) => s.enabled)
-      const suggested = suggestSkills('', promptText, enabledSkills)
-      setSelectedSkills(suggested)
-    }, 500) // 500ms debounce
-
-    return () => clearTimeout(timeoutId)
-  }, [promptText, skills])
-
-  // Manual auto-suggest skills (for the magic wand button)
-  const handleAutoSuggestSkills = () => {
-    const enabledSkills = skills.filter((s) => s.enabled)
-    const suggested = suggestSkills('', promptText, enabledSkills)
-    setSelectedSkills(suggested)
-  }
 
   const reset = () => {
     setPrompt('')
     setPromptText('')
     // Keep project sticky - restore from session store if available
     setProjectId(sessionProjectId || defaultProjectId || '')
-    setSelectedSkills([])
     // Keep agent/model sticky - restore from session store
     setSelectedAgentId(sessionAgentId)
     setSelectedModel(sessionModel)
@@ -203,7 +164,6 @@ export function AddTaskDialog({
       await onAdd({
         prompt: prompt, // Send HTML content
         projectId,
-        enabledSkills: selectedSkills,
         agentId: selectedAgentId || null,
         model: selectedModel || null,
         thinkingMode
@@ -405,27 +365,6 @@ export function AddTaskDialog({
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Skills</Label>
-              <div className="col-span-3 flex items-center gap-2">
-                <SkillSelector
-                  selectedSkillIds={selectedSkills}
-                  onSelectionChange={setSelectedSkills}
-                  hideLabel
-                  className="flex-1"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={handleAutoSuggestSkills}
-                  title="Auto-suggest skills based on prompt"
-                  className="shrink-0"
-                >
-                  <Wand2 className="h-4 w-4" />
-                </Button>
               </div>
             </div>
 

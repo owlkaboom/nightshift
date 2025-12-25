@@ -3,8 +3,6 @@ import { Check, Download, Loader2, Mic, Square, X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition'
 import { useSessionStore } from '@/stores/session-store'
-import { useSkillStore } from '@/stores/skill-store'
-import { suggestSkills } from '@/lib/skill-suggestions'
 import { markdownToHtml, isMarkdown } from '@/lib/markdown-to-html'
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
@@ -34,7 +32,6 @@ interface VoiceTaskDialogProps {
   onAdd: (data: {
     prompt: string
     projectId: string
-    enabledSkills?: string[]
     agentId?: string | null
     model?: string | null
   }) => Promise<void>
@@ -93,15 +90,11 @@ export function VoiceTaskDialog({
 
   const [step, setStep] = useState<VoiceStep>('prompt')
   const [prompt, setPrompt] = useState('') // HTML content
-  const [promptText, setPromptText] = useState('') // Plain text for skill suggestions
+  const [promptText, setPromptText] = useState('') // Plain text for validation
   const [projectId, setProjectId] = useState(defaultProjectId || '')
-  const [selectedSkills, setSelectedSkills] = useState<string[]>([])
   const [isAdding, setIsAdding] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [autoListening, setAutoListening] = useState(false)
-
-  // Skill store
-  const { skills, fetchSkills } = useSkillStore()
 
   const {
     status: speechStatus,
@@ -144,22 +137,6 @@ export function VoiceTaskDialog({
       setProjectId(sessionProjectId)
     }
   }, [open, sessionProjectId])
-
-  // Fetch skills when dialog opens
-  useEffect(() => {
-    if (open && skills.length === 0) {
-      fetchSkills()
-    }
-  }, [open, skills.length, fetchSkills])
-
-  // Auto-suggest skills when prompt changes (after moving from prompt step)
-  useEffect(() => {
-    if (step === 'project' && promptText.trim()) {
-      const enabledSkills = skills.filter((s) => s.enabled)
-      const suggested = suggestSkills('', promptText, enabledSkills)
-      setSelectedSkills(suggested)
-    }
-  }, [step, promptText, skills])
 
   // Auto-start listening when dialog opens (after model is loaded)
   useEffect(() => {
@@ -219,7 +196,6 @@ export function VoiceTaskDialog({
     setPromptText('')
     // Keep project sticky - restore from session store if available
     setProjectId(sessionProjectId || defaultProjectId || '')
-    setSelectedSkills([])
     setError(null)
     setIsAdding(false)
     setAutoListening(false)
@@ -277,7 +253,6 @@ export function VoiceTaskDialog({
       await onAdd({
         prompt: prompt, // Send HTML content
         projectId,
-        enabledSkills: selectedSkills,
         agentId: defaultAgentId,
         model: defaultModel
       })
@@ -287,7 +262,7 @@ export function VoiceTaskDialog({
     } finally {
       setIsAdding(false)
     }
-  }, [prompt, promptText, projectId, selectedSkills, onAdd, handleOpenChange, defaultAgentId, defaultModel])
+  }, [prompt, promptText, projectId, onAdd, handleOpenChange, defaultAgentId, defaultModel])
 
   const handleToggleListening = useCallback(async () => {
     if (isListening) {
@@ -603,25 +578,6 @@ export function VoiceTaskDialog({
                     minHeight="100px"
                   />
                 </div>
-                {selectedSkills.length > 0 && (
-                  <div>
-                    <p className="text-xs text-muted-foreground">Auto-detected Skills</p>
-                    <div className="flex flex-wrap gap-1.5 mt-1">
-                      {selectedSkills.map((skillId) => {
-                        const skill = skills.find((s) => s.id === skillId)
-                        return skill ? (
-                          <span
-                            key={skillId}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs"
-                          >
-                            <span>{skill.icon}</span>
-                            <span>{skill.name}</span>
-                          </span>
-                        ) : null
-                      })}
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           )}

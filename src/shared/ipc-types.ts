@@ -11,8 +11,6 @@ import type {
   TaskStatus,
   AgentCapabilities,
   AgentOutputEvent,
-  Skill,
-  SkillCategory,
   AgentModelInfo,
   PlanningSession,
   ExtractedPlanItem,
@@ -24,11 +22,9 @@ import type {
   NoteGroup,
   CreateNoteGroupData,
   ClaudeAgent,
-  ClaudeSkill,
   ClaudeCommand,
   ClaudeProjectConfig,
   CreateClaudeAgentData,
-  CreateClaudeSkillData,
   CreateClaudeCommandData,
   ClaudeMdAnalysis,
   ClaudeMdSubFile,
@@ -133,7 +129,6 @@ export interface CreateTaskData {
   groupId?: string | null
   contextFiles?: string[]
   includeClaudeMd?: boolean
-  enabledSkills?: string[]
   agentId?: string | null
   model?: string | null
   thinkingMode?: boolean | null
@@ -476,39 +471,6 @@ export interface MemoryHandlers {
   'memory:hasMemory': (projectId: string) => Promise<boolean>
 }
 
-// ============ Skill Channels ============
-
-export interface CreateSkillData {
-  name: string
-  description: string
-  prompt: string
-  icon?: string
-  category?: SkillCategory
-  enabled?: boolean
-}
-
-export interface GithubSkillData {
-  name: string
-  description: string
-  prompt: string
-  path: string
-}
-
-export interface SkillHandlers {
-  'skill:list': () => Promise<Skill[]>
-  'skill:get': (id: string) => Promise<Skill | null>
-  'skill:getByIds': (ids: string[]) => Promise<Skill[]>
-  'skill:getEnabled': () => Promise<Skill[]>
-  'skill:create': (data: CreateSkillData) => Promise<Skill>
-  'skill:update': (id: string, updates: Partial<Skill>) => Promise<Skill | null>
-  'skill:delete': (id: string) => Promise<boolean>
-  'skill:toggle': (id: string) => Promise<Skill | null>
-  'skill:setEnabled': (ids: string[], enabled: boolean) => Promise<void>
-  'skill:buildPrompt': (ids: string[]) => Promise<string>
-  'skill:reset': () => Promise<Skill[]>
-  'skill:fetchFromGithub': (githubUrl: string) => Promise<GithubSkillData[]>
-}
-
 // ============ Planning Channels ============
 
 export interface SendPlanningMessageData {
@@ -638,19 +600,12 @@ export interface ClaudeConfigHandlers {
   // Project scanning
   'claudeConfig:scan': (projectId: string) => Promise<ClaudeProjectConfig>
   'claudeConfig:getAgents': (projectId: string) => Promise<ClaudeAgent[]>
-  'claudeConfig:getSkills': (projectId: string) => Promise<ClaudeSkill[]>
   'claudeConfig:getCommands': (projectId: string) => Promise<ClaudeCommand[]>
 
   // Agent operations
   'claudeConfig:createAgent': (projectId: string, data: CreateClaudeAgentData) => Promise<ClaudeAgent>
   'claudeConfig:updateAgent': (projectId: string, name: string, updates: Partial<CreateClaudeAgentData>) => Promise<ClaudeAgent>
   'claudeConfig:deleteAgent': (projectId: string, name: string) => Promise<void>
-
-  // Skill operations
-  'claudeConfig:createSkill': (projectId: string, data: CreateClaudeSkillData) => Promise<ClaudeSkill>
-  'claudeConfig:updateSkill': (projectId: string, name: string, updates: Partial<CreateClaudeSkillData>) => Promise<ClaudeSkill>
-  'claudeConfig:deleteSkill': (projectId: string, name: string) => Promise<void>
-  'claudeConfig:toggleSkill': (projectId: string, name: string, enabled: boolean) => Promise<ClaudeSkill>
 
   // Command operations
   'claudeConfig:createCommand': (projectId: string, data: CreateClaudeCommandData) => Promise<ClaudeCommand>
@@ -711,12 +666,6 @@ export interface AnalysisHandlers {
 
   /** Get skill recommendations based on analysis */
   'analysis:getRecommendations': (projectId: string) => Promise<SkillRecommendation[]>
-
-  /** Create Claude skills from selected recommendations */
-  'analysis:createSkills': (
-    projectId: string,
-    recommendationIds: string[]
-  ) => Promise<ClaudeSkill[]>
 
   /** Clear cached analysis for a project */
   'analysis:clearCache': (projectId: string) => Promise<void>
@@ -880,7 +829,6 @@ export type IpcHandlers = ProjectHandlers &
   SystemHandlers &
   GitHandlers &
   AgentHandlers &
-  SkillHandlers &
   MemoryHandlers &
   PlanningHandlers &
   NoteHandlers &
@@ -1103,20 +1051,6 @@ export interface RendererApi {
     projectPath?: string
   ) => Promise<{ success: boolean; error?: string }>
 
-  // Skills
-  listSkills: () => Promise<Skill[]>
-  getSkill: (id: string) => Promise<Skill | null>
-  getSkillsByIds: (ids: string[]) => Promise<Skill[]>
-  getEnabledSkills: () => Promise<Skill[]>
-  createSkill: (data: CreateSkillData) => Promise<Skill>
-  updateSkill: (id: string, updates: Partial<Skill>) => Promise<Skill | null>
-  deleteSkill: (id: string) => Promise<boolean>
-  toggleSkill: (id: string) => Promise<Skill | null>
-  setSkillsEnabled: (ids: string[], enabled: boolean) => Promise<void>
-  buildSkillPrompt: (ids: string[]) => Promise<string>
-  resetSkills: () => Promise<Skill[]>
-  fetchGithubSkills: (githubUrl: string) => Promise<GithubSkillData[]>
-
   // Memory
   getProjectMemory: (projectId: string) => Promise<ProjectMemory>
   getMemoryContext: (projectId: string) => Promise<string>
@@ -1193,15 +1127,10 @@ export interface RendererApi {
   // Claude Config
   scanClaudeConfig: (projectId: string) => Promise<ClaudeProjectConfig>
   getClaudeAgents: (projectId: string) => Promise<ClaudeAgent[]>
-  getClaudeSkills: (projectId: string) => Promise<ClaudeSkill[]>
   getClaudeCommands: (projectId: string) => Promise<ClaudeCommand[]>
   createClaudeAgent: (projectId: string, data: CreateClaudeAgentData) => Promise<ClaudeAgent>
   updateClaudeAgent: (projectId: string, name: string, updates: Partial<CreateClaudeAgentData>) => Promise<ClaudeAgent>
   deleteClaudeAgent: (projectId: string, name: string) => Promise<void>
-  createClaudeSkill: (projectId: string, data: CreateClaudeSkillData) => Promise<ClaudeSkill>
-  updateClaudeSkill: (projectId: string, name: string, updates: Partial<CreateClaudeSkillData>) => Promise<ClaudeSkill>
-  deleteClaudeSkill: (projectId: string, name: string) => Promise<void>
-  toggleClaudeSkill: (projectId: string, name: string, enabled: boolean) => Promise<ClaudeSkill>
   createClaudeCommand: (projectId: string, data: CreateClaudeCommandData) => Promise<ClaudeCommand>
   updateClaudeCommand: (projectId: string, name: string, updates: Partial<CreateClaudeCommandData>) => Promise<ClaudeCommand>
   deleteClaudeCommand: (projectId: string, name: string) => Promise<void>
@@ -1236,11 +1165,6 @@ export interface RendererApi {
   detectTechnologies: (projectPath: string) => Promise<DetectedTechnology[]>
   detectPatterns: (projectPath: string) => Promise<DetectedPattern[]>
   getSkillRecommendations: (projectId: string) => Promise<SkillRecommendation[]>
-  createSkillsFromRecommendations: (
-    projectId: string,
-    projectPath: string,
-    recommendationIds: string[]
-  ) => Promise<ClaudeSkill[]>
   clearAnalysisCache: (projectId: string) => Promise<void>
   onAnalysisProgress: (
     callback: (data: { projectId: string; progress: AnalysisProgress }) => void

@@ -72,16 +72,6 @@ export {
   getAgentDefaultModel
 } from './agent'
 
-// Skill types
-export type { Skill, SkillCategory, SkillsRegistry } from './skill'
-export {
-  SKILL_CATEGORIES,
-  BUILT_IN_SKILLS,
-  generateSkillId,
-  createSkill,
-  createDefaultSkillsRegistry
-} from './skill'
-
 // Project memory types
 export type {
   ProjectMemory,

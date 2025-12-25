@@ -102,7 +102,6 @@ function RootComponent() {
   const handleGoToTags = useCallback(() => navigate({ to: '/tags' }), [navigate])
   const handleGoToNotes = useCallback(() => navigate({ to: '/notes' }), [navigate])
   const handleGoToPlanning = useCallback(() => navigate({ to: '/planning' }), [navigate])
-  const handleGoToSkills = useCallback(() => navigate({ to: '/skills' }), [navigate])
   const handleGoToSchedule = useCallback(() => navigate({ to: '/schedule' }), [navigate])
   const handleGoToSettings = useCallback(() => navigate({ to: '/settings', search: { section: undefined } }), [navigate])
   const handleGoToProcesses = useCallback(() => navigate({ to: '/processes' }), [navigate])
@@ -150,7 +149,6 @@ function RootComponent() {
       { key: 't', handler: handleGoToTags, description: 'Go to Tags', ignoreInputs: true },
       { key: 'n', handler: handleGoToNotes, description: 'Go to Notes', ignoreInputs: true },
       { key: 'a', handler: handleGoToPlanning, description: 'Go to Planning', ignoreInputs: true },
-      { key: 'k', handler: handleGoToSkills, description: 'Go to Skills', ignoreInputs: true },
       { key: 's', handler: handleGoToSchedule, description: 'Go to Schedule', ignoreInputs: true },
       { key: ',', handler: handleGoToSettings, description: 'Go to Settings', ignoreInputs: true },
       { key: 'b', meta: true, handler: handleToggleSidebar, description: 'Toggle sidebar' },
@@ -159,7 +157,7 @@ function RootComponent() {
       { key: 'n', meta: true, shift: true, handler: handleQuickNote, description: 'Quick note' },
       { key: 'd', meta: true, shift: true, handler: handleToggleDebugPanel, description: 'Toggle debug panel (dev only)' },
     ],
-    [handleGoToBoard, handleGoToProjects, handleGoToTags, handleGoToNotes, handleGoToPlanning, handleGoToSkills, handleGoToSchedule, handleGoToSettings, handleToggleSidebar, handleGoToProcesses, handleGoToShortcuts, handleQuickNote, handleToggleDebugPanel]
+    [handleGoToBoard, handleGoToProjects, handleGoToTags, handleGoToNotes, handleGoToPlanning, handleGoToSchedule, handleGoToSettings, handleToggleSidebar, handleGoToProcesses, handleGoToShortcuts, handleQuickNote, handleToggleDebugPanel]
   )
 
   // Don't enable shortcuts when a modal is open or walkthrough is active

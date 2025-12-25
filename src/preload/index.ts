@@ -4,12 +4,10 @@ import type {
   AgentAuthState,
   AgentConfigInfo,
   AgentInfo,
-  CreateSkillData,
   CreateTaskData,
   FormattedPrompt,
   GitConversionCheck,
   GitRepoInfo,
-  GithubSkillData,
   MemoryStats,
   RendererApi,
   ReorderTaskData,
@@ -51,14 +49,12 @@ import type {
   ClaudeAgent,
   ClaudeCommand,
   ClaudeProjectConfig,
-  ClaudeSkill,
   ClaudeMdAnalysis,
   ClaudeMdSubFile,
   CodebaseStructure,
   ContextAttachment,
   CreateClaudeAgentData,
   CreateClaudeCommandData,
-  CreateClaudeSkillData,
   CreateDocSessionData,
   CreateNoteData,
   CreateNoteGroupData,
@@ -79,7 +75,6 @@ import type {
   Project,
   ProjectAnalysis,
   ProjectMemory,
-  Skill,
   SkillRecommendation,
   Tag,
   TaskManifest,
@@ -495,34 +490,6 @@ const api: RendererApi = {
   ): Promise<{ success: boolean; error?: string }> =>
     ipcRenderer.invoke('agent:triggerReauth', agentId, projectPath),
 
-  // ============ Skills ============
-  listSkills: (): Promise<Skill[]> => ipcRenderer.invoke('skill:list'),
-
-  getSkill: (id: string): Promise<Skill | null> => ipcRenderer.invoke('skill:get', id),
-
-  getSkillsByIds: (ids: string[]): Promise<Skill[]> => ipcRenderer.invoke('skill:getByIds', ids),
-
-  getEnabledSkills: (): Promise<Skill[]> => ipcRenderer.invoke('skill:getEnabled'),
-
-  createSkill: (data: CreateSkillData): Promise<Skill> => ipcRenderer.invoke('skill:create', data),
-
-  updateSkill: (id: string, updates: Partial<Skill>): Promise<Skill | null> =>
-    ipcRenderer.invoke('skill:update', id, updates),
-
-  deleteSkill: (id: string): Promise<boolean> => ipcRenderer.invoke('skill:delete', id),
-
-  toggleSkill: (id: string): Promise<Skill | null> => ipcRenderer.invoke('skill:toggle', id),
-
-  setSkillsEnabled: (ids: string[], enabled: boolean): Promise<void> =>
-    ipcRenderer.invoke('skill:setEnabled', ids, enabled),
-
-  buildSkillPrompt: (ids: string[]): Promise<string> => ipcRenderer.invoke('skill:buildPrompt', ids),
-
-  resetSkills: (): Promise<Skill[]> => ipcRenderer.invoke('skill:reset'),
-
-  fetchGithubSkills: (githubUrl: string): Promise<GithubSkillData[]> =>
-    ipcRenderer.invoke('skill:fetchFromGithub', githubUrl),
-
   // ============ Memory ============
   getProjectMemory: (projectId: string): Promise<ProjectMemory> =>
     ipcRenderer.invoke('memory:get', projectId),
@@ -707,9 +674,6 @@ const api: RendererApi = {
   getClaudeAgents: (projectId: string): Promise<ClaudeAgent[]> =>
     ipcRenderer.invoke('claudeConfig:getAgents', projectId),
 
-  getClaudeSkills: (projectId: string): Promise<ClaudeSkill[]> =>
-    ipcRenderer.invoke('claudeConfig:getSkills', projectId),
-
   getClaudeCommands: (projectId: string): Promise<ClaudeCommand[]> =>
     ipcRenderer.invoke('claudeConfig:getCommands', projectId),
 
@@ -725,22 +689,6 @@ const api: RendererApi = {
 
   deleteClaudeAgent: (projectId: string, name: string): Promise<void> =>
     ipcRenderer.invoke('claudeConfig:deleteAgent', projectId, name),
-
-  createClaudeSkill: (projectId: string, data: CreateClaudeSkillData): Promise<ClaudeSkill> =>
-    ipcRenderer.invoke('claudeConfig:createSkill', projectId, data),
-
-  updateClaudeSkill: (
-    projectId: string,
-    name: string,
-    updates: Partial<CreateClaudeSkillData>
-  ): Promise<ClaudeSkill> =>
-    ipcRenderer.invoke('claudeConfig:updateSkill', projectId, name, updates),
-
-  deleteClaudeSkill: (projectId: string, name: string): Promise<void> =>
-    ipcRenderer.invoke('claudeConfig:deleteSkill', projectId, name),
-
-  toggleClaudeSkill: (projectId: string, name: string, enabled: boolean): Promise<ClaudeSkill> =>
-    ipcRenderer.invoke('claudeConfig:toggleSkill', projectId, name, enabled),
 
   createClaudeCommand: (projectId: string, data: CreateClaudeCommandData): Promise<ClaudeCommand> =>
     ipcRenderer.invoke('claudeConfig:createCommand', projectId, data),
@@ -898,13 +846,6 @@ const api: RendererApi = {
 
   getSkillRecommendations: (projectId: string): Promise<SkillRecommendation[]> =>
     ipcRenderer.invoke('analysis:getRecommendations', projectId),
-
-  createSkillsFromRecommendations: (
-    projectId: string,
-    projectPath: string,
-    recommendationIds: string[]
-  ): Promise<ClaudeSkill[]> =>
-    ipcRenderer.invoke('analysis:createSkills', projectId, projectPath, recommendationIds),
 
   clearAnalysisCache: (projectId: string): Promise<void> =>
     ipcRenderer.invoke('analysis:clearCache', projectId),

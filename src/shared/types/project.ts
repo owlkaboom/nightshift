@@ -22,9 +22,6 @@ export interface Project {
   /** Default branch name - null for non-git directories */
   defaultBranch: string | null
 
-  /** Default skills to enable for tasks in this project */
-  defaultSkills: string[]
-
   /** Whether to auto-include CLAUDE.md in task context */
   includeClaudeMd: boolean
 
@@ -127,7 +124,6 @@ export function createProject(
     description: null,
     gitUrl,
     defaultBranch,
-    defaultSkills: [],
     includeClaudeMd: true,
     tagIds: [],
     integrationIds: [],

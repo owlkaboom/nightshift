@@ -375,7 +375,6 @@ export function BoardView() {
     prompt: string
     projectId: string
     groupId?: string | null
-    enabledSkills?: string[]
     agentId?: string | null
     model?: string | null
     thinkingMode?: boolean | null
@@ -587,7 +586,7 @@ export function BoardView() {
   const handleSaveEdit = async (
     taskId: string,
     projectId: string,
-    updates: { prompt: string; enabledSkills?: string[], agentId?: string, model?: string, thinkingMode?: boolean | null }
+    updates: { prompt: string; agentId?: string, model?: string, thinkingMode?: boolean | null }
   ) => {
     await updateTask(projectId, taskId, updates)
   }

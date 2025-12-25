@@ -11,7 +11,6 @@ import { registerAgentConfigHandlers, initializeAgentConfig } from './agent-conf
 import { registerSystemHandlers } from './system-handlers'
 import { registerGitHandlers } from './git-handlers'
 import { registerAgentHandlers } from './agent-handlers'
-import { registerSkillHandlers } from './skill-handlers'
 import { registerMemoryHandlers } from './memory-handlers'
 import { registerPlanningHandlers } from './planning-handlers'
 import { registerNoteHandlers } from './note-handlers'
@@ -35,7 +34,6 @@ export async function registerIpcHandlers(): Promise<void> {
   registerSystemHandlers()
   registerGitHandlers()
   registerAgentHandlers()
-  registerSkillHandlers()
   registerMemoryHandlers()
   registerPlanningHandlers()
   registerNoteHandlers()
@@ -55,7 +53,6 @@ export { registerAgentConfigHandlers, initializeAgentConfig }
 export { registerSystemHandlers }
 export { registerGitHandlers }
 export { registerAgentHandlers }
-export { registerSkillHandlers }
 export { registerMemoryHandlers }
 export { registerPlanningHandlers }
 export { registerNoteHandlers }

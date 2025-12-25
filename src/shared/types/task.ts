@@ -182,9 +182,6 @@ export interface TaskManifest {
   /** Whether to include project's CLAUDE.md */
   includeClaudeMd: boolean
 
-  /** Skills to enable for this task (future) */
-  enabledSkills: string[]
-
   /** Agent ID to use for this task (if not set, uses global default) */
   agentId: string | null
 
@@ -285,7 +282,6 @@ export function createTaskManifest(
     integrationId: null,
     contextFiles: [],
     includeClaudeMd: true,
-    enabledSkills: [],
     agentId: null,
     model: null,
     thinkingMode: null,

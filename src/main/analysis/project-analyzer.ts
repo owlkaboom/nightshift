@@ -16,10 +16,8 @@ import type {
   AnalysisStatus
 } from '@shared/types'
 import { createProjectAnalysis } from '@shared/types'
-import type { ClaudeSkill, CreateClaudeSkillData } from '@shared/types'
 import { detectTechnologies } from './tech-detector'
 import { detectPatterns } from './pattern-detector'
-import { generateSkillRecommendations } from './skill-recommender'
 
 /**
  * Cache for analysis results
@@ -170,15 +168,8 @@ export async function analyzeProject(
     createProgress('generating-recommendations', 'Generating skill recommendations...', 70)
   )
 
-  // Generate recommendations
-  let recommendations: SkillRecommendation[]
-  try {
-    recommendations = generateSkillRecommendations(technologies, patterns)
-    logger.debug('[ProjectAnalyzer] Generated recommendations:', recommendations.length)
-  } catch (error) {
-    console.error('[ProjectAnalyzer] Error generating recommendations:', error)
-    recommendations = []
-  }
+  // Skill recommendations removed - skills feature has been removed from the codebase
+  const recommendations: SkillRecommendation[] = []
 
   // Generate summary
   const summary = generateSummary(technologies, patterns, recommendations)
@@ -245,48 +236,12 @@ export function getProjectRecommendations(projectId: string): SkillRecommendatio
  * @param createSkillFn - Callback to create a skill (receives skill data, returns the created skill)
  */
 export async function createSkillsFromRecommendations(
-  projectId: string,
-  recommendationIds: string[],
-  createSkillFn: (data: CreateClaudeSkillData) => Promise<ClaudeSkill>
-): Promise<ClaudeSkill[]> {
-  // Get analysis to find recommendations
-  const analysis = getCachedAnalysis(projectId)
-  if (!analysis) {
-    throw new Error('No analysis found. Run analysis first.')
-  }
-
-  // Find selected recommendations
-  const selectedRecs = analysis.recommendations.filter((r) => recommendationIds.includes(r.id))
-
-  if (selectedRecs.length === 0) {
-    throw new Error('No valid recommendations found for the given IDs')
-  }
-
-  logger.debug('[ProjectAnalyzer] Creating skills from', selectedRecs.length, 'recommendations')
-
-  const createdSkills: ClaudeSkill[] = []
-
-  for (const rec of selectedRecs) {
-    try {
-      // Convert recommendation to skill
-      const skillData: CreateClaudeSkillData = {
-        name: rec.name.toLowerCase().replace(/\s+/g, '-'),
-        description: rec.description,
-        prompt: rec.suggestedPrompt,
-        enabled: true
-      }
-
-      const skill = await createSkillFn(skillData)
-      createdSkills.push(skill)
-
-      logger.debug('[ProjectAnalyzer] Created skill:', skill.name)
-    } catch (error) {
-      console.error('[ProjectAnalyzer] Error creating skill:', rec.name, error)
-      // Continue with other skills
-    }
-  }
-
-  return createdSkills
+  _projectId: string,
+  _recommendationIds: string[],
+  _createSkillFn: (data: any) => Promise<any>
+): Promise<any[]> {
+  // Skills feature has been removed from the codebase
+  throw new Error('Skills feature has been removed from the codebase')
 }
 
 /**

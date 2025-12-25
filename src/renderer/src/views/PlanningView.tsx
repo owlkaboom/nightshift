@@ -221,7 +221,6 @@ export function PlanningView() {
     async (data: {
       prompt: string
       projectId: string
-      enabledSkills?: string[]
       agentId?: string | null
       model?: string | null
       thinkingMode?: boolean | null

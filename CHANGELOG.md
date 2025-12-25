@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **CLAUDE.md Documentation Structure**: Restructured main CLAUDE.md to be ~100 lines with dedicated domain-specific guides
+  - New `.claude/docs/frontend.md` with React/renderer-specific patterns and best practices
+  - New `.claude/docs/backend.md` with main process/Electron patterns and conventions
+  - Added "Domain-Specific Guidelines" section with clear when-to-reference guidance
+  - Improves context efficiency by loading only relevant documentation for each task
 - **Task Board Project Selector**: Added dropdown selector for changing the currently selected project directly from the task board
   - Shows project name with folder icon in the board controls area
   - Appears alongside agent/model selector for better context awareness
@@ -29,6 +34,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - New `jira:listStatuses` IPC handler
   - Cached status discovery in integration store
   - Foundation for dynamic status filter UI (to be implemented)
+
+### Removed
+
+- **Skills System**: Completely removed the deprecated skills system in favor of CLAUDE.md-based guidance
+  - Removed skill injection from task execution - Claude Code natively reads CLAUDE.md
+  - Removed Skills UI page and all skill management components
+  - Removed skill selection from task creation/editing dialogs
+  - Removed `enabledSkills` field from tasks database
+  - Removed `defaultSkills` field from projects database
+  - Removed skills table from database (migration 022)
+  - Removed all skill-related IPC handlers and API methods
+  - Skills can now be managed by editing CLAUDE.md and `.claude/docs/` files
+  - Breaking change: Existing skill data will be migrated away on next app start
 
 ### Fixed
 

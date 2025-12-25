@@ -6,13 +6,10 @@
  */
 
 import type { PlanningSession, Project } from '@shared/types'
-import { Brain, Loader2, MessageSquare, Sparkles, Wand2 } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { suggestSkills } from '@/lib/skill-suggestions'
-import { useSkillStore } from '@/stores/skill-store'
+import { Brain, Loader2, MessageSquare, Sparkles } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSessionStore } from '@/stores/session-store'
 import { useAgentCacheStore } from '@/stores/agent-cache-store'
-import { SkillSelector } from '@/components/skills/SkillSelector'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -44,7 +41,6 @@ interface CreateTaskFromPlanningDialogProps {
   onCreateTask: (data: {
     prompt: string
     projectId: string
-    enabledSkills?: string[]
     agentId?: string | null
     model?: string | null
     thinkingMode?: boolean | null
@@ -133,8 +129,7 @@ export function CreateTaskFromPlanningDialog({
   onCreateTask
 }: CreateTaskFromPlanningDialogProps) {
   const [prompt, setPrompt] = useState('') // HTML content
-  const [promptText, setPromptText] = useState('') // Plain text for skill suggestions
-  const [selectedSkills, setSelectedSkills] = useState<string[]>([])
+  const [promptText, setPromptText] = useState('') // Plain text for validation
   const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -154,8 +149,6 @@ export function CreateTaskFromPlanningDialog({
   // Thinking mode (null = use global default, true/false = override)
   const [thinkingMode, setThinkingMode] = useState<boolean | null>(null)
 
-  const { skills, fetchSkills } = useSkillStore()
-
   // Suggested values derived from session or section
   const suggestedPrompt = useMemo(
     () => (session ? extractSuggestedPrompt(session, sectionContent) : ''),
@@ -168,7 +161,6 @@ export function CreateTaskFromPlanningDialog({
       // Pass the markdown directly - RichTextEditor will convert it to HTML
       setPrompt(suggestedPrompt)
       setPromptText(suggestedPrompt)
-      setSelectedSkills([])
       // Keep agent/model sticky from session store
       setSelectedAgentId(sessionAgentId)
       setSelectedModel(sessionModel)
@@ -177,36 +169,7 @@ export function CreateTaskFromPlanningDialog({
     }
   }, [open, session, suggestedPrompt, sessionAgentId, sessionModel])
 
-  // Fetch skills when dialog opens
-  useEffect(() => {
-    if (open && skills.length === 0) {
-      fetchSkills()
-    }
-  }, [open, skills.length, fetchSkills])
-
-  // Auto-suggest skills when prompt is initialized (after dialog opens)
-  useEffect(() => {
-    if (open && promptText && skills.length > 0) {
-      // Auto-suggest on first load
-      const timeoutId = setTimeout(() => {
-        const enabledSkills = skills.filter((s) => s.enabled)
-        const suggested = suggestSkills('', promptText, enabledSkills)
-        setSelectedSkills(suggested)
-      }, 300) // Small delay to let dialog render
-
-      return () => clearTimeout(timeoutId)
-    }
-    return undefined
-  }, [open, promptText, skills])
-
   // Models are now loaded from cache automatically via getModelsForAgent
-
-  // Manual auto-suggest skills (for the magic wand button)
-  const handleAutoSuggestSkills = useCallback(() => {
-    const enabledSkills = skills.filter((s) => s.enabled)
-    const suggested = suggestSkills('', promptText, enabledSkills)
-    setSelectedSkills(suggested)
-  }, [skills, promptText])
 
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
@@ -233,7 +196,6 @@ export function CreateTaskFromPlanningDialog({
       await onCreateTask({
         prompt: prompt, // Send HTML content
         projectId: project.id,
-        enabledSkills: selectedSkills,
         agentId: selectedAgentId || null,
         model: selectedModel || null,
         thinkingMode,
@@ -367,29 +329,6 @@ export function CreateTaskFromPlanningDialog({
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-            </div>
-
-            {/* Skills */}
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Skills</Label>
-              <div className="col-span-3 flex items-center gap-2">
-                <SkillSelector
-                  selectedSkillIds={selectedSkills}
-                  onSelectionChange={setSelectedSkills}
-                  hideLabel
-                  className="flex-1"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={handleAutoSuggestSkills}
-                  title="Auto-suggest skills based on prompt"
-                  className="shrink-0"
-                >
-                  <Wand2 className="h-4 w-4" />
-                </Button>
               </div>
             </div>
 

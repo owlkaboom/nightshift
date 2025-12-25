@@ -23,8 +23,6 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import { FolderGit2, ListTodo } from 'lucide-react'
-import { useSkillStore } from '@/stores/skill-store'
-import { suggestSkills } from '@/lib/skill-suggestions'
 
 interface ConvertToTaskDialogProps {
   open: boolean
@@ -34,7 +32,6 @@ interface ConvertToTaskDialogProps {
   onConvert: (data: {
     prompt: string
     projectId: string
-    enabledSkills?: string[]
   }) => Promise<void>
 }
 
@@ -46,36 +43,9 @@ export function ConvertToTaskDialog({
   onConvert
 }: ConvertToTaskDialogProps) {
   const [prompt, setPrompt] = useState('') // HTML content
-  const [promptText, setPromptText] = useState('') // Plain text for skill suggestions
+  const [promptText, setPromptText] = useState('') // Plain text for validation
   const [projectId, setProjectId] = useState('')
-  const [selectedSkills, setSelectedSkills] = useState<string[]>([])
   const [converting, setConverting] = useState(false)
-
-  // Skill store
-  const { skills, fetchSkills } = useSkillStore()
-
-  // Fetch skills when dialog opens
-  useEffect(() => {
-    if (open && skills.length === 0) {
-      fetchSkills()
-    }
-  }, [open, skills.length, fetchSkills])
-
-  // Auto-suggest skills when prompt changes (debounced)
-  useEffect(() => {
-    if (!open || !promptText.trim()) {
-      setSelectedSkills([])
-      return
-    }
-
-    const timeoutId = setTimeout(() => {
-      const enabledSkills = skills.filter((s) => s.enabled)
-      const suggested = suggestSkills('', promptText, enabledSkills)
-      setSelectedSkills(suggested)
-    }, 300)
-
-    return () => clearTimeout(timeoutId)
-  }, [open, promptText, skills])
 
   // Initialize form when dialog opens
   const handleOpenChange = useCallback((newOpen: boolean) => {
@@ -93,7 +63,6 @@ export function ConvertToTaskDialog({
       setPrompt('')
       setPromptText('')
       setProjectId('')
-      setSelectedSkills([])
     }
     onOpenChange(newOpen)
   }, [note, onOpenChange])
@@ -105,8 +74,7 @@ export function ConvertToTaskDialog({
     try {
       await onConvert({
         prompt, // Send HTML content
-        projectId,
-        enabledSkills: selectedSkills
+        projectId
       })
       onOpenChange(false)
     } catch (error) {
@@ -114,7 +82,7 @@ export function ConvertToTaskDialog({
     } finally {
       setConverting(false)
     }
-  }, [prompt, projectId, selectedSkills, onConvert, onOpenChange])
+  }, [prompt, projectId, onConvert, onOpenChange])
 
   // Handle keyboard shortcuts
   useEffect(() => {
@@ -191,30 +159,6 @@ export function ConvertToTaskDialog({
               This will be sent to the AI agent as the task instructions.
             </p>
           </div>
-
-          {/* Auto-detected skills display */}
-          {selectedSkills.length > 0 && (
-            <div className="space-y-2">
-              <Label>Auto-detected Skills</Label>
-              <div className="flex flex-wrap gap-1.5 p-3 bg-muted/50 rounded-lg">
-                {selectedSkills.map((skillId) => {
-                  const skill = skills.find((s) => s.id === skillId)
-                  return skill ? (
-                    <span
-                      key={skillId}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs"
-                    >
-                      <span>{skill.icon}</span>
-                      <span>{skill.name}</span>
-                    </span>
-                  ) : null
-                })}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                These skills will be automatically applied to help guide the AI.
-              </p>
-            </div>
-          )}
         </div>
 
         <DialogFooter className="gap-2">

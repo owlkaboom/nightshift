@@ -36,7 +36,6 @@ src/
 - **Storage**: SQLite in `~/.nightshift/`, API keys in OS keychain
 - **Integrations**: GitHub issues/PRs, JIRA issue import
 - **Notes**: Rich text notes with @mentions, vault storage
-- **Skills**: Customizable prompts that modify agent behavior
 
 ## Code Conventions
 
@@ -79,24 +78,32 @@ npm run lint         # Must pass with no errors; fix any warnings you introduced
 - **Warnings**: Fix any new warnings introduced by your changes; pre-existing warnings can be left alone
 - **Changelog**: When adding new features, update `CHANGELOG.md` under the `[Unreleased]` section following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format (Added/Changed/Deprecated/Removed/Fixed/Security)
 
-## Detailed Documentation
+## Domain-Specific Guidelines
 
-See `.claude/docs/` for in-depth guides:
+When working in specific parts of the codebase, refer to these detailed guides:
+
+| Domain | Guide | When to Reference |
+|--------|-------|-------------------|
+| **Frontend** | [frontend.md](.claude/docs/frontend.md) | Working in `src/renderer/` |
+| **Backend** | [backend.md](.claude/docs/backend.md) | Working in `src/main/` |
+| **IPC** | [ipc-communication.md](.claude/docs/ipc-communication.md) | Adding/modifying IPC handlers |
+| **Storage** | [storage-layer.md](.claude/docs/storage-layer.md) | Database or file storage work |
+| **Testing** | [testing.md](.claude/docs/testing.md) | Writing or modifying tests |
+| **UI Components** | [ui-components.md](.claude/docs/ui-components.md) | Creating UI components |
+| **Git** | [git-integration.md](.claude/docs/git-integration.md) | Git worktree operations |
+| **Agents** | [agent-system.md](.claude/docs/agent-system.md) | Agent adapter patterns |
+
+## Additional Documentation
 
 | Topic | Document |
 |-------|----------|
 | **Features** | [features.md](.claude/docs/features.md) |
 | Architecture | [architecture.md](.claude/docs/architecture.md), [ARCHITECTURE_DIAGRAM.md](.claude/docs/ARCHITECTURE_DIAGRAM.md) |
-| Agents | [agent-system.md](.claude/docs/agent-system.md) |
 | Tasks | [task-management.md](.claude/docs/task-management.md) |
 | Planning | [planning-system.md](.claude/docs/planning-system.md) |
 | Notes | [notes-system.md](.claude/docs/notes-system.md) |
 | Integrations | [integrations.md](.claude/docs/integrations.md) |
-| Storage | [storage-layer.md](.claude/docs/storage-layer.md), [database-migrations.md](.claude/docs/database-migrations.md) |
-| IPC | [ipc-communication.md](.claude/docs/ipc-communication.md) |
-| UI | [ui-components.md](.claude/docs/ui-components.md), [feature-spotlight-custom-content.md](.claude/docs/feature-spotlight-custom-content.md) |
-| Git | [git-integration.md](.claude/docs/git-integration.md) |
-| Testing | [testing.md](.claude/docs/testing.md) |
+| Database Migrations | [database-migrations.md](.claude/docs/database-migrations.md) |
 
 ## Architecture Principles
 

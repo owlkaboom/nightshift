@@ -179,8 +179,9 @@ export const useAnalysisStore = create<AnalysisState>((set, get) => ({
     return window.api.getSkillRecommendations(projectId)
   },
 
-  createSkillsFromRecommendations: async (projectId: string, projectPath: string, recommendationIds: string[]) => {
-    return window.api.createSkillsFromRecommendations(projectId, projectPath, recommendationIds)
+  createSkillsFromRecommendations: async (_projectId: string, _projectPath: string, _recommendationIds: string[]) => {
+    // Skills feature has been removed from the codebase
+    throw new Error('Skills feature has been removed from the codebase')
   },
 
   updateRecommendationSelection: (projectId: string, recommendationId: string, selected: boolean) => {

@@ -22,7 +22,6 @@ export * from './sqlite/config-store'
 export * from './sqlite/local-state-store'
 export * from './sqlite/project-store'
 export * from './sqlite/task-store'
-export * from './sqlite/skill-store'
 export * from './sqlite/memory-store'
 export * from './sqlite/secure-store'
 
@@ -75,7 +74,6 @@ export interface StorageStatus {
   projectCount: number
   groupCount: number
   taskCount: number
-  skillCount: number
   databasePath: string
   error: string | null
 }
@@ -90,13 +88,11 @@ export async function getStorageStatus(): Promise<StorageStatus> {
     const { loadLocalState } = await import('./sqlite/local-state-store')
     const { loadProjects } = await import('./sqlite/project-store')
     const { loadAllTasks } = await import('./sqlite/task-store')
-    const { getAllSkills } = await import('./sqlite/skill-store')
 
     const config = await loadConfig()
     const localState = await loadLocalState()
     const projects = await loadProjects()
     const tasks = await loadAllTasks()
-    const skills = await getAllSkills()
 
     return {
       initialized: isDatabaseInitialized(),
@@ -105,7 +101,6 @@ export async function getStorageStatus(): Promise<StorageStatus> {
       projectCount: projects.length,
       groupCount: 0, // Deprecated - groups migrated to tags
       taskCount: tasks.length,
-      skillCount: skills.length,
       databasePath: getDatabasePath(),
       error: null
     }
@@ -117,7 +112,6 @@ export async function getStorageStatus(): Promise<StorageStatus> {
       projectCount: 0,
       groupCount: 0,
       taskCount: 0,
-      skillCount: 0,
       databasePath: '',
       error: error instanceof Error ? error.message : 'Unknown error'
     }

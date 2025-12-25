@@ -10,7 +10,6 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TagsRouteImport } from './routes/tags'
-import { Route as SkillsRouteImport } from './routes/skills'
 import { Route as ShortcutsRouteImport } from './routes/shortcuts'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ScheduleRouteImport } from './routes/schedule'
@@ -29,11 +28,6 @@ import { Route as BoardAddTaskRouteImport } from './routes/board.add-task'
 const TagsRoute = TagsRouteImport.update({
   id: '/tags',
   path: '/tags',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SkillsRoute = SkillsRouteImport.update({
-  id: '/skills',
-  path: '/skills',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ShortcutsRoute = ShortcutsRouteImport.update({
@@ -118,7 +112,6 @@ export interface FileRoutesByFullPath {
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
   '/shortcuts': typeof ShortcutsRoute
-  '/skills': typeof SkillsRoute
   '/tags': typeof TagsRoute
   '/board/add-task': typeof BoardAddTaskRoute
   '/board/add-voice-task': typeof BoardAddVoiceTaskRoute
@@ -135,7 +128,6 @@ export interface FileRoutesByTo {
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
   '/shortcuts': typeof ShortcutsRoute
-  '/skills': typeof SkillsRoute
   '/tags': typeof TagsRoute
   '/board/add-task': typeof BoardAddTaskRoute
   '/board/add-voice-task': typeof BoardAddVoiceTaskRoute
@@ -154,7 +146,6 @@ export interface FileRoutesById {
   '/schedule': typeof ScheduleRoute
   '/settings': typeof SettingsRoute
   '/shortcuts': typeof ShortcutsRoute
-  '/skills': typeof SkillsRoute
   '/tags': typeof TagsRoute
   '/board/add-task': typeof BoardAddTaskRoute
   '/board/add-voice-task': typeof BoardAddVoiceTaskRoute
@@ -174,7 +165,6 @@ export interface FileRouteTypes {
     | '/schedule'
     | '/settings'
     | '/shortcuts'
-    | '/skills'
     | '/tags'
     | '/board/add-task'
     | '/board/add-voice-task'
@@ -191,7 +181,6 @@ export interface FileRouteTypes {
     | '/schedule'
     | '/settings'
     | '/shortcuts'
-    | '/skills'
     | '/tags'
     | '/board/add-task'
     | '/board/add-voice-task'
@@ -209,7 +198,6 @@ export interface FileRouteTypes {
     | '/schedule'
     | '/settings'
     | '/shortcuts'
-    | '/skills'
     | '/tags'
     | '/board/add-task'
     | '/board/add-voice-task'
@@ -228,7 +216,6 @@ export interface RootRouteChildren {
   ScheduleRoute: typeof ScheduleRoute
   SettingsRoute: typeof SettingsRoute
   ShortcutsRoute: typeof ShortcutsRoute
-  SkillsRoute: typeof SkillsRoute
   TagsRoute: typeof TagsRoute
   IntegrationsIntegrationIdRoute: typeof IntegrationsIntegrationIdRoute
 }
@@ -240,13 +227,6 @@ declare module '@tanstack/react-router' {
       path: '/tags'
       fullPath: '/tags'
       preLoaderRoute: typeof TagsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/skills': {
-      id: '/skills'
-      path: '/skills'
-      fullPath: '/skills'
-      preLoaderRoute: typeof SkillsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/shortcuts': {
@@ -386,7 +366,6 @@ const rootRouteChildren: RootRouteChildren = {
   ScheduleRoute: ScheduleRoute,
   SettingsRoute: SettingsRoute,
   ShortcutsRoute: ShortcutsRoute,
-  SkillsRoute: SkillsRoute,
   TagsRoute: TagsRoute,
   IntegrationsIntegrationIdRoute: IntegrationsIntegrationIdRoute,
 }

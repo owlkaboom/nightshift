@@ -27,19 +27,4 @@ export { detectTechnologies, detectTechnologiesWithThreshold } from './tech-dete
 export { detectPatterns, detectPatternsWithThreshold } from './pattern-detector'
 
 // Skill recommendations
-export {
-  generateSkillRecommendations,
-  getTopRecommendations,
-  filterRecommendationsByPriority,
-  hasSkillsForTechnology
-} from './skill-recommender'
-
-// Skill templates
-export {
-  SKILL_TEMPLATES,
-  getTemplatesForTechnology,
-  getSupportedTechnologies,
-  hasTechnologyTemplate,
-  getTemplateByName,
-  getRelatedTemplates
-} from './skill-templates'
+// Skill-related exports removed - skills feature has been removed from the codebase

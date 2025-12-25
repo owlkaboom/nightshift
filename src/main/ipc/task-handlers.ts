@@ -76,7 +76,6 @@ export function registerTaskHandlers(): void {
         groupId: data.groupId,
         contextFiles: data.contextFiles,
         includeClaudeMd: data.includeClaudeMd,
-        enabledSkills: data.enabledSkills,
         agentId: data.agentId ?? null,
         model: data.model ?? null,
         thinkingMode: data.thinkingMode ?? null,
@@ -284,7 +283,6 @@ export function registerTaskHandlers(): void {
           groupId: planTask.groupId,
           contextFiles: planTask.contextFiles,
           includeClaudeMd: planTask.includeClaudeMd,
-          enabledSkills: planTask.enabledSkills,
           agentId: planTask.agentId,
           model: planTask.model,
           source: 'template', // Mark as derived from a plan

@@ -13,7 +13,6 @@ import {
   getProjectPath,
   buildMemoryContext,
   getProject,
-  buildSkillPrompt,
   appendIterationLog,
   completeIteration,
   loadTask,
@@ -267,13 +266,10 @@ export function registerAgentHandlers(): void {
           broadcastTaskStatusChanged(runningTask)
         }
 
-        // Build skill prompt if skills are enabled
-        const skillPrompt = await buildSkillPrompt(task.enabledSkills || [])
-
         // Build project memory context (cached knowledge to reduce token usage)
         const memoryContext = await buildMemoryContext(projectId)
 
-        // Build the full prompt with system instructions, memory, and skills
+        // Build the full prompt with system instructions and memory
         let fullPrompt = `You are working in project: ${project.name}
 - Working directory: ${workingDirectory}
 - Current branch: ${currentBranch || 'unknown'}
@@ -282,11 +278,6 @@ export function registerAgentHandlers(): void {
         // Add project memory context if available (reduces need for re-discovery)
         if (memoryContext) {
           fullPrompt += `\n${memoryContext}\n`
-        }
-
-        // Add skill instructions if any skills are selected
-        if (skillPrompt) {
-          fullPrompt += `\n${skillPrompt}\n`
         }
 
         fullPrompt += `\nTASK:\n${task.prompt}`
