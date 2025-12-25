@@ -37,7 +37,6 @@ interface TaskRow {
   integration_id: string | null
   context_files: string
   include_claude_md: number
-  enabled_skills: string
   agent_id: string | null
   model: string | null
   thinking_mode: number | null
@@ -151,17 +150,17 @@ export async function saveTask(task: TaskManifest): Promise<void> {
     INSERT OR REPLACE INTO tasks (
       id, project_id, group_id, tag_ids, prompt, status, queue_position,
       source, source_ref, external_issue_id, external_issue_url, integration_id,
-      context_files, include_claude_md, enabled_skills,
+      context_files, include_claude_md,
       agent_id, model, thinking_mode, created_at, started_at, completed_at, exit_code,
       error_message, cost_estimate, runtime_ms, running_session_started_at,
-      current_iteration, iterations
+      current_iteration, iterations, session_id, total_usage
     ) VALUES (
       @id, @project_id, @group_id, @tag_ids, @prompt, @status, @queue_position,
       @source, @source_ref, @external_issue_id, @external_issue_url, @integration_id,
-      @context_files, @include_claude_md, @enabled_skills,
+      @context_files, @include_claude_md,
       @agent_id, @model, @thinking_mode, @created_at, @started_at, @completed_at, @exit_code,
       @error_message, @cost_estimate, @runtime_ms, @running_session_started_at,
-      @current_iteration, @iterations
+      @current_iteration, @iterations, @session_id, @total_usage
     )
   `).run(params)
 }

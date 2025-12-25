@@ -105,8 +105,7 @@ function main(): void {
       'integration_ids',
       'tag_ids',
       'description',
-      'icon',
-      'default_skills'
+      'icon'
     ])
 
     // Verify other critical tables

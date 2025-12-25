@@ -115,7 +115,7 @@ export function AddTaskDialog({
 
   // Initialize project from session store when dialog opens
   useEffect(() => {
-    if (open && sessionProjectId && !projectId) {
+    if (open && sessionProjectId) {
       setProjectId(sessionProjectId)
     }
   }, [open, sessionProjectId])

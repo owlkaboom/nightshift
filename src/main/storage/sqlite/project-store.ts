@@ -18,7 +18,6 @@ interface ProjectRow {
   description: string | null
   git_url: string | null
   default_branch: string | null
-  default_skills: string
   include_claude_md: number
   tag_ids: string
   integration_ids: string
@@ -125,10 +124,10 @@ export async function addProject(
 
   db.prepare(`
     INSERT INTO projects (
-      id, name, description, git_url, default_branch, default_skills,
+      id, name, description, git_url, default_branch,
       include_claude_md, tag_ids, integration_ids, added_at, icon, path
     ) VALUES (
-      @id, @name, @description, @git_url, @default_branch, @default_skills,
+      @id, @name, @description, @git_url, @default_branch,
       @include_claude_md, @tag_ids, @integration_ids, @added_at, @icon, @path
     )
   `).run(params)
@@ -159,7 +158,6 @@ export async function updateProject(
       description = @description,
       git_url = @git_url,
       default_branch = @default_branch,
-      default_skills = @default_skills,
       include_claude_md = @include_claude_md,
       tag_ids = @tag_ids,
       integration_ids = @integration_ids,
